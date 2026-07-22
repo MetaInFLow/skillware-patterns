@@ -9,19 +9,30 @@ adaptee:
     - title
     - description
     - severity
+request:
+  fields:
+    - target
+    - issue
+    - target_context
 targets:
   - id: github
     adapter_operation: adapt_github
+    context_fields: [owner, repo]
   - id: jira
     adapter_operation: adapt_jira
+    context_fields: [project_key, issue_type]
   - id: linear
     adapter_operation: adapt_linear
+    context_fields: [team_id]
 severity_values:
   - low
   - medium
   - high
   - critical
 contract_reference: references/tracker-contracts.md
+response:
+  fields: [target, request]
+  offline_descriptor: true
 demo:
   python: ">=3.10"
   standard_library_only: true

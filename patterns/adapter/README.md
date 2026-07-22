@@ -6,9 +6,9 @@ Target, each thin tracker binding to an Adapter, and the task caller to the
 Client.
 
 The standalone sample is **Multi-Tracker Issue Publisher / 多问题追踪器发布**.
-Its root Skill accepts one canonical issue with `id`, `title`, `description`,
-and `severity`, then translates that issue for GitHub, Jira, or Linear without
-changing identity or meaning.
+Its root Skill accepts one canonical issue plus exact target context, then
+builds an offline, versioned GitHub REST, Jira REST v3, or Linear GraphQL
+request descriptor without changing identity or severity meaning.
 
 - [English definition](definition.md)
 - [中文定义](definition.zh-CN.md)

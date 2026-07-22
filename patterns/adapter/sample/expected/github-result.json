@@ -1,11 +1,18 @@
 {
   "target": "github",
-  "payload": {
-    "external_id": "ISSUE-104",
-    "title": "Checkout retries exhaust",
-    "body": "Payment requests fail after retry budget is exhausted.",
-    "labels": [
-      "severity:critical"
-    ]
+  "request": {
+    "method": "POST",
+    "path": "/repos/acme/payments/issues",
+    "headers": {
+      "Accept": "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28"
+    },
+    "body": {
+      "title": "Checkout retries exhaust",
+      "body": "Payment requests fail after retry budget is exhausted.\n\n<!-- skillware-source-id: ISSUE-104 -->\n<!-- skillware-severity: critical -->",
+      "labels": [
+        "skillware-severity-critical"
+      ]
+    }
   }
 }

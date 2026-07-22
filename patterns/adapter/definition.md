@@ -16,37 +16,42 @@ semantics.
 ## Forces
 
 - One canonical issue contract should remain authoritative across trackers.
-- GitHub, Jira, and Linear use different field names and severity
-  representations even though the issue meaning must remain stable.
+- GitHub REST, Jira REST v3, and Linear GraphQL use different operation,
+  context, document, and field conventions even though issue meaning must stay
+  stable.
 - Compatibility logic should be thin, explicit, and independently testable.
 - A binding must reject an unsupported target or semantic gap instead of
   silently dropping identity or weakening severity.
+- Severity describes impact, while tracker priority expresses scheduling
+  policy; interface adaptation must not conflate them.
 - Each target contract can evolve, so every Adapter carries maintenance cost.
 
 ## Participants
 
-- **Client:** the task caller that supplies a canonical issue and chooses a
-  tracker.
-- **Target:** the selected tracker's publishing payload contract, documented in
-  `sample/references/tracker-contracts.md`.
+- **Client:** the task caller that supplies a canonical issue, chooses a
+  tracker, and provides exact target context.
+- **Target:** the selected tracker's documented REST or GraphQL request
+  contract in `sample/references/tracker-contracts.md`.
 - **Adaptee:** `sample/SKILL.md`, the canonical issue-publishing Skill whose
   `id`, `title`, `description`, and `severity` semantics remain authoritative.
 - **Adapter:** the `adapt_github`, `adapt_jira`, and `adapt_linear` bindings in
-  `sample/scripts/run_demo.py`. Each translates the canonical issue into one
-  Target payload.
+  `sample/scripts/run_demo.py`. Each translates the canonical issue and target
+  context into one offline Target request descriptor.
 - **Agent Host and Agent Runtime:** execution context, not GoF Adapter
   participants. A Host binding can carry an Adapter, but the Host itself is not
   automatically the Client, Target, Adapter, or Adaptee.
 
 ## Collaboration
 
-The Client submits `target` plus a canonical `issue`. The Adaptee contract
-validates that all canonical fields are present and that severity is one of
-`low`, `medium`, `high`, or `critical`. The selected Adapter constructs a new
-Target payload: GitHub receives `body` and a severity label, Jira receives
-`summary` and a named priority, and Linear receives its documented numeric
-priority. Every binding copies canonical `id` to `external_id`, preserves the
-title and description meaning, and leaves the input unchanged.
+The Client submits exact `target`, `issue`, and `target_context` records. The
+Adaptee contract validates all canonical fields and the four-value severity
+vocabulary. The selected Adapter builds a new request descriptor. GitHub uses
+the versioned create-issue REST path, headers, Markdown body markers, and a
+severity label. Jira uses the REST v3 create-issue path, project and issue-type
+context, ADF description, and source/severity labels. Linear uses the
+`issueCreate` mutation with `variables.input` and Markdown metadata. Every
+binding preserves identity, title, description, and severity, adds no priority
+policy, and leaves the input unchanged.
 
 ## Consequences
 
@@ -54,8 +59,10 @@ The canonical Skill remains tracker-independent, Client code uses one stable
 issue model, and target-specific change is localized. Explicit translation
 also makes identity and semantic parity testable. The costs are another layer
 of indirection, a compatibility matrix that must be maintained, and the need
-for target-specific runtime tests. Translation cannot manufacture a target
-capability that does not exist.
+for target-specific runtime and API tests. An offline descriptor cannot verify
+credentials, tenant metadata, permissions, label availability, live acceptance,
+or side effects. Translation cannot manufacture a target capability that does
+not exist.
 
 ## Skillware Mapping
 
@@ -84,21 +91,24 @@ boundary when no compatible target semantics exist.
 
 ## Positive Evidence
 
-The repository sample is **constructive** evidence: three thin bindings
-translate one canonical issue into exact GitHub, Jira, and Linear payloads.
-Focused tests check output equality, identity and semantic parity, input
-immutability, rejection behavior, local paths, standalone imports, and CLI
-execution. Separately, the frozen gstack case supplies a **confirmed
-correspondence** for generated and system-specific Host surfaces.
+The repository sample is **constructive** evidence: three thin bindings build
+versioned offline GitHub REST, Jira REST v3, and Linear GraphQL request
+descriptors from one canonical issue. Focused tests check exact descriptor
+shape, all twelve severity/target combinations, identity preservation, target
+context use, input immutability, strict schema errors, local paths, standalone
+imports, and CLI execution. Separately, the frozen gstack case supplies a
+**confirmed correspondence** for generated and system-specific Host surfaces.
 
 **Paper wording (not status):** Strong correspondence. Parity requires runtime tests.
 
 ## Counter-Evidence
 
 The deterministic oracle does not exercise a real tracker or Agent Host. A
-payload that looks correct locally can still fail against a remote API. The
-gstack source observations show generation and Host-specific rewriting at one
-revision but do not prove equivalent execution across every advertised Host.
+documented request shape can still fail because of authentication, permissions,
+tenant configuration, unavailable fields or labels, API evolution, or invalid
+target IDs. The gstack source observations show generation and Host-specific
+rewriting at one revision but do not prove equivalent execution across every
+advertised Host.
 
 ## False Positives
 
@@ -124,11 +134,11 @@ constructive sample.
 ## Verification
 
 From `sample/`, run `python3 scripts/run_demo.py` and
-`python3 -m unittest discover tests -v`. Verification checks exact payloads for
-all three trackers, identity and meaning preservation, non-mutation of input,
-clear nonzero failure for unknown targets and malformed issues, resolution of
-participant and evidence paths, and absence of network or cross-pattern
-imports.
+`python3 -m unittest discover tests -v`. Verification checks exact descriptors
+for all three trackers, identity and severity preservation across all four
+severity values, target-context use, non-mutation, exact schema and CLI errors,
+resolution of participant/evidence paths, and absence of network or
+cross-pattern imports.
 
 ## Limitations
 
@@ -136,5 +146,6 @@ One constructive scenario and one confirmed ecosystem correspondence do not
 establish pattern frequency, comparative quality, or cross-Host runtime
 parity. The demo uses deterministic Python as an executable oracle for the
 behavioral contract; it does not simulate probabilistic Agent Runtime
-interpretation or tracker APIs. The mapping preserves established GoF forces
-and participants without asserting that Skillware invented Adapter.
+interpretation or call tracker APIs. The outputs are offline artifacts and make
+no claim of live acceptance or side effects. The mapping preserves established
+GoF forces and participants without asserting that Skillware invented Adapter.

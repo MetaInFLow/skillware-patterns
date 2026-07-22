@@ -6,9 +6,5 @@
     "description": "Payment requests fail after retry budget is exhausted.",
     "severity": "critical"
   },
-  "target_context": {
-    "owner": "acme",
-    "repo": "payments"
-  },
-  "trace_id": "TRACE-7"
+  "target_context": "acme/payments"
 }

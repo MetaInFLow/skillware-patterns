@@ -7,8 +7,7 @@
     "severity": "critical"
   },
   "target_context": {
-    "owner": "acme",
+    "owner": "",
     "repo": "payments"
-  },
-  "trace_id": "TRACE-7"
+  }
 }

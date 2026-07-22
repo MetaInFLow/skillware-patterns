@@ -1,9 +1,20 @@
 {
   "target": "linear",
-  "payload": {
-    "external_id": "ISSUE-104",
-    "title": "Checkout retries exhaust",
-    "description": "Payment requests fail after retry budget is exhausted.",
-    "priority": 1
+  "request": {
+    "method": "POST",
+    "url": "https://api.linear.app/graphql",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "query": "mutation IssueCreate($input: IssueCreateInput!) {\n  issueCreate(input: $input) {\n    success\n    issue {\n      id\n      title\n    }\n  }\n}",
+      "variables": {
+        "input": {
+          "teamId": "9cfb482a-81e3-4154-b5b9-2c805e70a02d",
+          "title": "Checkout retries exhaust",
+          "description": "Payment requests fail after retry budget is exhausted.\n\nSource ID: ISSUE-104\nSeverity: critical"
+        }
+      }
+    }
   }
 }

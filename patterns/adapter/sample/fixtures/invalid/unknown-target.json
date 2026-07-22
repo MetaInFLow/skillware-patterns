@@ -5,5 +5,6 @@
     "title": "Checkout retries exhaust",
     "description": "Payment requests fail after retry budget is exhausted.",
     "severity": "critical"
-  }
+  },
+  "target_context": {}
 }

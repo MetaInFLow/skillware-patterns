@@ -1,11 +1,59 @@
 {
   "target": "jira",
-  "payload": {
-    "external_id": "ISSUE-104",
-    "summary": "Checkout retries exhaust",
-    "description": "Payment requests fail after retry budget is exhausted.",
-    "priority": {
-      "name": "Highest"
+  "request": {
+    "method": "POST",
+    "path": "/rest/api/3/issue",
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "fields": {
+        "project": {
+          "key": "PAY"
+        },
+        "summary": "Checkout retries exhaust",
+        "issuetype": {
+          "id": "10001"
+        },
+        "description": {
+          "type": "doc",
+          "version": 1,
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Payment requests fail after retry budget is exhausted."
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Source ID: ISSUE-104"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Severity: critical"
+                }
+              ]
+            }
+          ]
+        },
+        "labels": [
+          "skillware-source-ISSUE-104",
+          "skillware-severity-critical"
+        ]
+      }
     }
   }
 }

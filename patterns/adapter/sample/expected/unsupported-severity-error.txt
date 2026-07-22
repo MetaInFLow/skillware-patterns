@@ -1,0 +1,1 @@
+error: severity must be one of: low, medium, high, critical

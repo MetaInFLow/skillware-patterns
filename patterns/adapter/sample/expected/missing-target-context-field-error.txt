@@ -1,0 +1,1 @@
+error: target_context fields for jira must be exactly: project_key, issue_type; missing: issue_type

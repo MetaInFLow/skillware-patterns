@@ -1,1 +1,1 @@
-error: request fields must be exactly: target, issue; unexpected: trace_id
+error: request fields must be exactly: target, issue, target_context; unexpected: trace_id

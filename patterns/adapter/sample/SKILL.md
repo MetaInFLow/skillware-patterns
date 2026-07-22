@@ -1,7 +1,7 @@
 ---
 name: multi-tracker-issue-publisher
-description: Translate one canonical issue for GitHub, Jira, or Linear. Use when publishing the same issue semantics through different tracker contracts.
-intent: Preserve issue identity and meaning while adapting one canonical contract to three target payloads.
+description: Build an offline GitHub, Jira, or Linear issue request. Use when adapting one canonical issue to documented tracker request contracts.
+intent: Preserve issue identity and severity while producing a versioned vendor request descriptor without network access.
 type: workflow
 ---
 
@@ -9,62 +9,68 @@ type: workflow
 
 ## Trigger
 
-Use this Skill when a task caller provides one canonical issue and needs a
-payload for GitHub, Jira, or Linear without maintaining tracker-specific copies
-of the issue procedure.
+Use this Skill when a task caller provides one canonical issue and target
+location details, and needs a documented offline request descriptor for
+GitHub, Jira, or Linear.
 
 ## Input contract
 
-Require a request object with:
+The request has exactly `target`, `issue`, and `target_context`.
 
-- `target`: exactly `github`, `jira`, or `linear`;
-- `issue.id`: a non-empty stable canonical identity;
-- `issue.title`: a non-empty title;
-- `issue.description`: a non-empty description;
-- `issue.severity`: exactly `low`, `medium`, `high`, or `critical`.
+The canonical `issue` has exactly four non-empty string fields: `id`, `title`,
+`description`, and `severity`. Severity is exactly `low`, `medium`, `high`, or
+`critical`.
 
-Reject an unknown target, missing field, empty field, wrong field type, or
-unsupported severity. The request must contain exactly `target` and `issue`,
-and `issue` must contain exactly the four canonical fields; reject additional
-fields clearly instead of silently discarding them. Never mutate the request
-or nested issue object.
+The exact `target_context` depends on `target`:
+
+- `github`: `owner` and `repo`;
+- `jira`: `project_key` and `issue_type`, where `issue_type` is the Jira issue
+  type ID;
+- `linear`: `team_id`.
+
+Reject unknown targets, missing or additional fields, non-object records,
+wrong types, blank values, invalid JSON, and unsupported severity. Never mutate
+the request, nested issue, or target context.
 
 ## Canonical semantics
 
-Treat `id`, `title`, `description`, and `severity` as the Adaptee contract.
-Every Adapter must preserve `id` as `external_id`, retain title and description
-meaning, and translate severity according to the target mapping in
-`references/tracker-contracts.md`. Reject a binding rather than discarding a
-required semantic value.
+Treat the four issue fields as the Adaptee contract. Preserve source identity
+and severity in documented body, description, or label fields instead of
+inventing vendor fields. Severity describes impact; tracker priority represents
+scheduling policy. Do not convert one into the other.
 
 ## Target bindings
 
-1. For GitHub, map `title` directly, map `description` to `body`, and encode
-   severity as one `severity:<canonical-value>` label.
-2. For Jira, map `title` to `summary`, retain `description`, and map severity to
-   the documented named `priority`.
-3. For Linear, retain `title` and `description`, and map severity to the
-   documented numeric `priority`.
+1. **GitHub REST API 2022-11-28:** build `POST
+   /repos/{owner}/{repo}/issues` with the version and media headers, canonical
+   title, a Markdown body containing deterministic source/severity markers, and
+   a deterministic severity label.
+2. **Jira Cloud REST API v3:** build `POST /rest/api/3/issue` with project key,
+   issue type ID, summary, an Atlassian Document Format description containing
+   the description/source/severity, and deterministic source/severity labels.
+3. **Linear GraphQL:** build the documented `issueCreate` mutation with
+   `variables.input.teamId`, `title`, and Markdown `description`. Keep source
+   identity and severity in the description because label IDs are not supplied.
 
-Each binding is an Adapter. The selected tracker payload contract is its
-Target. The task caller is the Client.
+The exact contracts and official documentation links are in
+`references/tracker-contracts.md`.
 
 ## Output contract
 
-Return exactly `target` and `payload`. The payload must contain `external_id`
-and only the selected Target's documented fields. Do not expose internal route
-names or add tracker-independent policy.
+Return exactly `target` and `request`. `request` is a deterministic offline
+descriptor with the selected REST or GraphQL operation. It contains no
+credentials, performs no network call, and does not claim that a live vendor
+service accepted it.
 
 ## Example
 
-Input: `{"target":"github","issue":{"id":"ISSUE-104","title":"Checkout retries exhaust","description":"Payment requests fail after retry budget is exhausted.","severity":"critical"}}`
-
-The GitHub Adapter emits `external_id`, the canonical title, the description as
-`body`, and the label `severity:critical`. The exact executable result is in
-`expected/github-result.json`.
+The valid GitHub fixture supplies `owner: acme` and `repo: payments`. Its
+descriptor uses `POST /repos/acme/payments/issues`, GitHub API version
+`2022-11-28`, the canonical title, and body markers for `ISSUE-104` and
+`critical`. The exact result is in `expected/github-result.json`.
 
 ## Anti-pattern
 
-Do not copy this Skill per tracker and merely rename fields while dropping
-canonical `id` or severity meaning. That creates divergent behavior and fails
+Do not copy this Skill per tracker, rename a few fields, or treat impact
+severity as scheduling priority. Dropping identity or severity meaning fails
 the Adapter requirement of semantic translation. See `../misuse/SKILL.md`.

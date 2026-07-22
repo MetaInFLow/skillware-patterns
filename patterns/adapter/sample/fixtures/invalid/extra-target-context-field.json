@@ -8,7 +8,7 @@
   },
   "target_context": {
     "owner": "acme",
-    "repo": "payments"
-  },
-  "trace_id": "TRACE-7"
+    "repo": "payments",
+    "organization": "acme"
+  }
 }

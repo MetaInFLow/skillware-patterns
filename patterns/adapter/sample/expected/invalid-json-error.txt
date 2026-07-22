@@ -1,0 +1,1 @@
+error: fixture must contain valid JSON

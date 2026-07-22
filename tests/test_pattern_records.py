@@ -1,6 +1,7 @@
 from pathlib import Path
 import re
 import unittest
+from urllib.parse import urlparse
 
 import yaml
 
@@ -238,6 +239,43 @@ class PatternRecordContractTest(unittest.TestCase):
                     text = path.read_text(encoding="utf-8")
                     self.assertNotIn("skillware-github", text)
                     self.assertNotIn("github.com/MetaInFLow/skillware", text)
+
+    def test_adapter_gstack_evidence_urls_are_structurally_pinned(self):
+        evidence = (
+            PATTERNS / "adapter/evidence/gstack-frozen-case.md"
+        ).read_text(encoding="utf-8")
+        urls = re.findall(r"https://github\.com/[^)\s]+", evidence)
+        expected_paths = {
+            "SKILL.md.tmpl",
+            "SKILL.md",
+            "scripts/gen-skill-docs.ts",
+            "hosts/claude.ts",
+            "hosts/codex.ts",
+            "hosts/index.ts",
+            "setup",
+            "test/codex-e2e.test.ts",
+        }
+        pinned_paths = set()
+
+        for url in urls:
+            parsed = urlparse(url)
+            parts = parsed.path.strip("/").split("/")
+            if len(parts) < 5 or parts[2] not in {"blob", "tree"}:
+                continue
+            owner, repository, _, revision = parts[:4]
+            upstream_path = "/".join(parts[4:])
+            with self.subTest(url=url):
+                self.assertEqual(parsed.scheme, "https")
+                self.assertEqual(parsed.netloc, "github.com")
+                self.assertEqual((owner, repository), ("garrytan", "gstack"))
+                self.assertRegex(revision, r"^[0-9a-f]{40}$")
+                self.assertEqual(
+                    revision, "11de390be1be6849eb9a15f91ff4922dd16c589a"
+                )
+                self.assertIn(upstream_path, expected_paths)
+            pinned_paths.add(upstream_path)
+
+        self.assertEqual(pinned_paths, expected_paths)
 
     def test_adapter_separates_gof_participants_from_execution_context(self):
         participant_map = yaml.safe_load(

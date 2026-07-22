@@ -13,6 +13,7 @@ import yaml
 SAMPLE = Path(__file__).resolve().parents[1]
 RECORD = SAMPLE.parent
 SCRIPT = SAMPLE / "scripts/run_demo.py"
+TARGETS = ("github", "jira", "linear")
 
 
 def load_demo_module():
@@ -39,141 +40,148 @@ class AdapterDemoTest(unittest.TestCase):
         self.assertEqual(result, self.load_json(expected))
         return request, result
 
-    def test_github_adapter_returns_exact_target_payload(self):
+    def test_github_adapter_returns_exact_rest_request_descriptor(self):
         _, result = self.assert_fixture_result(
             "fixtures/valid/github.json", "expected/github-result.json"
         )
 
+        self.assertEqual(result["request"]["method"], "POST")
+        self.assertEqual(result["request"]["path"], "/repos/acme/payments/issues")
         self.assertEqual(
-            result,
+            result["request"]["headers"],
             {
-                "target": "github",
-                "payload": {
-                    "external_id": "ISSUE-104",
-                    "title": "Checkout retries exhaust",
-                    "body": "Payment requests fail after retry budget is exhausted.",
-                    "labels": ["severity:critical"],
-                },
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
+        )
+        self.assertEqual(
+            result["request"]["body"],
+            {
+                "title": "Checkout retries exhaust",
+                "body": (
+                    "Payment requests fail after retry budget is exhausted.\n\n"
+                    "<!-- skillware-source-id: ISSUE-104 -->\n"
+                    "<!-- skillware-severity: critical -->"
+                ),
+                "labels": ["skillware-severity-critical"],
             },
         )
 
-    def test_jira_adapter_returns_exact_target_payload(self):
+    def test_jira_adapter_returns_exact_rest_v3_request_descriptor(self):
         _, result = self.assert_fixture_result(
             "fixtures/valid/jira.json", "expected/jira-result.json"
         )
 
+        self.assertEqual(result["request"]["method"], "POST")
+        self.assertEqual(result["request"]["path"], "/rest/api/3/issue")
         self.assertEqual(
-            result,
+            result["request"]["headers"],
+            {"Accept": "application/json", "Content-Type": "application/json"},
+        )
+        self.assertEqual(
+            result["request"]["body"]["fields"],
             {
-                "target": "jira",
-                "payload": {
-                    "external_id": "ISSUE-104",
-                    "summary": "Checkout retries exhaust",
-                    "description": "Payment requests fail after retry budget is exhausted.",
-                    "priority": {"name": "Highest"},
+                "project": {"key": "PAY"},
+                "summary": "Checkout retries exhaust",
+                "issuetype": {"id": "10001"},
+                "description": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                        {
+                            "type": "paragraph",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": (
+                                        "Payment requests fail after retry budget "
+                                        "is exhausted."
+                                    ),
+                                }
+                            ],
+                        },
+                        {
+                            "type": "paragraph",
+                            "content": [
+                                {"type": "text", "text": "Source ID: ISSUE-104"}
+                            ],
+                        },
+                        {
+                            "type": "paragraph",
+                            "content": [
+                                {"type": "text", "text": "Severity: critical"}
+                            ],
+                        },
+                    ],
                 },
+                "labels": [
+                    "skillware-source-ISSUE-104",
+                    "skillware-severity-critical",
+                ],
             },
         )
 
-    def test_linear_adapter_returns_exact_target_payload(self):
+    def test_linear_adapter_returns_exact_graphql_request_descriptor(self):
         _, result = self.assert_fixture_result(
             "fixtures/valid/linear.json", "expected/linear-result.json"
         )
 
+        self.assertEqual(result["request"]["method"], "POST")
+        self.assertEqual(result["request"]["url"], "https://api.linear.app/graphql")
         self.assertEqual(
-            result,
+            result["request"]["body"]["variables"]["input"],
             {
-                "target": "linear",
-                "payload": {
-                    "external_id": "ISSUE-104",
-                    "title": "Checkout retries exhaust",
-                    "description": "Payment requests fail after retry budget is exhausted.",
-                    "priority": 1,
-                },
+                "teamId": "9cfb482a-81e3-4154-b5b9-2c805e70a02d",
+                "title": "Checkout retries exhaust",
+                "description": (
+                    "Payment requests fail after retry budget is exhausted.\n\n"
+                    "Source ID: ISSUE-104\nSeverity: critical"
+                ),
             },
         )
+        self.assertIn("issueCreate(input: $input)", result["request"]["body"]["query"])
 
-    def test_all_adapters_preserve_identity_and_meaning(self):
-        expected_descriptions = {
-            "github": ("body", "Payment requests fail after retry budget is exhausted."),
-            "jira": (
-                "description",
-                "Payment requests fail after retry budget is exhausted.",
-            ),
-            "linear": (
-                "description",
-                "Payment requests fail after retry budget is exhausted.",
-            ),
-        }
-        severity_representations = {
-            "github": ("labels", ["severity:critical"]),
-            "jira": ("priority", {"name": "Highest"}),
-            "linear": ("priority", 1),
-        }
+    def test_target_context_drives_each_request_destination(self):
+        github = self.demo.publish_issue(self.load_json("fixtures/valid/github.json"))
+        jira = self.demo.publish_issue(self.load_json("fixtures/valid/jira.json"))
+        linear = self.demo.publish_issue(self.load_json("fixtures/valid/linear.json"))
 
-        for target in ("github", "jira", "linear"):
-            with self.subTest(target=target):
-                request = self.load_json(f"fixtures/valid/{target}.json")
-                result = self.demo.publish_issue(request)
-                payload = result["payload"]
-                self.assertEqual(payload["external_id"], request["issue"]["id"])
-                self.assertEqual(
-                    payload["title" if target != "jira" else "summary"],
-                    request["issue"]["title"],
-                )
-                description_field, description = expected_descriptions[target]
-                self.assertEqual(payload[description_field], description)
-                severity_field, severity = severity_representations[target]
-                self.assertEqual(payload[severity_field], severity)
+        self.assertEqual(github["request"]["path"], "/repos/acme/payments/issues")
+        self.assertEqual(
+            jira["request"]["body"]["fields"]["project"], {"key": "PAY"}
+        )
+        self.assertEqual(
+            jira["request"]["body"]["fields"]["issuetype"], {"id": "10001"}
+        )
+        self.assertEqual(
+            linear["request"]["body"]["variables"]["input"]["teamId"],
+            "9cfb482a-81e3-4154-b5b9-2c805e70a02d",
+        )
 
-    def test_every_canonical_severity_has_an_exact_mapping_for_every_target(self):
-        severity_mappings = {
-            "low": {
-                "github": ["severity:low"],
-                "jira": {"name": "Low"},
-                "linear": 4,
-            },
-            "medium": {
-                "github": ["severity:medium"],
-                "jira": {"name": "Medium"},
-                "linear": 3,
-            },
-            "high": {
-                "github": ["severity:high"],
-                "jira": {"name": "High"},
-                "linear": 2,
-            },
-            "critical": {
-                "github": ["severity:critical"],
-                "jira": {"name": "Highest"},
-                "linear": 1,
-            },
-        }
-
-        for severity, target_values in severity_mappings.items():
-            for target, target_value in target_values.items():
+    def test_every_severity_and_identity_survive_every_request_descriptor(self):
+        for severity in ("low", "medium", "high", "critical"):
+            for target in TARGETS:
                 with self.subTest(severity=severity, target=target):
-                    request = self.load_json("fixtures/valid/github.json")
-                    request["target"] = target
-                    request["issue"]["severity"] = severity
-                    payload = self.demo.publish_issue(request)["payload"]
-                    title_field = "summary" if target == "jira" else "title"
-                    description_field = "body" if target == "github" else "description"
-                    severity_field = "labels" if target == "github" else "priority"
-                    self.assertEqual(
-                        payload,
-                        {
-                            "external_id": "ISSUE-104",
-                            title_field: "Checkout retries exhaust",
-                            description_field: (
-                                "Payment requests fail after retry budget is exhausted."
-                            ),
-                            severity_field: target_value,
-                        },
-                    )
+                    source = self.load_json(f"fixtures/valid/{target}.json")
+                    source["issue"]["severity"] = severity
+                    result = self.demo.publish_issue(source)
+                    serialized = json.dumps(result, sort_keys=True)
+                    self.assertIn("ISSUE-104", serialized)
+                    self.assertIn(severity, serialized)
+                    self.assertNotIn('"priority"', serialized)
+
+    def test_severity_is_preserved_without_priority_policy(self):
+        for target in TARGETS:
+            with self.subTest(target=target):
+                result = self.demo.publish_issue(
+                    self.load_json(f"fixtures/valid/{target}.json")
+                )
+                serialized = json.dumps(result)
+                self.assertIn("critical", serialized)
+                self.assertNotIn("priority", serialized)
 
     def test_publish_does_not_mutate_input(self):
-        for target in ("github", "jira", "linear"):
+        for target in TARGETS:
             with self.subTest(target=target):
                 request = self.load_json(f"fixtures/valid/{target}.json")
                 before = deepcopy(request)
@@ -181,72 +189,98 @@ class AdapterDemoTest(unittest.TestCase):
                 self.assertEqual(request, before)
 
     def test_adapter_copies_canonical_strings_without_normalizing_identity(self):
-        request = self.load_json("fixtures/valid/github.json")
+        request = self.load_json("fixtures/valid/linear.json")
         request["issue"]["id"] = " ISSUE-104 "
         request["issue"]["title"] = " Checkout retries exhaust "
         request["issue"]["description"] = " Keep canonical spacing. "
 
         result = self.demo.publish_issue(request)
+        linear_input = result["request"]["body"]["variables"]["input"]
 
-        self.assertEqual(result["payload"]["external_id"], " ISSUE-104 ")
-        self.assertEqual(result["payload"]["title"], " Checkout retries exhaust ")
-        self.assertEqual(result["payload"]["body"], " Keep canonical spacing. ")
+        self.assertEqual(linear_input["title"], " Checkout retries exhaust ")
+        self.assertIn(" Keep canonical spacing. ", linear_input["description"])
+        self.assertIn("Source ID:  ISSUE-104 ", linear_input["description"])
 
-    def test_unknown_target_is_rejected_clearly(self):
-        request = self.load_json("fixtures/invalid/unknown-target.json")
-
-        with self.assertRaisesRegex(
-            self.demo.ValidationError,
-            "target must be one of: github, jira, linear",
-        ):
+    def assert_validation_error(self, fixture, message):
+        request = self.load_json(f"fixtures/invalid/{fixture}")
+        with self.assertRaisesRegex(self.demo.ValidationError, f"^{message}$"):
             self.demo.publish_issue(request)
 
-    def test_malformed_issue_is_rejected_clearly(self):
-        request = self.load_json("fixtures/invalid/malformed-issue.json")
+    def test_unknown_target_is_rejected(self):
+        self.assert_validation_error(
+            "unknown-target.json", "target must be one of: github, jira, linear"
+        )
 
-        with self.assertRaisesRegex(
-            self.demo.ValidationError,
-            "issue requires non-empty string fields: id, title, description, severity",
-        ):
-            self.demo.publish_issue(request)
+    def test_malformed_issue_schema_is_rejected(self):
+        self.assert_validation_error(
+            "malformed-issue.json",
+            "issue fields must be exactly: id, title, description, severity; missing: severity",
+        )
 
-    def test_extra_top_level_field_is_rejected_clearly(self):
-        request = self.load_json("fixtures/invalid/extra-request-field.json")
+    def test_extra_top_level_field_is_rejected(self):
+        self.assert_validation_error(
+            "extra-request-field.json",
+            "request fields must be exactly: target, issue, target_context; unexpected: trace_id",
+        )
 
-        with self.assertRaisesRegex(
-            self.demo.ValidationError,
-            "request fields must be exactly: target, issue; unexpected: trace_id",
-        ):
-            self.demo.publish_issue(request)
-
-    def test_extra_issue_field_is_rejected_clearly(self):
-        request = self.load_json("fixtures/invalid/extra-issue-field.json")
-
-        with self.assertRaisesRegex(
-            self.demo.ValidationError,
+    def test_extra_issue_field_is_rejected(self):
+        self.assert_validation_error(
+            "extra-issue-field.json",
             "issue fields must be exactly: id, title, description, severity; unexpected: reporter",
-        ):
-            self.demo.publish_issue(request)
+        )
 
-    def test_unsupported_severity_is_rejected_clearly(self):
-        request = self.load_json("fixtures/valid/github.json")
-        request["issue"]["severity"] = "urgent"
+    def test_missing_target_context_is_rejected(self):
+        self.assert_validation_error(
+            "missing-target-context.json",
+            "request fields must be exactly: target, issue, target_context; missing: target_context",
+        )
 
-        with self.assertRaisesRegex(
-            self.demo.ValidationError,
+    def test_extra_target_context_field_is_rejected(self):
+        self.assert_validation_error(
+            "extra-target-context-field.json",
+            "target_context fields for github must be exactly: owner, repo; unexpected: organization",
+        )
+
+    def test_missing_target_context_field_is_rejected(self):
+        self.assert_validation_error(
+            "missing-target-context-field.json",
+            "target_context fields for jira must be exactly: project_key, issue_type; missing: issue_type",
+        )
+
+    def test_wrong_target_context_type_is_rejected(self):
+        self.assert_validation_error(
+            "wrong-target-context-type.json",
+            "target_context for github must be a JSON object",
+        )
+
+    def test_blank_target_context_value_is_rejected(self):
+        self.assert_validation_error(
+            "blank-target-context-value.json",
+            "target_context for github requires non-empty string fields: owner, repo",
+        )
+
+    def test_wrong_issue_field_type_is_rejected(self):
+        self.assert_validation_error(
+            "wrong-issue-field-type.json",
+            "issue fields must be non-empty strings: id, title, description, severity",
+        )
+
+    def test_blank_issue_field_is_rejected(self):
+        self.assert_validation_error(
+            "blank-issue-field.json",
+            "issue fields must be non-empty strings: id, title, description, severity",
+        )
+
+    def test_non_object_request_is_rejected(self):
+        self.assert_validation_error(
+            "non-object-request.json", "request must be a JSON object"
+        )
+
+    def test_unsupported_severity_is_rejected(self):
+        self.assert_validation_error(
+            "unsupported-severity.json",
             "severity must be one of: low, medium, high, critical",
-        ):
-            self.demo.publish_issue(request)
-
-    def test_severity_values_are_exact_not_case_normalized(self):
-        request = self.load_json("fixtures/valid/github.json")
-        request["issue"]["severity"] = "Critical"
-
-        with self.assertRaisesRegex(
-            self.demo.ValidationError,
-            "severity must be one of: low, medium, high, critical",
-        ):
-            self.demo.publish_issue(request)
+        )
 
     def test_cli_defaults_to_github_fixture_and_prints_deterministic_json(self):
         completed = subprocess.run(
@@ -257,18 +291,12 @@ class AdapterDemoTest(unittest.TestCase):
             check=False,
         )
 
+        expected = self.load_json("expected/github-result.json")
         self.assertEqual(completed.returncode, 0, completed.stderr)
-        self.assertEqual(
-            json.loads(completed.stdout), self.load_json("expected/github-result.json")
-        )
+        self.assertEqual(json.loads(completed.stdout), expected)
         self.assertEqual(
             completed.stdout,
-            json.dumps(
-                self.load_json("expected/github-result.json"),
-                ensure_ascii=False,
-                indent=2,
-            )
-            + "\n",
+            json.dumps(expected, ensure_ascii=False, indent=2) + "\n",
         )
 
     def test_cli_accepts_optional_fixture_path(self):
@@ -290,12 +318,29 @@ class AdapterDemoTest(unittest.TestCase):
         )
 
     def test_cli_errors_exactly_match_committed_expectations(self):
-        for fixture, expectation in (
+        cases = (
             ("unknown-target.json", "unknown-target-error.txt"),
             ("malformed-issue.json", "malformed-issue-error.txt"),
             ("extra-request-field.json", "extra-request-field-error.txt"),
             ("extra-issue-field.json", "extra-issue-field-error.txt"),
-        ):
+            ("missing-target-context.json", "missing-target-context-error.txt"),
+            (
+                "extra-target-context-field.json",
+                "extra-target-context-field-error.txt",
+            ),
+            (
+                "missing-target-context-field.json",
+                "missing-target-context-field-error.txt",
+            ),
+            ("wrong-target-context-type.json", "wrong-target-context-type-error.txt"),
+            ("blank-target-context-value.json", "blank-target-context-value-error.txt"),
+            ("wrong-issue-field-type.json", "wrong-issue-field-type-error.txt"),
+            ("blank-issue-field.json", "blank-issue-field-error.txt"),
+            ("non-object-request.json", "non-object-request-error.txt"),
+            ("invalid-json.json", "invalid-json-error.txt"),
+            ("unsupported-severity.json", "unsupported-severity-error.txt"),
+        )
+        for fixture, expectation in cases:
             with self.subTest(fixture=fixture):
                 completed = subprocess.run(
                     [
@@ -323,11 +368,27 @@ class AdapterDemoTest(unittest.TestCase):
             set(participant_map["participants"]),
             {"Client", "Target", "Adaptee", "Adapter"},
         )
+        self.assertEqual(
+            participant_map["participants"]["Target"]["path"],
+            "sample/references/tracker-contracts.md",
+        )
         for implementation in participant_map["participants"]["Adapter"][
             "implementations"
         ]:
             self.assertTrue((RECORD / implementation["path"]).is_file())
         self.assertTrue((RECORD / participant_map["evidence_path"]).is_file())
+
+    def test_tracker_contract_cites_official_vendor_documentation(self):
+        reference = self.load_text("references/tracker-contracts.md")
+
+        for required in (
+            "https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28#create-an-issue",
+            "https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issues/#api-rest-api-3-issue-post",
+            "https://developer.atlassian.com/cloud/jira/platform/apis/document/structure/",
+            "https://linear.app/developers/graphql#creating-and-editing-issues",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, reference)
 
     def test_demo_uses_only_the_standard_library_and_no_other_pattern(self):
         tree = ast.parse(SCRIPT.read_text(encoding="utf-8"))

@@ -3,11 +3,11 @@ pattern_id: adapter
 participants:
   Client:
     role: Task caller
-    behavior: Supplies one canonical issue and selects a target tracker.
+    behavior: Supplies one canonical issue, selects a tracker, and provides exact target context.
     path: sample/README.md
   Target:
-    role: Tracker publishing contract
-    behavior: Defines the payload expected by GitHub, Jira, or Linear.
+    role: Documented tracker request contract
+    behavior: Defines the versioned REST or GraphQL request descriptor for GitHub, Jira, or Linear.
     path: sample/references/tracker-contracts.md
   Adaptee:
     role: Canonical issue-publishing Skill
@@ -15,7 +15,7 @@ participants:
     path: sample/SKILL.md
   Adapter:
     role: Thin target bindings
-    behavior: Translates canonical fields and severity meaning into each Target contract.
+    behavior: Builds an offline Target request while preserving canonical identity and severity.
     implementations:
       - id: github
         operation: adapt_github
@@ -43,6 +43,16 @@ implementation_paths:
   - sample/fixtures/invalid/malformed-issue.json
   - sample/fixtures/invalid/extra-request-field.json
   - sample/fixtures/invalid/extra-issue-field.json
+  - sample/fixtures/invalid/missing-target-context.json
+  - sample/fixtures/invalid/extra-target-context-field.json
+  - sample/fixtures/invalid/missing-target-context-field.json
+  - sample/fixtures/invalid/wrong-target-context-type.json
+  - sample/fixtures/invalid/blank-target-context-value.json
+  - sample/fixtures/invalid/wrong-issue-field-type.json
+  - sample/fixtures/invalid/blank-issue-field.json
+  - sample/fixtures/invalid/non-object-request.json
+  - sample/fixtures/invalid/invalid-json.json
+  - sample/fixtures/invalid/unsupported-severity.json
   - sample/expected/github-result.json
   - sample/expected/jira-result.json
   - sample/expected/linear-result.json
@@ -50,6 +60,16 @@ implementation_paths:
   - sample/expected/malformed-issue-error.txt
   - sample/expected/extra-request-field-error.txt
   - sample/expected/extra-issue-field-error.txt
+  - sample/expected/missing-target-context-error.txt
+  - sample/expected/extra-target-context-field-error.txt
+  - sample/expected/missing-target-context-field-error.txt
+  - sample/expected/wrong-target-context-type-error.txt
+  - sample/expected/blank-target-context-value-error.txt
+  - sample/expected/wrong-issue-field-type-error.txt
+  - sample/expected/blank-issue-field-error.txt
+  - sample/expected/non-object-request-error.txt
+  - sample/expected/invalid-json-error.txt
+  - sample/expected/unsupported-severity-error.txt
   - sample/tests/test_demo.py
 misuse_path: misuse/SKILL.md
 evidence_path: evidence/gstack-frozen-case.md

@@ -1,5 +1,5 @@
 {
-  "target": "github",
+  "target": "jira",
   "issue": {
     "id": "ISSUE-104",
     "title": "Checkout retries exhaust",
@@ -7,8 +7,6 @@
     "severity": "critical"
   },
   "target_context": {
-    "owner": "acme",
-    "repo": "payments"
-  },
-  "trace_id": "TRACE-7"
+    "project_key": "PAY"
+  }
 }
