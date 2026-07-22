@@ -10,10 +10,14 @@ The module-level `review({"files": int, "security_sensitive": bool})` function
 preserves the exact compact implementation-plan surface. It selects
 `deep-review` when `security_sensitive` is true or `files` is greater than 5;
 otherwise it selects `fast-scan`. It returns exactly `strategy`, `findings`,
-and `confidence`, canonically in that serialization order. `files` must be a
-non-negative integer and cannot be a boolean. This compact API is separate from
-the richer changed-file contract and CLI below; their request and result objects
-must not be substituted for each other.
+and `confidence`, canonically in that serialization order. After selection,
+`review` invokes exactly one `fast_scan(change)` or `deep_review(change)`
+callable; both implement that exact compact result contract. Optional injected
+callables support isolated selection/delegation tests, and default functions are
+resolved at call time so they can also be patched. `files` must be a non-negative
+integer and cannot be a boolean. This compact API is separate from the richer
+changed-file contract and CLI below; their request and result objects must not
+be substituted for each other.
 
 ## Request
 

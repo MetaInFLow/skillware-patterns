@@ -57,7 +57,9 @@ The Context does not inspect an injected procedure or require built-in rules.
 The demo module also retains a compact plan-compatibility `review` API. It
 accepts only integer file count and security sensitivity, chooses Deep Review
 for security sensitivity or more than five files, and returns exactly strategy,
-findings, and confidence. That compact surface is separate from the richer
+findings, and confidence. Its Context invokes exactly one selected `fast_scan`
+or `deep_review` callable, and spy injection verifies chosen-once and
+unchosen-never behavior. That compact surface is separate from the richer
 file-content CLI contract and the two objects are not mutually substitutable.
 
 ## Consequences

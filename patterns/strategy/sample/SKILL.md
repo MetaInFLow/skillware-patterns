@@ -50,7 +50,9 @@ procedure, not the Context or public interface.
 The demo module also exposes the exact compact plan API:
 `review({"files": int, "security_sensitive": bool})`. It selects Deep Review
 for a security-sensitive request or when `files > 5`, and returns exactly
-`strategy`, `findings`, and `confidence`. This compatibility surface is
+`strategy`, `findings`, and `confidence`. After selection it invokes exactly one
+`fast_scan(change)` or `deep_review(change)` implementation of that contract;
+the callables can be injected for isolated tests. This compatibility surface is
 separate from the richer JSON fixture and CLI contract above.
 
 ## Demo mode

@@ -14,7 +14,8 @@ The demo module separately preserves the compact plan-level
 `review({"files": int, "security_sensitive": bool})` API, whose Deep Review
 threshold is strictly greater than five files and whose exact result fields are
 `strategy`, `findings`, and `confidence`. It is not interchangeable with the
-richer file-content CLI contract.
+richer file-content CLI contract. Its Context delegates exactly once to the
+selected compact `fast_scan` or `deep_review` callable.
 
 - [English definition](definition.md)
 - [中文定义](definition.zh-CN.md)

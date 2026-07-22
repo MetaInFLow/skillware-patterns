@@ -62,6 +62,55 @@ class StrategyDemoTest(unittest.TestCase):
                 with self.assertRaisesRegex(demo.ValidationError, f"^{error}$"):
                     demo.review(request)
 
+    def test_plan_compatibility_review_delegates_to_exactly_one_callable(self):
+        demo = self.require_demo()
+        cases = (
+            ({"files": 5, "security_sensitive": False}, "fast-scan"),
+            ({"files": 6, "security_sensitive": False}, "deep-review"),
+            ({"files": 1, "security_sensitive": True}, "deep-review"),
+        )
+
+        for change, expected_strategy in cases:
+            calls = []
+
+            def fast_spy(candidate):
+                calls.append(("fast-scan", deepcopy(candidate)))
+                return {
+                    "strategy": "fast-scan",
+                    "findings": [],
+                    "confidence": "medium",
+                }
+
+            def deep_spy(candidate):
+                calls.append(("deep-review", deepcopy(candidate)))
+                return {
+                    "strategy": "deep-review",
+                    "findings": [],
+                    "confidence": "high",
+                }
+
+            with self.subTest(change=change):
+                result = demo.review(
+                    change,
+                    fast_strategy=fast_spy,
+                    deep_strategy=deep_spy,
+                )
+
+                self.assertEqual(result["strategy"], expected_strategy)
+                self.assertEqual(calls, [(expected_strategy, change)])
+
+    def test_compact_concrete_strategies_share_the_exact_contract(self):
+        demo = self.require_demo()
+        change = {"files": 2, "security_sensitive": False}
+
+        fast = demo.fast_scan(change)
+        deep = demo.deep_review(change)
+
+        self.assertEqual(tuple(fast), demo.COMPATIBILITY_RESULT_FIELDS)
+        self.assertEqual(tuple(deep), demo.COMPATIBILITY_RESULT_FIELDS)
+        self.assertEqual(fast["strategy"], "fast-scan")
+        self.assertEqual(deep["strategy"], "deep-review")
+
     def test_risk_selector_is_explicit_and_deterministic(self):
         demo = self.require_demo()
         low_risk = self.load_json("fixtures/valid/low-risk-review.json")

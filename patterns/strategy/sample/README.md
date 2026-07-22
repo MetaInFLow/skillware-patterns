@@ -25,6 +25,8 @@ bounds, unsafe paths, lone surrogates, and unknown strategy identifiers.
 The module-level `review({"files": int, "security_sensitive": bool})` preserves
 the compact plan API separately. It chooses Deep Review for security sensitivity
 or `files > 5` and returns exactly `strategy`, `findings`, and `confidence`.
+It delegates to exactly one compact `fast_scan` or `deep_review` callable, both
+of which can be replaced by spies without calling the unselected alternative.
 Injected rich strategies may use custom procedures; the Context enforces the
 shared structure, deterministic finding order, and unique identities rather
 than the built-in lexical rule sets.

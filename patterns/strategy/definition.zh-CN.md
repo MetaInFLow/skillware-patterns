@@ -42,7 +42,9 @@ Deep Review 在此基础上增加三条上下文规则。返回前，Context 校
 
 演示模块还保留精简计划兼容 `review` API。它只接受整数文件数和安全敏感标志；安全
 敏感或文件数大于五个时选择 Deep Review，并严格返回 strategy、findings 和
-confidence。该精简表面与富文件内容 CLI 契约彼此独立，两类对象不能相互替换。
+confidence。其 Context 只调用一个选中的 `fast_scan` 或 `deep_review` 可调用实现，
+spy 注入会验证“选中一次、未选零次”。该精简表面与富文件内容 CLI 契约彼此独立，
+两类对象不能相互替换。
 
 ## 后果（Consequences）
 

@@ -134,8 +134,7 @@ def validate_request(request):
     return request
 
 
-def review(request):
-    """Exact compact API retained for compatibility with the implementation plan."""
+def validate_compatibility_request(request):
     validate_exact_fields(
         request,
         COMPATIBILITY_REQUEST_FIELDS,
@@ -146,15 +145,75 @@ def review(request):
         raise ValidationError("files must be a non-negative integer")
     if not isinstance(request["security_sensitive"], bool):
         raise ValidationError("security_sensitive must be a boolean")
+    return request
+
+
+def validate_compatibility_result(result, expected_strategy):
+    validate_no_lone_surrogates(
+        result,
+        "compatibility result",
+        error_type=StrategyContractError,
+    )
+    validate_exact_fields(
+        result,
+        COMPATIBILITY_RESULT_FIELDS,
+        "compatibility result",
+        error_type=StrategyContractError,
+    )
+    if result["strategy"] != expected_strategy:
+        raise StrategyContractError(
+            "compatibility result strategy must match the selected strategy"
+        )
+    if not isinstance(result["findings"], list) or any(
+        not isinstance(item, str) or not item.strip() for item in result["findings"]
+    ):
+        raise StrategyContractError(
+            "compatibility result findings must be a list of non-empty strings"
+        )
+    if result["confidence"] not in {"low", "medium", "high"}:
+        raise StrategyContractError(
+            "compatibility result confidence must be one of: low, medium, high"
+        )
+    return {
+        field: deepcopy(result[field]) for field in COMPATIBILITY_RESULT_FIELDS
+    }
+
+
+def fast_scan(change):
+    validate_compatibility_request(change)
+    return {
+        "strategy": "fast-scan",
+        "findings": [],
+        "confidence": "medium",
+    }
+
+
+def deep_review(change):
+    validate_compatibility_request(change)
+    return {
+        "strategy": "deep-review",
+        "findings": [],
+        "confidence": "high",
+    }
+
+
+def review(request, *, fast_strategy=None, deep_strategy=None):
+    """Select and invoke one compact Strategy implementation."""
+    validate_compatibility_request(request)
+    fast_strategy = fast_scan if fast_strategy is None else fast_strategy
+    deep_strategy = deep_review if deep_strategy is None else deep_strategy
     deep = (
         request["security_sensitive"]
-        or files > COMPATIBILITY_DEEP_REVIEW_FILE_THRESHOLD
+        or request["files"] > COMPATIBILITY_DEEP_REVIEW_FILE_THRESHOLD
     )
-    return {
-        "strategy": "deep-review" if deep else "fast-scan",
-        "findings": [],
-        "confidence": "high" if deep else "medium",
-    }
+    selected_id = "deep-review" if deep else "fast-scan"
+    selected = deep_strategy if deep else fast_strategy
+    if not callable(selected):
+        raise StrategyContractError(
+            f"compact strategy '{selected_id}' must be callable"
+        )
+    result = selected(deepcopy(request))
+    return validate_compatibility_result(result, selected_id)
 
 
 def finding(rule_id, severity, path, line, message):
