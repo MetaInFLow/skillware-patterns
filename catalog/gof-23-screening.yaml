@@ -88,7 +88,7 @@
 
 - id: decorator
   name: Decorator
-  name_zh: 装饰器模式
+  name_zh: 装饰模式
   category: structural
   source_intent: Add responsibilities to an object dynamically while preserving its component interface.
   skillware_carriers: [wrapper Skill, activation wrapper, pre-hook, post-hook]
