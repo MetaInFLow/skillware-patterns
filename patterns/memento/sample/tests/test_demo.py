@@ -605,6 +605,44 @@ class MementoDemoTest(unittest.TestCase):
         )
         self.assertEqual(list(self.config.parent.glob(".service.json.*.tmp")), [])
 
+    def test_rollback_preserves_original_error_when_restore_admission_fails(self):
+        demo = self.require_demo()
+        self.write_config()
+        real_restore_for_rollback = demo.MigrationCaretaker.restore_for_rollback
+
+        def corrupt_then_restore(caretaker, checkpoint):
+            checkpoint._raw = b'{"version":9,"endpoint":"tampered"}'
+            return real_restore_for_rollback(caretaker, checkpoint)
+
+        with mock.patch.object(
+            demo.MigrationCaretaker,
+            "restore_for_rollback",
+            autospec=True,
+            side_effect=corrupt_then_restore,
+        ):
+            with self.assertRaisesRegex(
+                demo.MigrationRollbackError,
+                r"^migration failed and restoration failed: memento checksum does not match captured bytes$",
+            ) as caught:
+                demo.migrate(self.config, fail=True)
+
+        self.assertIsInstance(caught.exception.migration_error, RuntimeError)
+        self.assertEqual(str(caught.exception.migration_error), "migration failed")
+        self.assertIsInstance(caught.exception.restore_error, demo.RestorationError)
+        self.assertIsInstance(
+            caught.exception.restore_error.failure,
+            demo.MementoIntegrityError,
+        )
+        self.assertEqual(
+            str(caught.exception.restore_error.failure),
+            "memento checksum does not match captured bytes",
+        )
+        self.assertEqual(
+            json.loads(self.config.read_text(encoding="utf-8")),
+            {"endpoint": "stable", "version": 2},
+        )
+        self.assertEqual(list(self.config.parent.glob(".service.json.*.tmp")), [])
+
     def test_failed_restore_keeps_checkpoint_active_for_retry(self):
         demo = self.require_demo()
         original = self.write_config()
@@ -862,6 +900,7 @@ class MementoDemoTest(unittest.TestCase):
             "restore: atomic-replace",
             "successful_commit: discard-without-restore",
             "retirement_integrity: checksum-owner-active-identity",
+            "rollback_restore_admission: wrap-and-preserve-original-error",
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, manifest)

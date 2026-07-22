@@ -1007,6 +1007,10 @@ class PatternRecordContractTest(unittest.TestCase):
             contract["retirement_integrity"],
             "checksum-owner-active-identity",
         )
+        self.assertEqual(
+            contract["rollback_restore_admission"],
+            "wrap-and-preserve-original-error",
+        )
 
         evidence = (record / "evidence/skillopt-frozen-case.md").read_text(
             encoding="utf-8"

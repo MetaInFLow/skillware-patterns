@@ -46,9 +46,11 @@ Agent Host and Agent Runtime are execution context, not Memento participants.
    while it remains open, still before the file fsync and rename.
 5. On any write-attempt or post-write validation failure, conservatively ask
    the Originator to restore because replacement may have occurred. Re-raise
-   the original failure only after exact restore verification. If restore
-   fails, report both failures and do not claim recovery; keep the checkpoint
-   active for a trusted retry.
+   the original failure only after exact restore verification. If restore or
+   its owner, lifecycle, identity, target, or checksum admission check fails,
+   report both the original and restoration failures and do not claim recovery.
+   The complete migrated file may remain because restore was impossible; keep
+   the checkpoint active for a trusted retry when its integrity permits one.
 6. On successful validation, expire and discard the Memento **without** calling
    restore, but only after validating checksum, owner, active lifecycle, and
    object identity. Reject reused, foreign-Caretaker, integrity-corrupted, or

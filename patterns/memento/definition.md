@@ -64,6 +64,10 @@ handled conservatively as potentially mutated and invokes exact restore. On
 success the Caretaker checksum-validates and expires the checkpoint without
 restoration. It expires a failure checkpoint only after restoration succeeds;
 restore failure leaves it active for a trusted retry and reports both errors.
+Rollback orchestration also treats owner, lifecycle, identity, target, or
+checksum admission failure as a restoration failure, preserving it alongside
+the original migration error. In that case the complete migrated file may
+remain because the checkpoint cannot safely be applied.
 
 ## Consequences
 
@@ -124,8 +128,9 @@ atomic replacement boundaries.
 The Python oracle does not prove Agent Runtime interpretation, Agent Host
 activation, crash durability on every filesystem, multi-process isolation, or
 security against hostile in-process code. A restore failure can leave the
-complete migrated file in place; the error reports that recovery did not
-occur. Permission tests cover portable mode bits, not ownership, ACLs, extended
+complete migrated file in place. This includes restore-admission or integrity
+failure after commit; `MigrationRollbackError` preserves both failures and
+reports that recovery did not occur. Permission tests cover portable mode bits, not ownership, ACLs, extended
 attributes, labels, or platform-specific metadata.
 
 ## False Positives
@@ -156,6 +161,8 @@ failure, mode/fsync ordering, restore failure reporting and retry, direct stale,
 foreign-owner, cross-target, and integrity-corrupted mementos, opaque prepared
 tokens, immutable private payloads, tuple/forged/tampered/reused token rejection,
 and corrupted commit/discard rejection,
+post-write checkpoint corruption, rollback admission wrapping, preservation of
+both failures, and the complete migrated-file outcome when restore is forbidden,
 missing/corrupt/non-UTF-8 input, duplicate fields, strict types, non-finite
 numbers, lone surrogates, symlinks, version and size bounds, deterministic
 fixtures, stable CLI errors, and root/child contract files. The repository root

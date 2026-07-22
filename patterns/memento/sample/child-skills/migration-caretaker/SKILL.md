@@ -25,6 +25,9 @@ After any write attempt or post-write failure, ask the Originator to restore
 conservatively, then expire only after verified recovery. Reject second-live,
 stale, foreign-owner, checksum-invalid, and cross-target checkpoints.
 
-If restoration fails, preserve the checkpoint for a trusted retry and report
-both the triggering migration failure and restoration failure. Never report a
-rollback unless the Originator verified exact bytes and permissions.
+For rollback orchestration, include owner, lifecycle, identity, target, and
+checksum admission inside the restoration-error boundary. If admission or
+restoration fails, preserve both the triggering migration error and the
+restore error. The complete migrated file may remain because recovery was
+impossible. Preserve the checkpoint for a trusted retry when integrity permits;
+never report rollback unless the Originator verified exact bytes and permissions.

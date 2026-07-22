@@ -31,6 +31,7 @@ retirement_integrity: checksum-owner-active-identity
 checkpoint_limit: one-live-per-caretaker
 foreign_or_stale_memento: reject
 restore_failure: report-both-errors-and-keep-checkpoint-active
+rollback_restore_admission: wrap-and-preserve-original-error
 mode_durability_order:
   - apply-mode-on-open-temp-fd
   - fsync-temp-file

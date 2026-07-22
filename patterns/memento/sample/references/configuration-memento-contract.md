@@ -79,6 +79,15 @@ migration error. If restore fails, raise `MigrationRollbackError` carrying both
 version but recovery is not claimed. Direct Caretaker restore failure raises
 `RestorationError` and keeps the checkpoint live for a trusted retry.
 
+Rollback-specific restoration places owner, active lifecycle, exact object
+identity, target, and checksum admission inside the `RestorationError`
+boundary. Therefore admission or integrity failure cannot replace the original
+migration exception: `MigrationRollbackError` preserves both. If admission
+fails after the migrated file was committed, that complete migrated file may
+remain because applying the untrusted checkpoint is forbidden. Direct
+`Caretaker.restore` retains its ordinary lifecycle semantics; the additional
+wrapper applies only when preserving an existing migration failure.
+
 ## Trust and concurrency
 
 The contract assumes one cooperative writer and trusted in-process extension

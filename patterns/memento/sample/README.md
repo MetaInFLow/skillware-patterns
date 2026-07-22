@@ -10,6 +10,9 @@ checkpoint without restore after success.
 The Originator retains every immutable prepared payload privately and returns
 only a sealed opaque one-use token. Commit and discard validate checkpoint
 checksum, ownership, active lifecycle, and identity before retirement.
+During rollback, those admission checks are inside the restoration-error
+boundary. A failed admission preserves both errors and may leave the complete
+migrated file in place because the checkpoint cannot safely be applied.
 
 Run the deterministic default demo without modifying its fixture:
 

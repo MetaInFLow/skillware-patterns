@@ -494,6 +494,15 @@ class MigrationCaretaker:
         memento._retire()
         self._checkpoint = None
 
+    def restore_for_rollback(self, memento):
+        try:
+            self._require_owned_active(memento)
+            self._originator.restore(memento, self._owner_token)
+        except Exception as exc:
+            raise RestorationError(exc) from exc
+        memento._retire()
+        self._checkpoint = None
+
     def commit(self, memento):
         self._require_owned_active(memento)
         self._originator.forget_prepared_for(memento, self._owner_token)
@@ -542,7 +551,7 @@ def migrate(path, fail=False):
             raise RuntimeError("migration failed")
     except Exception as migration_error:
         try:
-            caretaker.restore(checkpoint)
+            caretaker.restore_for_rollback(checkpoint)
         except RestorationError as restore_error:
             raise MigrationRollbackError(
                 migration_error,
