@@ -277,6 +277,26 @@ class MediatorDemoTest(unittest.TestCase):
                     )
                 )
 
+    def test_non_string_workflow_keys_have_stable_direct_api_errors(self):
+        demo = self.require_demo()
+
+        for api in (demo.validate_workflow, demo.run_workflow):
+            for invalid_key in (7, object()):
+                with self.subTest(
+                    api=api.__name__,
+                    key_type=type(invalid_key).__name__,
+                ):
+                    workflow = {
+                        "statuses": self.default_statuses(),
+                        invalid_key: "unexpected",
+                    }
+
+                    with self.assertRaisesRegex(
+                        demo.CoordinationError,
+                        "^workflow field names must be non-empty strings$",
+                    ):
+                        api(workflow)
+
     def test_non_mapping_statuses_are_rejected(self):
         demo = self.require_demo()
 

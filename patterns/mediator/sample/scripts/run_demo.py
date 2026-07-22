@@ -225,7 +225,10 @@ def coordinate(statuses, colleagues=None):
 def validate_workflow(workflow):
     if not isinstance(workflow, dict):
         raise CoordinationError("workflow must be a JSON object")
-    actual = set(workflow)
+    field_names = tuple(workflow)
+    if any(not isinstance(field, str) or not field for field in field_names):
+        raise CoordinationError("workflow field names must be non-empty strings")
+    actual = set(field_names)
     if actual != {"statuses"}:
         details = []
         if "statuses" not in actual:
