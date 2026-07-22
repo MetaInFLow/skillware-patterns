@@ -25,11 +25,12 @@ execution context, not pattern participants.
 
 ## Agent mode
 
-1. Admit exactly one non-blank Unicode `text` value and create a fresh
-   `support-ticket.v1` record.
+1. Admit exactly one non-blank Unicode `text` value of at most 65,536 UTF-8
+   bytes and create a fresh `support-ticket.v1` record.
 2. Require exactly one independently addressable Filter for each of normalize,
    redact, classify, prioritize, and draft. Reject duplicate, missing, unknown,
-   or invalid Filters before running any stage.
+   or invalid Filters before running any stage. Freeze ordinary descriptor
+   mutation and snapshot ordered `(filter_id, transform)` pairs at admission.
 3. The runner owns the order above. Before and after every Filter, validate the
    complete Pipe contract and pass a deep copy. Do not use hidden conversation
    state or share record aliases.
@@ -56,7 +57,9 @@ redacts the email, and assigns high priority.
 
 Buffering, backpressure, concurrency, network transport, retries, distributed
 cancellation, and durable replay are outside the local oracle. In-process copy
-and type boundaries are trusted contracts, not a security sandbox.
+and type boundaries are trusted contracts, not a security sandbox. Filter
+callables can still mutate external state or closures and use reflection; the
+snapshot protects topology identity/order, not arbitrary callable side effects.
 
 ## Anti-pattern
 

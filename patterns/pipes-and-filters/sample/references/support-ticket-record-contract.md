@@ -5,7 +5,8 @@ Filters, explicit Pipes, and one Data Sink.
 
 ## Data Source
 
-The public request is exactly `{"text": <non-blank Unicode string>}`. The Data
+The public request is exactly `{"text": <non-blank Unicode string>}`. Its text
+is at most 65,536 UTF-8 bytes through either the direct API or CLI. The Data
 Source copies it into this versioned record:
 
 ```json
@@ -28,9 +29,14 @@ five required addresses are `normalize`, `redact`, `classify`, `prioritize`,
 and `draft`. A replacement is valid only when it keeps one required address
 and the same record-to-record contract.
 
+Normalize collapses whitespace, applies Unicode casefolding, and restores NFC
+after casefolding so its emitted record remains normalized.
+
 The runner rejects duplicate, missing, unknown, non-Filter, or invalid Filter
-definitions before invoking any Filter. It owns canonical order and invokes
-each admitted Filter exactly once.
+definitions before invoking any Filter. Filter descriptors reject ordinary
+attribute mutation. After admission, the runner retains an immutable ordered
+snapshot of `(filter_id, transform)` pairs rather than the caller's descriptors
+or list. It owns canonical order and invokes each admitted Filter exactly once.
 
 ## Pipe
 
@@ -56,3 +62,8 @@ and result failures use stable deterministic messages.
 The oracle is sequential and in process. Buffering, backpressure, concurrency,
 network transport, retries, distributed cancellation, and durable replay are
 outside its scope and require separate production policies.
+
+Filter callables remain trusted code. They can mutate their external state or
+closures and use reflection; the topology snapshot prevents descriptor/list
+changes from rewriting the current run, but is not a general side-effect or
+security boundary.

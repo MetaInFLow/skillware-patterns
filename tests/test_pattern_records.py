@@ -1168,6 +1168,16 @@ class PatternRecordContractTest(unittest.TestCase):
             ["normalize", "redact", "classify", "prioritize", "draft"],
         )
         self.assertEqual(contract["invocation_policy"], "exactly-once-in-runner-order")
+        self.assertEqual(
+            contract["filter_descriptor_policy"],
+            "immutable-after-construction",
+        )
+        self.assertEqual(
+            contract["topology_snapshot"],
+            "filter-id-and-transform-at-runner-construction",
+        )
+        self.assertEqual(contract["normalization_policy"], "casefold-then-nfc")
+        self.assertEqual(contract["input_limit_bytes"], 65536)
         self.assertEqual(contract["pipe_validation"], "before-and-after-every-filter")
         self.assertEqual(contract["mutation_policy"], "deep-copy-at-every-pipe-transfer")
         self.assertEqual(contract["failure_policy"], "stop-with-stage-attribution")
@@ -1177,11 +1187,12 @@ class PatternRecordContractTest(unittest.TestCase):
         chinese = (record / "definition.zh-CN.md").read_text(encoding="utf-8")
         for text in (english, chinese):
             self.assertIn("Pattern-Oriented Software Architecture", text)
-            self.assertIn("not a Gang of Four pattern", text)
             self.assertIn("Data Source", text)
             self.assertIn("Filter", text)
             self.assertIn("Pipe", text)
             self.assertIn("Data Sink", text)
+        self.assertIn("not a Gang of Four pattern", english)
+        self.assertIn("不是 Gang of Four（GoF）模式", chinese)
         self.assertIn("buffering, backpressure, concurrency, and network transport", english)
         self.assertIn("缓冲、背压、并发和网络传输", chinese)
 
@@ -1225,6 +1236,8 @@ class PatternRecordContractTest(unittest.TestCase):
                 self.assertIn(upstream_path, expected_paths)
                 pinned_paths.add(upstream_path)
         self.assertEqual(pinned_paths, expected_paths)
+        self.assertIn("eight pinned stage director files", evidence)
+        self.assertNotIn("nine pinned director files", evidence)
 
         for required in (
             "common versioned record envelope remains unverified",

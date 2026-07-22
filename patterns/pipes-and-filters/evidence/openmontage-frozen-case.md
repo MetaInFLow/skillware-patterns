@@ -22,8 +22,9 @@
 The manifest contains ordered `stages`. Its entries name stage Skills and use
 `required_artifacts_in` and `produces` to describe adjacent artifact flow. The
 loader validates a selected manifest, `get_stage_order` reads manifest order,
-and `get_stage_skill` reads the declared Skill identifier. The nine pinned
-director files provide stage-specific instruction surfaces.
+and `get_stage_skill` reads the declared Skill identifier. The eight pinned stage director files
+provide stage-specific instruction surfaces. The manifest names its executive
+producer separately under orchestration, not as a ninth stage.
 
 This is source evidence for independently named processing stages connected by
 declared artifacts. It is sufficient for a candidate, not confirmation.

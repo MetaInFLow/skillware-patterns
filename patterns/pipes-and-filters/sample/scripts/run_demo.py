@@ -124,7 +124,12 @@ def _require_max_depth(value, subject, error_type):
             finally:
                 active.remove(identity)
 
-    visit(value, 0)
+    try:
+        visit(value, 0)
+    except RecursionError as exc:
+        raise error_type(
+            f"{subject} exceeds maximum nesting depth of {MAX_JSON_DEPTH}"
+        ) from exc
 
 
 def validate_request(request):
@@ -142,6 +147,10 @@ def validate_request(request):
     _require_valid_unicode(text, "request.text", PipelineInputError)
     if not text.strip():
         raise PipelineInputError("request.text must not be blank")
+    if len(text.encode("utf-8")) > MAX_INPUT_BYTES:
+        raise PipelineInputError(
+            f"request.text exceeds {MAX_INPUT_BYTES} UTF-8 bytes"
+        )
     return {"text": text}
 
 
@@ -233,10 +242,27 @@ class RecordPipe:
 
 
 class Filter:
+    __slots__ = ("_filter_id", "_skill_path", "_transform")
+
     def __init__(self, filter_id, skill_path, transform):
-        self.filter_id = filter_id
-        self.skill_path = skill_path
-        self.transform = transform
+        object.__setattr__(self, "_filter_id", filter_id)
+        object.__setattr__(self, "_skill_path", skill_path)
+        object.__setattr__(self, "_transform", transform)
+
+    def __setattr__(self, _name, _value):
+        raise AttributeError("Filter descriptors are immutable")
+
+    @property
+    def filter_id(self):
+        return self._filter_id
+
+    @property
+    def skill_path(self):
+        return self._skill_path
+
+    @property
+    def transform(self):
+        return self._transform
 
     def apply(self, record):
         return self.transform(record)
@@ -252,9 +278,8 @@ class TicketDataSink:
 
 
 def normalize_filter(record):
-    record["text"] = " ".join(
-        unicodedata.normalize("NFC", record["text"]).split()
-    ).casefold()
+    collapsed = " ".join(unicodedata.normalize("NFC", record["text"]).split())
+    record["text"] = unicodedata.normalize("NFC", collapsed.casefold())
     return record
 
 
@@ -337,7 +362,10 @@ def validate_filters(filters):
 
 class PipelineRunner:
     def __init__(self, filters=DEFAULT_FILTERS, source=None, pipe=None, sink=None):
-        self.filters = validate_filters(filters)
+        admitted = validate_filters(filters)
+        self._stages = tuple(
+            (item.filter_id, item.transform) for item in admitted
+        )
         self.source = source if source is not None else TicketDataSource()
         self.pipe = pipe if pipe is not None else RecordPipe()
         self.sink = sink if sink is not None else TicketDataSink()
@@ -345,29 +373,29 @@ class PipelineRunner:
     def run(self, request):
         current = self.source.emit(request)
         trace = []
-        for item in self.filters:
+        for filter_id, transform in self._stages:
             try:
                 filter_input = self.pipe.transfer(current)
             except RecordContractError as exc:
                 raise PipelineStageError(
-                    item.filter_id,
-                    f"stage '{item.filter_id}' input rejected: {exc}",
+                    filter_id,
+                    f"stage '{filter_id}' input rejected: {exc}",
                 ) from exc
             try:
-                candidate = item.apply(filter_input)
+                candidate = transform(filter_input)
             except Exception as exc:
                 raise PipelineStageError(
-                    item.filter_id,
-                    f"stage '{item.filter_id}' failed: {type(exc).__name__}: {exc}",
+                    filter_id,
+                    f"stage '{filter_id}' failed: {type(exc).__name__}: {exc}",
                 ) from exc
             try:
                 current = self.pipe.transfer(candidate)
             except RecordContractError as exc:
                 raise PipelineStageError(
-                    item.filter_id,
-                    f"stage '{item.filter_id}' output rejected: {exc}",
+                    filter_id,
+                    f"stage '{filter_id}' output rejected: {exc}",
                 ) from exc
-            trace.append(item.filter_id)
+            trace.append(filter_id)
 
         try:
             sink_input = self.pipe.transfer(current)
@@ -399,6 +427,10 @@ def load_request(path):
         )
     except DuplicateMemberError as exc:
         raise PipelineInputError(f"duplicate JSON member: {exc}") from exc
+    except RecursionError as exc:
+        raise PipelineInputError(
+            f"request exceeds maximum nesting depth of {MAX_JSON_DEPTH}"
+        ) from exc
     except (json.JSONDecodeError, ValueError) as exc:
         raise PipelineInputError("invalid JSON ticket input") from exc
     _require_max_depth(request, "request", PipelineInputError)

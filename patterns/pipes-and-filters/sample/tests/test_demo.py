@@ -1,4 +1,5 @@
 from copy import deepcopy
+from collections.abc import Mapping
 import importlib.util
 import json
 from pathlib import Path
@@ -6,6 +7,7 @@ import re
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
+import unicodedata
 import unittest
 
 
@@ -53,6 +55,35 @@ class PipesAndFiltersDemoTest(unittest.TestCase):
         self.assertEqual(request, original)
         self.assertEqual(first, second)
         self.assertIsNot(first["record"], second["record"])
+
+    def test_public_api_enforces_utf8_text_byte_limit(self):
+        demo = self.require_demo()
+        at_limit = "x" * demo.MAX_INPUT_BYTES
+
+        result = demo.run_pipeline({"text": at_limit})
+
+        self.assertEqual(
+            len(result["record"]["text"].encode("utf-8")),
+            demo.MAX_INPUT_BYTES,
+        )
+        with self.assertRaisesRegex(
+            demo.PipelineInputError,
+            "^request.text exceeds 65536 UTF-8 bytes$",
+        ):
+            demo.validate_request({"text": "é" * (demo.MAX_INPUT_BYTES // 2 + 1)})
+        with self.assertRaisesRegex(
+            demo.PipelineInputError,
+            "^request.text exceeds 65536 UTF-8 bytes$",
+        ):
+            demo.run_pipeline({"text": "x" * (demo.MAX_INPUT_BYTES + 1)})
+
+    def test_normalize_restores_nfc_after_casefold(self):
+        demo = self.require_demo()
+
+        result = demo.run_pipeline({"text": "\u0390"})
+
+        self.assertEqual(result["record"]["text"], "\u0390")
+        self.assertTrue(unicodedata.is_normalized("NFC", result["record"]["text"]))
 
     def test_injected_filters_are_addressed_exactly_once_in_runner_order(self):
         demo = self.require_demo()
@@ -124,6 +155,71 @@ class PipesAndFiltersDemoTest(unittest.TestCase):
         self.assertEqual(len({id(record) for record in received}), len(FILTER_IDS))
         received[-1]["text"] = "mutated after return"
         self.assertEqual(result["record"]["text"], "hello")
+
+    def test_filter_descriptors_are_immutable(self):
+        demo = self.require_demo()
+        descriptor = demo.Filter("normalize", "injected:normalize", lambda record: record)
+
+        with self.assertRaises(AttributeError):
+            descriptor.filter_id = "changed"
+        with self.assertRaises(AttributeError):
+            descriptor.transform = lambda record: None
+
+    def test_runner_snapshots_topology_before_caller_mutates_descriptors(self):
+        demo = self.require_demo()
+        calls = []
+        filters = []
+        for item in demo.DEFAULT_FILTERS:
+            def tracked(record, filter_id=item.filter_id, transform=item.transform):
+                calls.append(filter_id)
+                return transform(record)
+
+            filters.append(demo.Filter(item.filter_id, item.skill_path, tracked))
+
+        runner = demo.PipelineRunner(filters=filters)
+        target = filters[1]
+        if hasattr(type(target), "filter_id"):
+            object.__setattr__(target, "_filter_id", "tampered")
+            object.__setattr__(target, "_transform", lambda record: (_ for _ in ()).throw(RuntimeError("tampered")))
+        else:
+            object.__setattr__(target, "filter_id", "tampered")
+            object.__setattr__(target, "transform", lambda record: (_ for _ in ()).throw(RuntimeError("tampered")))
+        filters.clear()
+
+        result = runner.run({"text": "urgent cannot login"})
+
+        self.assertEqual(calls, list(FILTER_IDS))
+        self.assertEqual(result["trace"], list(FILTER_IDS))
+
+    def test_stage_cannot_rewrite_later_admitted_topology(self):
+        demo = self.require_demo()
+        calls = []
+        filters = []
+
+        def tracked(item):
+            def run(record):
+                calls.append(item.filter_id)
+                if item.filter_id == "normalize":
+                    target = filters[1]
+                    if hasattr(type(target), "filter_id"):
+                        object.__setattr__(target, "_filter_id", "tampered")
+                        object.__setattr__(target, "_transform", lambda value: (_ for _ in ()).throw(RuntimeError("tampered")))
+                    else:
+                        object.__setattr__(target, "filter_id", "tampered")
+                        object.__setattr__(target, "transform", lambda value: (_ for _ in ()).throw(RuntimeError("tampered")))
+                    filters.reverse()
+                return item.transform(record)
+
+            return run
+
+        for default in demo.DEFAULT_FILTERS:
+            snapshot = demo.Filter(default.filter_id, default.skill_path, default.transform)
+            filters.append(demo.Filter(default.filter_id, default.skill_path, tracked(snapshot)))
+
+        result = demo.PipelineRunner(filters=filters).run({"text": "urgent cannot login"})
+
+        self.assertEqual(calls, list(FILTER_IDS))
+        self.assertEqual(result["trace"], list(FILTER_IDS))
 
     def test_filter_exception_stops_pipeline_with_stage_attribution(self):
         demo = self.require_demo()
@@ -288,6 +384,54 @@ class PipesAndFiltersDemoTest(unittest.TestCase):
         ):
             demo.run_pipeline({"text": "hello", "nested": value})
 
+    def test_cyclic_direct_input_is_rejected_deterministically(self):
+        demo = self.require_demo()
+        cycle = []
+        cycle.append(cycle)
+
+        with self.assertRaisesRegex(
+            demo.PipelineInputError,
+            "^request must be acyclic$",
+        ):
+            demo.run_pipeline({"text": "hello", "nested": cycle})
+
+    def test_parser_and_validation_recursion_have_stable_input_errors(self):
+        demo = self.require_demo()
+        original_loads = demo.json.loads
+        try:
+            def recursive_parser(*_args, **_kwargs):
+                raise RecursionError("parser stack")
+
+            demo.json.loads = recursive_parser
+            with self.assertRaisesRegex(
+                demo.PipelineInputError,
+                "^request exceeds maximum nesting depth of 32$",
+            ):
+                demo.load_request(SAMPLE / "fixtures/valid/urgent-access.json")
+        finally:
+            demo.json.loads = original_loads
+
+        class RecursiveMapping(Mapping):
+            def __getitem__(self, key):
+                if key == "text":
+                    return "hello"
+                raise KeyError(key)
+
+            def __iter__(self):
+                return iter(("text",))
+
+            def __len__(self):
+                return 1
+
+            def items(self):
+                raise RecursionError("validator stack")
+
+        with self.assertRaisesRegex(
+            demo.PipelineInputError,
+            "^request exceeds maximum nesting depth of 32$",
+        ):
+            demo.validate_request(RecursiveMapping())
+
     def test_child_filter_skills_share_one_record_contract(self):
         self.require_demo()
         for filter_id in FILTER_IDS:
@@ -308,13 +452,16 @@ class PipesAndFiltersDemoTest(unittest.TestCase):
             ("duplicate-nested-member.json", "duplicate-nested-member-error.txt"),
             ("lone-surrogate.json", "lone-surrogate-error.txt"),
             ("excessive-depth.json", "excessive-depth-error.txt"),
+            ("parser-recursion.json", "excessive-depth-error.txt"),
             ("invalid-json.json", "invalid-json-error.txt"),
         )
 
         for fixture, expected in cases:
             with self.subTest(fixture=fixture):
+                fixture_path = SAMPLE / "fixtures/invalid" / fixture
+                self.assertLess(fixture_path.stat().st_size, self.demo.MAX_INPUT_BYTES)
                 completed = subprocess.run(
-                    [sys.executable, str(DEMO_PATH), str(SAMPLE / "fixtures/invalid" / fixture)],
+                    [sys.executable, str(DEMO_PATH), str(fixture_path)],
                     cwd=SAMPLE,
                     capture_output=True,
                     text=True,

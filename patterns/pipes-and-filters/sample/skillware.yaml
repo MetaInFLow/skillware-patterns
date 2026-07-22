@@ -33,6 +33,9 @@ record_fields:
   - priority
   - draft
 invocation_policy: exactly-once-in-runner-order
+filter_descriptor_policy: immutable-after-construction
+topology_snapshot: filter-id-and-transform-at-runner-construction
+normalization_policy: casefold-then-nfc
 pipe_validation: before-and-after-every-filter
 mutation_policy: deep-copy-at-every-pipe-transfer
 failure_policy: stop-with-stage-attribution

@@ -107,3 +107,8 @@ The local oracle deliberately excludes buffering, backpressure, concurrency, and
 It also excludes retries, parallel branches, durable
 queues, timeouts, authentication, and resource accounting. Those policies must
 be explicit in a production pipeline rather than inferred from this sample.
+Filter callables are trusted code: they can still mutate external state or
+their own closures and can use reflection to bypass ordinary descriptor
+freezing. The admitted `(filter_id, transform)` snapshot protects current-run
+identity and order from descriptor or source-list changes, not arbitrary side
+effects.

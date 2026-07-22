@@ -9,6 +9,7 @@ type: component
 
 Under `support-ticket-pipeline-v1`, accept and return the complete
 `support-ticket.v1` record. Normalize text to NFC, collapse whitespace, and
-case-fold it. Change no other field and invoke no other Filter.
+case-fold it, then restore NFC. Change no other field and invoke no other
+Filter.
 
 在相同版本记录契约内只规范化文本，不执行其他分流阶段。
