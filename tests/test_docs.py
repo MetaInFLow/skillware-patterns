@@ -35,15 +35,21 @@ ADMISSION_ELEMENTS = (
 )
 
 STATUS_MEANINGS = {
-    "constructive": "repository sample demonstrates mapping can be built",
+    "constructive": (
+        "the repository sample demonstrates that the mapping can be built"
+    ),
     "confirmed correspondence": (
-        "fixed-revision source evidence satisfies participant relation"
+        "fixed-revision source evidence satisfies the participant relation"
     ),
     "candidate correspondence": (
-        "partial source evidence exists but participant/behavior unverified"
+        "partial source evidence exists but a participant or behavior is unverified"
     ),
-    "unsupported": "evidence contradicts or fails source pattern contract",
-    "not observable": "relation cannot be evaluated from available artifacts",
+    "unsupported": (
+        "available evidence contradicts or fails the source pattern contract"
+    ),
+    "not observable": (
+        "the required relation cannot be evaluated from available artifacts"
+    ),
 }
 
 MAIN_TEXT_PATTERNS = (
@@ -124,7 +130,7 @@ class MethodologyDocsTest(unittest.TestCase):
             with self.subTest(status=status):
                 self.assertRegex(
                     text,
-                    rf"(?m)^{re.escape(status)} = {re.escape(meaning)}$",
+                    rf"(?m)^{re.escape(status)}: {re.escape(meaning)}$",
                 )
         self.assertRegex(text, r"(?is)descriptive.*not (?:a )?score")
 

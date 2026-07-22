@@ -2,11 +2,11 @@
 
 The repository uses the following controlled meanings:
 
-constructive = repository sample demonstrates mapping can be built
-confirmed correspondence = fixed-revision source evidence satisfies participant relation
-candidate correspondence = partial source evidence exists but participant/behavior unverified
-unsupported = evidence contradicts or fails source pattern contract
-not observable = relation cannot be evaluated from available artifacts
+constructive: the repository sample demonstrates that the mapping can be built
+confirmed correspondence: fixed-revision source evidence satisfies the participant relation
+candidate correspondence: partial source evidence exists but a participant or behavior is unverified
+unsupported: available evidence contradicts or fails the source pattern contract
+not observable: the required relation cannot be evaluated from available artifacts
 
 These statuses are descriptive, not a score. They classify the evidence for a named claim, relation, unit, and revision; they do not rank patterns, implementations, projects, or lifecycle maturity.
 
