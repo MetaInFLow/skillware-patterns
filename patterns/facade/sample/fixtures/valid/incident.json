@@ -1,0 +1,4 @@
+{
+  "service": "checkout-api",
+  "signal": "5xx spike"
+}

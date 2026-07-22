@@ -1,0 +1,36 @@
+pattern: Facade
+pattern_id: facade
+participants:
+  Client:
+    role: Operator or task-level agent execution
+    behavior: Invokes the root incident-response Skill with service and signal.
+    path: sample/SKILL.md
+  Facade:
+    role: Stable root Skill contract
+    behavior: Coordinates specialists and preserves one result contract and fallback.
+    path: sample/SKILL.md
+  Subsystem:
+    role: Independently inspectable specialist Skills
+    behavior: Diagnose the signal, assess impact, and draft communication.
+    paths:
+      - sample/child-skills/diagnose/SKILL.md
+      - sample/child-skills/assess-impact/SKILL.md
+      - sample/child-skills/draft-communication/SKILL.md
+runtime_roles:
+  Agent Host:
+    responsibility: Activates the Skillware Unit and exposes Skill loading.
+    evidence_path: sample/skillware.yaml
+    participant_by_default: false
+  Agent Runtime:
+    responsibility: Interprets the activated behavioral source and invocation policy.
+    evidence_path: sample/references/response-contract.md
+    participant_by_default: false
+implementation_paths:
+  - sample/scripts/run_demo.py
+  - sample/fixtures/valid/incident.json
+  - sample/fixtures/invalid/unknown-signal.json
+  - sample/fixtures/invalid/malformed-request.json
+  - sample/expected/incident-result.json
+  - sample/expected/fallback-result.json
+  - sample/tests/test_demo.py
+misuse_path: misuse/SKILL.md

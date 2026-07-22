@@ -1,0 +1,10 @@
+{
+  "summary": "checkout-api is experiencing elevated 5xx responses.",
+  "impact": "Customer requests may fail; treat checkout availability as degraded.",
+  "actions": [
+    "page-on-call",
+    "inspect-recent-deployments",
+    "check-upstream-dependencies"
+  ],
+  "communication": "Investigating elevated 5xx responses for checkout-api; customer impact is being assessed."
+}

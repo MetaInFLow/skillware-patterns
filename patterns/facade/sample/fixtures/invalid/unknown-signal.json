@@ -1,0 +1,4 @@
+{
+  "service": "payments-api",
+  "signal": "latency jitter"
+}

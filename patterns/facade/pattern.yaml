@@ -1,0 +1,9 @@
+id: facade
+name: Facade
+name_zh: 外观模式
+source_tradition: gang-of-four
+source_category: structural
+paper_role: main-text
+implementation_status: detailed
+scenario: Production Incident Response
+scenario_zh: 生产事故响应

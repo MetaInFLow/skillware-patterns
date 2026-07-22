@@ -1,0 +1,29 @@
+id: production-incident-response
+name: Production Incident Response
+name_zh: 生产事故响应
+pattern: facade
+entry_skill: SKILL.md
+child_skills:
+  - id: diagnose
+    path: child-skills/diagnose/SKILL.md
+  - id: assess-impact
+    path: child-skills/assess-impact/SKILL.md
+  - id: draft-communication
+    path: child-skills/draft-communication/SKILL.md
+request:
+  required:
+    - service
+    - signal
+response:
+  fields:
+    - summary
+    - impact
+    - actions
+    - communication
+fallback_actions:
+  - request-human-triage
+demo:
+  python: ">=3.10"
+  standard_library_only: true
+  network_required: false
+  command: python3 scripts/run_demo.py

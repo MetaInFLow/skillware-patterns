@@ -1,0 +1,8 @@
+{
+  "summary": "payments-api reported an unrecognized signal: latency jitter.",
+  "impact": "Impact is not yet classified.",
+  "actions": [
+    "request-human-triage"
+  ],
+  "communication": "Human triage requested for payments-api; impact and next update are pending."
+}
