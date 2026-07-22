@@ -30,9 +30,12 @@ Candidate satisfies it, then compose rules without hiding their meaning.
 
 The caller composes immutable leaf Specifications into a reusable policy. The
 policy first validates exactly the union of Candidate fields required by its
-leaves. Boolean evaluation then proceeds left-to-right with short-circuit
-semantics. `explain` can either retain that trace or evaluate every pure leaf
-for a complete diagnostic; both modes return the same policy result.
+leaves, preserving each field's first left-to-right occurrence. Built-in rules
+and composites are closed implementations; custom rules enter through the
+frozen validated `Predicate` wrapper, not arbitrary subclasses. Boolean
+evaluation then proceeds left-to-right with short-circuit semantics. `explain`
+can retain that trace or evaluate every pure leaf for a complete diagnostic;
+both modes return the same policy result.
 
 ## Consequences
 
@@ -74,8 +77,9 @@ boundary.
 The constructive sample proves the literal receipt, budget, authority, and
 department examples; immutable leaf and composite objects; AND/OR/NOT truth
 behavior; exact Candidate validation; bounded integer amounts; deterministic
-pure evaluation; short-circuit and all-evaluation explanations; and stable CLI
-errors for malformed inputs.
+pure evaluation; a custom Memo Predicate; subclass rejection; short-circuit
+and all-evaluation explanations; bounded file reads; ASCII-safe output; and
+stable CLI errors for malformed inputs.
 
 ## Counter-Evidence
 
@@ -109,5 +113,11 @@ Amounts are non-negative integers from 0 through 1,000,000,000; integrations
 must choose and document their currency unit, normally cents. Floats, NaN,
 infinity, and booleans-as-integers are rejected. Department equality is
 case-sensitive after NFC normalization. Rule objects and the evaluator are
-pure by contract, but Python modules and callables are trusted code, not a
-security sandbox; reflection can bypass ordinary immutability boundaries.
+pure by contract. Custom Predicate values are bounded JSON-compatible data;
+strings are at most 4,096 UTF-8 bytes, collections at most 128 items, numeric
+absolute values at most 1,000,000,000, and the admitted Candidate at most
+65,536 UTF-8 bytes. Predicate names are at most 128 bytes, declare 1-32 ordered
+fields, and explanations are at most 4,096 bytes. Evaluator and explanation
+callables receive deep copies, but remain trusted deterministic and pure code
+by contract, not sandboxed code; closures, reflection, and external effects
+cannot be prevented. The CLI reads only 65,537 bytes and emits ASCII-safe JSON.

@@ -186,6 +186,22 @@ class PatternRecordContractTest(unittest.TestCase):
         self.assertEqual(contract["missing_fields"], "reject")
         self.assertEqual(contract["extra_fields"], "reject")
         self.assertEqual(contract["mutation_policy"], "none")
+        self.assertEqual(contract["extension_path"], "validated-predicate-wrapper")
+        self.assertEqual(contract["arbitrary_subclasses"], "reject")
+        self.assertEqual(
+            contract["required_field_union"],
+            "left-to-right-first-occurrence",
+        )
+        self.assertEqual(
+            contract["custom_field_values"],
+            "bounded-json-compatible-deep-copy",
+        )
+        self.assertEqual(
+            contract["predicate_callables"],
+            "trusted-deterministic-pure-by-contract",
+        )
+        self.assertEqual(contract["input_read_policy"], "bounded-cap-plus-one")
+        self.assertEqual(contract["json_output"], "ascii-safe")
 
     def test_facade_has_publicly_verifiable_local_evidence(self):
         record = PATTERNS / "facade"

@@ -9,6 +9,8 @@ amount no greater than 1,000 authorized units, and a department other than
 `restricted`. Root behavior is in [`SKILL.md`](SKILL.md), leaf behaviors are in
 [`child-skills/`](child-skills/), and exact Candidate semantics are in
 [`references/expense-candidate-contract.md`](references/expense-candidate-contract.md).
+Custom rules use the validated frozen `Predicate` wrapper; arbitrary
+Specification subclasses are unsupported.
 
 Run from this directory:
 
@@ -24,4 +26,5 @@ python3 scripts/run_demo.py fixtures/valid/missing-receipt.json --evaluation sho
 ```
 
 Exit status is 0 for a satisfied policy, 1 for a valid rejected Candidate, and
-2 for invalid input. Output and errors have exact fixtures in [`expected/`](expected/).
+2 for invalid input. The CLI uses a bounded `cap + 1` read and emits ASCII-safe
+JSON. Output and errors have exact fixtures in [`expected/`](expected/).

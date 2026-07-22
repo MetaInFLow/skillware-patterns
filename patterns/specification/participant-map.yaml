@@ -16,6 +16,8 @@ participants:
         path: sample/child-skills/authorized-amount/SKILL.md
       - id: department
         path: sample/child-skills/department/SKILL.md
+      - id: predicate-extension
+        path: sample/references/expense-candidate-contract.md
     paths:
       - sample/scripts/run_demo.py
       - sample/references/expense-candidate-contract.md

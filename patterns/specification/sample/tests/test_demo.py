@@ -1,12 +1,15 @@
 from copy import deepcopy
 from dataclasses import FrozenInstanceError
 import importlib.util
+import io
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 
 SAMPLE = Path(__file__).resolve().parents[1]
@@ -130,6 +133,163 @@ class SpecificationDemoTest(unittest.TestCase):
             policy.name,
             "(HasReceipt OR AuthorizedAmount(1000)) AND NOT Department('restricted')",
         )
+
+    def test_predicate_is_the_validated_extension_path_for_custom_fields(self):
+        demo = self.require_demo()
+        required_fields = ["memo"]
+        observed = []
+        explanation_calls = []
+
+        def evaluate(candidate):
+            observed.append(candidate["memo"])
+            return candidate["memo"]["text"] == "client dinner"
+
+        def explain(candidate, result):
+            explanation_calls.append(result)
+            return f"memo text was {candidate['memo']['text']!r}"
+
+        memo = demo.Predicate("MemoIsClientDinner", required_fields, evaluate, explain)
+        policy = memo & demo.HasReceipt()
+        required_fields.append("amount")
+        candidate = {
+            "memo": {"text": "client dinner", "tags": ["sales"]},
+            "receipt": True,
+        }
+        original = deepcopy(candidate)
+
+        self.assertEqual(memo.required_fields, ("memo",))
+        self.assertEqual(policy.required_fields, ("memo", "receipt"))
+        self.assertEqual(policy.name, "MemoIsClientDinner AND HasReceipt")
+        self.assertTrue(policy.is_satisfied_by(candidate))
+        self.assertEqual(explanation_calls, [])
+        trace = policy.explain(candidate, evaluate_all=True)
+
+        self.assertTrue(trace["result"])
+        self.assertEqual(
+            trace["evaluations"][0],
+            {
+                "specification": "MemoIsClientDinner",
+                "result": True,
+                "explanation": "memo text was 'client dinner'",
+            },
+        )
+        self.assertEqual(explanation_calls, [True])
+        self.assertEqual(candidate, original)
+        self.assertIsNot(observed[0], candidate["memo"])
+        with self.assertRaises((FrozenInstanceError, AttributeError)):
+            memo.required_fields = ("amount",)
+
+    def test_predicate_configuration_and_results_are_strict(self):
+        demo = self.require_demo()
+        valid_evaluator = lambda candidate: True
+        valid_explanation = lambda candidate, result: "accepted"
+        invalid_configurations = (
+            ("", ("memo",), valid_evaluator, valid_explanation),
+            ("Memo", "memo", valid_evaluator, valid_explanation),
+            ("Memo", {"memo"}, valid_evaluator, valid_explanation),
+            ("Memo", (), valid_evaluator, valid_explanation),
+            ("Memo", ("memo", "memo"), valid_evaluator, valid_explanation),
+            ("Memo", ("memo", 1), valid_evaluator, valid_explanation),
+            ("Memo", ("memo",), None, valid_explanation),
+            ("Memo", ("memo",), valid_evaluator, None),
+        )
+        for arguments in invalid_configurations:
+            with self.subTest(arguments=repr(arguments[:2])):
+                with self.assertRaises(demo.SpecificationConfigurationError):
+                    demo.Predicate(*arguments)
+
+        bad_result = demo.Predicate(
+            "BadResult",
+            ("memo",),
+            lambda candidate: 1,
+            valid_explanation,
+        )
+        bad_explanation = demo.Predicate(
+            "BadExplanation",
+            ("memo",),
+            valid_evaluator,
+            lambda candidate, result: 1,
+        )
+        with self.assertRaisesRegex(
+            demo.SpecificationEvaluationError,
+            "^Predicate 'BadResult' evaluator must return a boolean$",
+        ):
+            bad_result.is_satisfied_by({"memo": "x"})
+        with self.assertRaisesRegex(
+            demo.SpecificationEvaluationError,
+            "^Predicate 'BadExplanation' explanation must return a string$",
+        ):
+            bad_explanation.explain({"memo": "x"})
+
+    def test_bare_and_unregistered_specification_subclasses_are_rejected(self):
+        demo = self.require_demo()
+
+        class MutableSpecification(demo.Specification):
+            def __init__(self):
+                self.enabled = True
+
+            @property
+            def name(self):
+                return "Mutable"
+
+            @property
+            def required_fields(self):
+                return ("receipt",)
+
+            def _evaluate_boolean(self, candidate):
+                return self.enabled
+
+            def _evaluate_with_trace(self, candidate, evaluate_all):
+                return True, [], [], "mutable"
+
+        base = demo.Specification()
+        mutable = MutableSpecification()
+        for specification in (base, mutable):
+            with self.subTest(specification=type(specification).__name__):
+                with self.assertRaisesRegex(
+                    demo.SpecificationConfigurationError,
+                    "^unsupported Specification implementation: ",
+                ):
+                    specification.is_satisfied_by({})
+                with self.assertRaisesRegex(
+                    demo.SpecificationConfigurationError,
+                    "^unsupported Specification implementation: ",
+                ):
+                    demo.HasReceipt() & specification
+                with self.assertRaisesRegex(
+                    demo.SpecificationConfigurationError,
+                    "^unsupported Specification implementation: ",
+                ):
+                    demo.AndSpecification((demo.HasReceipt(), specification))
+
+    def test_custom_candidate_values_are_bounded_json_data(self):
+        demo = self.require_demo()
+        predicate = demo.Predicate(
+            "MemoPresent",
+            ("memo",),
+            lambda candidate: candidate["memo"] is not None,
+            lambda candidate, result: "memo checked",
+        )
+        invalid_values = (
+            (object(), "candidate.memo must be JSON-compatible"),
+            (("tuple",), "candidate.memo must be JSON-compatible"),
+            (float("nan"), "candidate.memo must be a finite number"),
+            (
+                demo.MAX_CUSTOM_INTEGER + 1,
+                "candidate.memo integer exceeds absolute bound of 1000000000",
+            ),
+            (
+                "x" * (demo.MAX_CUSTOM_STRING_BYTES + 1),
+                "candidate.memo exceeds 4096 UTF-8 bytes",
+            ),
+        )
+        for value, message in invalid_values:
+            with self.subTest(value_type=type(value).__name__):
+                with self.assertRaisesRegex(
+                    demo.CandidateValidationError,
+                    f"^{message}$",
+                ):
+                    predicate.is_satisfied_by({"memo": value})
 
     def test_explanations_are_structured_and_support_both_evaluation_modes(self):
         demo = self.require_demo()
@@ -371,6 +531,55 @@ class SpecificationDemoTest(unittest.TestCase):
         self.assertEqual(
             oversized_run.stderr,
             "ERROR: candidate input exceeds 65536 bytes\n",
+        )
+
+    def test_candidate_loader_reads_only_one_byte_past_the_cap(self):
+        demo = self.require_demo()
+        payload = json.dumps(
+            {
+                "receipt": True,
+                "budget": 500,
+                "amount": 400,
+                "department": "sales",
+            }
+        ).encode("utf-8")
+        read_sizes = []
+
+        class ReadSpy(io.BytesIO):
+            def read(self, size=-1):
+                read_sizes.append(size)
+                return super().read(size)
+
+        with patch.object(Path, "open", return_value=ReadSpy(payload)):
+            candidate = demo.load_candidate(Path("sentinel.json"))
+
+        self.assertEqual(candidate["amount"], 400)
+        self.assertEqual(read_sizes, [demo.MAX_INPUT_BYTES + 1])
+
+    def test_cli_stdout_is_ascii_safe_under_an_ascii_locale(self):
+        self.require_demo()
+        environment = os.environ.copy()
+        environment["PYTHONIOENCODING"] = "ascii:strict"
+
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(DEMO_PATH),
+                "fixtures/valid/unicode-department.json",
+            ],
+            cwd=SAMPLE,
+            capture_output=True,
+            env=environment,
+            check=False,
+        )
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(completed.stderr, b"")
+        completed.stdout.decode("ascii")
+        self.assertIn(b"\\u9500\\u552e", completed.stdout)
+        self.assertEqual(
+            json.loads(completed.stdout)["evaluations"][-1]["result"],
+            False,
         )
 
 

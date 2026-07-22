@@ -26,10 +26,19 @@ normalized to NFC and compared case-sensitively. Candidate values are copied
 into a fresh admitted mapping; the caller's mapping is never mutated.
 
 Every Specification exposes its required fields. A composed policy admits
-exactly the ordered union of those fields, not always all four default fields.
-Missing and extra fields are errors. Complete schema, type, bound, Unicode, and
-depth validation happens before the first rule, including before a branch that
-would otherwise short-circuit.
+exactly their ordered union, preserving each field's first left-to-right
+occurrence; it does not always require all four default fields. Missing and
+extra fields are errors. Complete schema, type, bound, Unicode, and depth
+validation happens before the first rule, including before a branch that would
+otherwise short-circuit.
+
+Custom Predicate fields accept JSON-compatible null, booleans, finite numbers,
+strings, lists, and string-keyed mappings. Custom strings are at most 4,096
+UTF-8 bytes, lists and mappings at most 128 items, and numeric absolute values
+at most 1,000,000,000. The complete compact admitted Candidate is at most
+65,536 UTF-8 bytes and nesting depth is at most 16. Tuples, arbitrary objects,
+non-finite floats, invalid Unicode, oversized values, and cycles are rejected.
+Validation creates a recursive copy.
 
 ## Specifications
 
@@ -39,7 +48,26 @@ would otherwise short-circuit.
 - `Department(expected)` requires NFC-normalized exact department equality.
 
 Leaf and composite objects are immutable after construction. Configuration is
-validated immediately. Only Specification instances can be combined.
+validated immediately. The supported implementations are the four built-in
+leaves, `Predicate`, And, Or, and Not. Bare `Specification`, mutable subclasses,
+and every other unregistered subclass are rejected before composition or
+evaluation.
+
+## Predicate extension
+
+`Predicate(name, required_fields, evaluator, explanation)` is the only custom
+extension path. Its explicit name is a non-blank valid-Unicode string of at
+most 128 UTF-8 bytes. Its ordered declaration contains 1-32 unique non-blank
+field names, each at most 128 bytes, and is snapshotted into a tuple. The
+evaluator must return an exact boolean. The explanation callable receives the
+same Candidate shape and result and must return valid Unicode of at most 4,096
+UTF-8 bytes.
+
+Each callable receives a new deep copy, so it cannot alias the caller's
+Candidate or another rule's admitted copy through ordinary references.
+Callables are nevertheless trusted, deterministic, pure, and side-effect free
+only by contract. Closures, globals, I/O, reflection, and hostile code are not
+sandboxed. Boolean evaluation does not invoke the explanation callable.
 
 ## Composite Specifications
 
@@ -57,15 +85,20 @@ free. No mode mutates the Candidate or a Specification.
 
 ## CLI input
 
-The CLI reads at most 65,536 bytes, decodes strict UTF-8, rejects duplicate JSON
-members at every depth and all non-finite numeric constants, and enforces a
-maximum parsed nesting depth of 16. It prints one deterministic JSON trace.
-Exit status is 0 for true, 1 for false, and 2 for input/configuration errors.
+The CLI performs one bounded read of 65,537 bytes and rejects the file when the
+result exceeds the 65,536-byte cap; it never loads the remainder. It decodes
+strict UTF-8, rejects duplicate JSON members at every depth and all non-finite
+numeric constants, and enforces a maximum parsed nesting depth of 16. It prints
+one deterministic ASCII-safe JSON trace, escaping non-ASCII output so stdout
+does not depend on the process locale. Exit status is 0 for true, 1 for false,
+and 2 for input/configuration errors.
 
 ## Trusted-code boundary
 
-The oracle is sequential trusted Python in one process. Frozen dataclasses
-prevent ordinary mutation but are not a security boundary against reflection
-or a hostile module. The sample does not provide authorization identity,
-currency conversion, persistence-query translation, policy version migration,
-audit durability, Agent Host activation, or Agent Runtime interpretation.
+The oracle is sequential trusted Python in one process. Frozen dataclasses,
+snapshotted declarations, validation copies, and per-call deep copies prevent
+ordinary alias mutation but are not a security boundary against reflection,
+closures, external effects, or a hostile module. The sample does not provide
+authorization identity, currency conversion, persistence-query translation,
+policy version migration, audit durability, Agent Host activation, or Agent
+Runtime interpretation.

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import argparse
 from collections.abc import Mapping
+from copy import deepcopy
 from dataclasses import dataclass
 import json
+import math
 from pathlib import Path
 import sys
 import unicodedata
@@ -10,11 +12,18 @@ import unicodedata
 
 SAMPLE = Path(__file__).resolve().parents[1]
 DEFAULT_CANDIDATE_PATH = SAMPLE / "fixtures/valid/approved-expense.json"
-FIELD_ORDER = ("receipt", "budget", "amount", "department")
 MAX_AMOUNT = 1_000_000_000
 MAX_DEPARTMENT_BYTES = 128
 MAX_INPUT_BYTES = 65_536
 MAX_JSON_DEPTH = 16
+MAX_REQUIRED_FIELDS = 32
+MAX_FIELD_NAME_BYTES = 128
+MAX_SPECIFICATION_NAME_BYTES = 128
+MAX_CUSTOM_STRING_BYTES = 4_096
+MAX_CUSTOM_COLLECTION_ITEMS = 128
+MAX_CUSTOM_INTEGER = 1_000_000_000
+MAX_CUSTOM_NUMBER = 1_000_000_000
+MAX_EXPLANATION_BYTES = 4_096
 
 
 class SpecificationError(ValueError):
@@ -30,6 +39,10 @@ class CandidateValidationError(SpecificationError):
 
 
 class CandidateInputError(SpecificationError):
+    pass
+
+
+class SpecificationEvaluationError(SpecificationError):
     pass
 
 
@@ -119,6 +132,105 @@ def _validate_department(value, subject, error_type):
     return normalized
 
 
+def _validate_required_fields(required_fields):
+    if isinstance(required_fields, (str, bytes, set, frozenset, Mapping)):
+        raise SpecificationConfigurationError(
+            "Predicate required_fields must be an ordered iterable of field names"
+        )
+    try:
+        fields = tuple(required_fields)
+    except TypeError as exc:
+        raise SpecificationConfigurationError(
+            "Predicate required_fields must be an ordered iterable of field names"
+        ) from exc
+    if not fields:
+        raise SpecificationConfigurationError(
+            "Predicate required_fields must not be empty"
+        )
+    if len(fields) > MAX_REQUIRED_FIELDS:
+        raise SpecificationConfigurationError(
+            f"Predicate required_fields exceeds {MAX_REQUIRED_FIELDS} fields"
+        )
+    seen = set()
+    for field_name in fields:
+        if not isinstance(field_name, str) or not field_name.strip():
+            raise SpecificationConfigurationError(
+                "Predicate required_fields must contain non-blank strings"
+            )
+        _require_valid_unicode(
+            field_name,
+            "Predicate required field names",
+            SpecificationConfigurationError,
+        )
+        if len(field_name.encode("utf-8")) > MAX_FIELD_NAME_BYTES:
+            raise SpecificationConfigurationError(
+                "Predicate required field name exceeds "
+                f"{MAX_FIELD_NAME_BYTES} UTF-8 bytes"
+            )
+        if field_name in seen:
+            raise SpecificationConfigurationError(
+                f"Predicate required_fields contains duplicate: {field_name}"
+            )
+        seen.add(field_name)
+    return fields
+
+
+def _validate_custom_json(value, subject):
+    if value is None or type(value) is bool:
+        return value
+    if type(value) is int:
+        if abs(value) > MAX_CUSTOM_INTEGER:
+            raise CandidateValidationError(
+                f"{subject} integer exceeds absolute bound of {MAX_CUSTOM_INTEGER}"
+            )
+        return value
+    if type(value) is float:
+        if not math.isfinite(value):
+            raise CandidateValidationError(f"{subject} must be a finite number")
+        if abs(value) > MAX_CUSTOM_NUMBER:
+            raise CandidateValidationError(
+                f"{subject} number exceeds absolute bound of {MAX_CUSTOM_NUMBER}"
+            )
+        return value
+    if isinstance(value, str):
+        _require_valid_unicode(value, subject, CandidateValidationError)
+        if len(value.encode("utf-8")) > MAX_CUSTOM_STRING_BYTES:
+            raise CandidateValidationError(
+                f"{subject} exceeds {MAX_CUSTOM_STRING_BYTES} UTF-8 bytes"
+            )
+        return value
+    if isinstance(value, list):
+        if len(value) > MAX_CUSTOM_COLLECTION_ITEMS:
+            raise CandidateValidationError(
+                f"{subject} exceeds {MAX_CUSTOM_COLLECTION_ITEMS} items"
+            )
+        return [
+            _validate_custom_json(item, f"{subject}[{index}]")
+            for index, item in enumerate(value)
+        ]
+    if isinstance(value, Mapping):
+        if len(value) > MAX_CUSTOM_COLLECTION_ITEMS:
+            raise CandidateValidationError(
+                f"{subject} exceeds {MAX_CUSTOM_COLLECTION_ITEMS} members"
+            )
+        copied = {}
+        for key, item in value.items():
+            if not isinstance(key, str) or not key:
+                raise CandidateValidationError(
+                    f"{subject} member names must be non-empty strings"
+                )
+            _require_valid_unicode(
+                key, f"{subject} member names", CandidateValidationError
+            )
+            if len(key.encode("utf-8")) > MAX_FIELD_NAME_BYTES:
+                raise CandidateValidationError(
+                    f"{subject} member name exceeds {MAX_FIELD_NAME_BYTES} UTF-8 bytes"
+                )
+            copied[key] = _validate_custom_json(item, f"{subject}.{key}")
+        return copied
+    raise CandidateValidationError(f"{subject} must be JSON-compatible")
+
+
 def validate_candidate(candidate, required_fields):
     if not isinstance(candidate, Mapping):
         raise CandidateValidationError("candidate must be a mapping")
@@ -155,17 +267,31 @@ def validate_candidate(candidate, required_fields):
                 value, "candidate.department", CandidateValidationError
             )
         else:
-            raise CandidateValidationError(f"unsupported candidate field: {field}")
+            admitted[field] = _validate_custom_json(
+                value, f"candidate.{field}"
+            )
+    serialized = json.dumps(
+        admitted,
+        ensure_ascii=False,
+        allow_nan=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    if len(serialized) > MAX_INPUT_BYTES:
+        raise CandidateValidationError(
+            f"candidate exceeds {MAX_INPUT_BYTES} UTF-8 bytes after validation"
+        )
     return admitted
 
 
 def _ordered_union(specifications):
-    required = {
-        field
-        for specification in specifications
-        for field in specification.required_fields
-    }
-    return tuple(field for field in FIELD_ORDER if field in required)
+    ordered = []
+    seen = set()
+    for specification in specifications:
+        for field_name in specification.required_fields:
+            if field_name not in seen:
+                seen.add(field_name)
+                ordered.append(field_name)
+    return tuple(ordered)
 
 
 def _leaf_trace(specification, result, explanation):
@@ -179,25 +305,19 @@ def _leaf_trace(specification, result, explanation):
 class Specification:
     __slots__ = ()
 
-    @property
-    def name(self):
-        raise NotImplementedError
-
-    @property
-    def required_fields(self):
-        raise NotImplementedError
-
     def _evaluate_with_trace(self, candidate, evaluate_all):
         raise NotImplementedError
 
+    def _evaluate_boolean(self, candidate):
+        raise NotImplementedError
+
     def is_satisfied_by(self, candidate):
+        _require_supported_specification(self)
         admitted = validate_candidate(candidate, self.required_fields)
-        result, _evaluations, _skipped, _explanation = self._evaluate_with_trace(
-            admitted, False
-        )
-        return result
+        return self._evaluate_boolean(admitted)
 
     def explain(self, candidate, *, evaluate_all=False):
+        _require_supported_specification(self)
         if type(evaluate_all) is not bool:
             raise TypeError("evaluate_all must be a boolean")
         admitted = validate_candidate(candidate, self.required_fields)
@@ -216,6 +336,8 @@ class Specification:
     def __and__(self, other):
         if not isinstance(other, Specification):
             raise TypeError("can only compose Specification instances")
+        _require_supported_specification(self)
+        _require_supported_specification(other)
         left = self.specifications if isinstance(self, AndSpecification) else (self,)
         right = (
             other.specifications if isinstance(other, AndSpecification) else (other,)
@@ -225,6 +347,8 @@ class Specification:
     def __or__(self, other):
         if not isinstance(other, Specification):
             raise TypeError("can only compose Specification instances")
+        _require_supported_specification(self)
+        _require_supported_specification(other)
         left = self.specifications if isinstance(self, OrSpecification) else (self,)
         right = (
             other.specifications if isinstance(other, OrSpecification) else (other,)
@@ -232,6 +356,7 @@ class Specification:
         return OrSpecification(left + right)
 
     def __invert__(self):
+        _require_supported_specification(self)
         return NotSpecification(self)
 
 
@@ -245,8 +370,11 @@ class HasReceipt(Specification):
     def required_fields(self):
         return ("receipt",)
 
+    def _evaluate_boolean(self, candidate):
+        return candidate["receipt"] is True
+
     def _evaluate_with_trace(self, candidate, _evaluate_all):
-        result = candidate["receipt"] is True
+        result = self._evaluate_boolean(candidate)
         explanation = (
             "receipt must be true; observed "
             + ("true" if candidate["receipt"] else "false")
@@ -264,8 +392,11 @@ class WithinBudget(Specification):
     def required_fields(self):
         return ("budget", "amount")
 
+    def _evaluate_boolean(self, candidate):
+        return candidate["amount"] <= candidate["budget"]
+
     def _evaluate_with_trace(self, candidate, _evaluate_all):
-        result = candidate["amount"] <= candidate["budget"]
+        result = self._evaluate_boolean(candidate)
         relation = "within budget" if result else "over budget"
         explanation = (
             f"amount {candidate['amount']} must be <= budget "
@@ -293,8 +424,11 @@ class AuthorizedAmount(Specification):
     def required_fields(self):
         return ("amount",)
 
+    def _evaluate_boolean(self, candidate):
+        return candidate["amount"] <= self.maximum
+
     def _evaluate_with_trace(self, candidate, _evaluate_all):
-        result = candidate["amount"] <= self.maximum
+        result = self._evaluate_boolean(candidate)
         relation = "authorized" if result else "not authorized"
         explanation = (
             f"amount {candidate['amount']} must be <= authorized maximum "
@@ -323,12 +457,89 @@ class Department(Specification):
     def required_fields(self):
         return ("department",)
 
+    def _evaluate_boolean(self, candidate):
+        return candidate["department"] == self.expected
+
     def _evaluate_with_trace(self, candidate, _evaluate_all):
-        result = candidate["department"] == self.expected
+        result = self._evaluate_boolean(candidate)
         explanation = (
             f"department must equal {self.expected!r}; "
             f"observed {candidate['department']!r}"
         )
+        return result, [_leaf_trace(self.name, result, explanation)], [], explanation
+
+
+@dataclass(frozen=True, slots=True)
+class Predicate(Specification):
+    name: str
+    required_fields: tuple
+    evaluator: object
+    explanation: object
+
+    def __post_init__(self):
+        if not isinstance(self.name, str) or not self.name.strip():
+            raise SpecificationConfigurationError(
+                "Predicate name must be a non-blank string"
+            )
+        _require_valid_unicode(
+            self.name, "Predicate name", SpecificationConfigurationError
+        )
+        if self.name != self.name.strip():
+            raise SpecificationConfigurationError(
+                "Predicate name must not have leading or trailing whitespace"
+            )
+        if len(self.name.encode("utf-8")) > MAX_SPECIFICATION_NAME_BYTES:
+            raise SpecificationConfigurationError(
+                f"Predicate name exceeds {MAX_SPECIFICATION_NAME_BYTES} UTF-8 bytes"
+            )
+        fields = _validate_required_fields(self.required_fields)
+        if not callable(self.evaluator):
+            raise SpecificationConfigurationError(
+                "Predicate evaluator must be callable"
+            )
+        if not callable(self.explanation):
+            raise SpecificationConfigurationError(
+                "Predicate explanation must be callable"
+            )
+        object.__setattr__(self, "required_fields", fields)
+
+    def _evaluate_boolean(self, candidate):
+        try:
+            result = self.evaluator(deepcopy(candidate))
+        except Exception as exc:
+            raise SpecificationEvaluationError(
+                f"Predicate {self.name!r} evaluator failed: "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
+        if type(result) is not bool:
+            raise SpecificationEvaluationError(
+                f"Predicate {self.name!r} evaluator must return a boolean"
+            )
+        return result
+
+    def _evaluate_with_trace(self, candidate, _evaluate_all):
+        result = self._evaluate_boolean(candidate)
+        try:
+            explanation = self.explanation(deepcopy(candidate), result)
+        except Exception as exc:
+            raise SpecificationEvaluationError(
+                f"Predicate {self.name!r} explanation failed: "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
+        if not isinstance(explanation, str):
+            raise SpecificationEvaluationError(
+                f"Predicate {self.name!r} explanation must return a string"
+            )
+        _require_valid_unicode(
+            explanation,
+            f"Predicate {self.name!r} explanation",
+            SpecificationEvaluationError,
+        )
+        if len(explanation.encode("utf-8")) > MAX_EXPLANATION_BYTES:
+            raise SpecificationEvaluationError(
+                f"Predicate {self.name!r} explanation exceeds "
+                f"{MAX_EXPLANATION_BYTES} UTF-8 bytes"
+            )
         return result, [_leaf_trace(self.name, result, explanation)], [], explanation
 
 
@@ -343,12 +554,12 @@ class AndSpecification(Specification):
             raise SpecificationConfigurationError(
                 "AND requires at least two Specification instances"
             ) from exc
-        if len(specifications) < 2 or any(
-            not isinstance(item, Specification) for item in specifications
-        ):
+        if len(specifications) < 2:
             raise SpecificationConfigurationError(
                 "AND requires at least two Specification instances"
             )
+        for specification in specifications:
+            _require_supported_specification(specification)
         object.__setattr__(self, "specifications", specifications)
 
     @property
@@ -361,6 +572,12 @@ class AndSpecification(Specification):
     @property
     def required_fields(self):
         return _ordered_union(self.specifications)
+
+    def _evaluate_boolean(self, candidate):
+        return all(
+            specification._evaluate_boolean(candidate)
+            for specification in self.specifications
+        )
 
     def _evaluate_with_trace(self, candidate, evaluate_all):
         evaluations = []
@@ -402,12 +619,12 @@ class OrSpecification(Specification):
             raise SpecificationConfigurationError(
                 "OR requires at least two Specification instances"
             ) from exc
-        if len(specifications) < 2 or any(
-            not isinstance(item, Specification) for item in specifications
-        ):
+        if len(specifications) < 2:
             raise SpecificationConfigurationError(
                 "OR requires at least two Specification instances"
             )
+        for specification in specifications:
+            _require_supported_specification(specification)
         object.__setattr__(self, "specifications", specifications)
 
     @property
@@ -417,6 +634,12 @@ class OrSpecification(Specification):
     @property
     def required_fields(self):
         return _ordered_union(self.specifications)
+
+    def _evaluate_boolean(self, candidate):
+        return any(
+            specification._evaluate_boolean(candidate)
+            for specification in self.specifications
+        )
 
     def _evaluate_with_trace(self, candidate, evaluate_all):
         evaluations = []
@@ -453,10 +676,7 @@ class NotSpecification(Specification):
     specification: Specification
 
     def __post_init__(self):
-        if not isinstance(self.specification, Specification):
-            raise SpecificationConfigurationError(
-                "NOT requires one Specification instance"
-            )
+        _require_supported_specification(self.specification)
 
     @property
     def name(self):
@@ -467,6 +687,9 @@ class NotSpecification(Specification):
     @property
     def required_fields(self):
         return self.specification.required_fields
+
+    def _evaluate_boolean(self, candidate):
+        return not self.specification._evaluate_boolean(candidate)
 
     def _evaluate_with_trace(self, candidate, evaluate_all):
         child_result, evaluations, skipped, _ = (
@@ -479,6 +702,24 @@ class NotSpecification(Specification):
             f"{'false' if result else 'true'}."
         )
         return result, evaluations, skipped, explanation
+
+
+def _require_supported_specification(specification):
+    supported_types = (
+        HasReceipt,
+        WithinBudget,
+        AuthorizedAmount,
+        Department,
+        Predicate,
+        AndSpecification,
+        OrSpecification,
+        NotSpecification,
+    )
+    if type(specification) not in supported_types:
+        raise SpecificationConfigurationError(
+            "unsupported Specification implementation: "
+            f"{type(specification).__name__}; use Predicate for custom rules"
+        )
 
 
 DEFAULT_EXPENSE_POLICY = (
@@ -504,7 +745,8 @@ def reject_non_finite(value):
 
 def load_candidate(path):
     try:
-        data = path.read_bytes()
+        with path.open("rb") as input_file:
+            data = input_file.read(MAX_INPUT_BYTES + 1)
     except OSError as exc:
         raise CandidateInputError(f"unable to read candidate input: {exc}") from exc
     if len(data) > MAX_INPUT_BYTES:
@@ -560,7 +802,7 @@ def main(argv=None):
     except SpecificationError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
-    print(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False))
+    print(json.dumps(result, ensure_ascii=True, indent=2, allow_nan=False))
     return 0 if result["result"] else 1
 
 
