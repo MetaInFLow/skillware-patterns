@@ -1,0 +1,1 @@
+ERROR: illegal transition: draft -> activate; allowed actions: verify

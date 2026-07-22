@@ -414,6 +414,75 @@ class PatternRecordContractTest(unittest.TestCase):
                     self.assertNotIn("skillware-github", text)
                     self.assertNotIn("github.com/MetaInFLow/skillware", text)
 
+    def test_state_separates_gof_participants_from_execution_context(self):
+        participant_map = yaml.safe_load(
+            (PATTERNS / "state/participant-map.yaml").read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(
+            set(participant_map["participants"]),
+            {"Context", "State", "ConcreteState"},
+        )
+        concrete_state_ids = {
+            item["id"]
+            for item in participant_map["participants"]["ConcreteState"][
+                "implementations"
+            ]
+        }
+        self.assertEqual(
+            concrete_state_ids, {"draft", "verified", "approved", "activated"}
+        )
+
+        context = participant_map["execution_context"]
+        self.assertEqual(set(context), {"Agent Host", "Agent Runtime"})
+        for role in context.values():
+            self.assertEqual(role["evidence_status"], "not observable")
+            self.assertNotIn("path", role)
+            self.assertNotIn("evidence_path", role)
+
+    def test_state_contract_declares_owned_transitions_and_recovery(self):
+        contract = yaml.safe_load(
+            (PATTERNS / "state/sample/skillware.yaml").read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(contract["state_contract"], "vendor-onboarding-state-v1")
+        self.assertEqual(contract["operation"], "handle-action")
+        self.assertEqual(contract["transition_ownership"], "concrete-state")
+        self.assertEqual(
+            [
+                (item["from"], item["action"], item["to"])
+                for item in contract["transitions"]
+            ],
+            [
+                ("draft", "verify", "verified"),
+                ("verified", "approve", "approved"),
+                ("approved", "activate", "activated"),
+            ],
+        )
+        self.assertEqual(contract["persistence"]["format"], "versioned-json")
+        self.assertEqual(contract["persistence"]["write"], "atomic-replace")
+        self.assertEqual(contract["recovery"], "reload-before-action")
+        self.assertEqual(contract["illegal_transition"], "reject-before-write")
+
+    def test_state_record_does_not_invent_ecosystem_correspondence(self):
+        correspondence = (PATTERNS / "state/correspondence.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("**Status:** no ecosystem correspondence assessed", correspondence)
+        self.assertNotIn("confirmed correspondence", correspondence)
+        self.assertNotIn("candidate correspondence", correspondence)
+        self.assertFalse((PATTERNS / "state/evidence").exists())
+
+    def test_state_public_record_has_no_private_research_links(self):
+        record = PATTERNS / "state"
+        for path in record.rglob("*"):
+            if path.is_file() and path.suffix in {".md", ".yaml", ".py", ".json"}:
+                with self.subTest(path=path.relative_to(record)):
+                    text = path.read_text(encoding="utf-8")
+                    self.assertNotIn("skillware-github", text)
+                    self.assertNotIn("github.com/MetaInFLow/skillware", text)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,12 @@
+{
+  "vendor_id": "vendor-northstar",
+  "persisted_state": {
+    "schema": "vendor-onboarding-state-v1",
+    "vendor_id": "vendor-northstar",
+    "state": "approved",
+    "revision": 2
+  },
+  "actions": [
+    "activate"
+  ]
+}

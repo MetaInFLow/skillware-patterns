@@ -1,0 +1,30 @@
+{
+  "vendor_id": "vendor-acme",
+  "initial_state": "draft",
+  "steps": [
+    {
+      "action": "verify",
+      "from": "draft",
+      "to": "verified",
+      "behavior": "Verification completed; evidence is ready for approval.",
+      "revision": 1
+    },
+    {
+      "action": "approve",
+      "from": "verified",
+      "to": "approved",
+      "behavior": "Approval recorded; the vendor is ready for activation.",
+      "revision": 2
+    },
+    {
+      "action": "activate",
+      "from": "approved",
+      "to": "activated",
+      "behavior": "Activation completed; the vendor is active.",
+      "revision": 3
+    }
+  ],
+  "final_state": "activated",
+  "recovered_state": "activated",
+  "revision": 3
+}

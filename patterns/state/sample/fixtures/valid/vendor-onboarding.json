@@ -1,0 +1,9 @@
+{
+  "vendor_id": "vendor-acme",
+  "persisted_state": null,
+  "actions": [
+    "verify",
+    "approve",
+    "activate"
+  ]
+}

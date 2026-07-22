@@ -1,0 +1,55 @@
+pattern: State
+pattern_id: state
+participants:
+  Context:
+    role: Persisted vendor onboarding workflow
+    behavior: Reloads the versioned state record before each action, delegates handling to the current State, and atomically persists a successful successor.
+    paths:
+      - sample/SKILL.md
+      - sample/scripts/run_demo.py
+      - sample/fixtures/valid/vendor-onboarding.json
+  State:
+    role: vendor-onboarding-state-v1 handle-action contract
+    behavior: Defines the action-handling operation through which the Context delegates state-dependent behavior.
+    path: sample/references/vendor-state-contract.md
+  ConcreteState:
+    role: Draft, verified, approved, and activated state Skills and demo classes
+    behavior: Each implementation owns its permitted action, successor, and state-specific result; every other action is rejected before persistence.
+    implementations:
+      - id: draft
+        path: sample/child-skills/draft/SKILL.md
+        demo_state_class: DraftState
+      - id: verified
+        path: sample/child-skills/verified/SKILL.md
+        demo_state_class: VerifiedState
+      - id: approved
+        path: sample/child-skills/approved/SKILL.md
+        demo_state_class: ApprovedState
+      - id: activated
+        path: sample/child-skills/activated/SKILL.md
+        demo_state_class: ActivatedState
+execution_context:
+  Agent Host:
+    responsibility: Activates the root or a separately addressed ConcreteState Skill.
+    evidence_status: not observable
+    note: The constructive sample supplies no Agent Host integration evidence.
+  Agent Runtime:
+    responsibility: Interprets the activated Skill behavioral source.
+    evidence_status: not observable
+    note: The deterministic Python workflow is an oracle, not evidence of model interpretation.
+implementation_paths:
+  - sample/scripts/run_demo.py
+  - sample/skillware.yaml
+  - sample/references/vendor-state-contract.md
+  - sample/fixtures/valid/vendor-onboarding.json
+  - sample/fixtures/valid/recover-approved.json
+  - sample/fixtures/invalid/illegal-transition.json
+  - sample/fixtures/invalid/corrupted-state.json
+  - sample/fixtures/invalid/malformed-workflow.json
+  - sample/expected/vendor-onboarding-result.json
+  - sample/expected/recover-approved-result.json
+  - sample/expected/illegal-transition-error.txt
+  - sample/expected/corrupted-state-error.txt
+  - sample/expected/malformed-workflow-error.txt
+  - sample/tests/test_demo.py
+misuse_path: misuse/SKILL.md

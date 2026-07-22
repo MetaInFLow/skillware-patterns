@@ -1,0 +1,44 @@
+id: vendor-onboarding-workflow
+name: Vendor Onboarding Workflow
+name_zh: 供应商接入工作流
+pattern: state
+entry_skill: SKILL.md
+state_contract: vendor-onboarding-state-v1
+contract_reference: references/vendor-state-contract.md
+operation: handle-action
+transition_ownership: concrete-state
+states:
+  - id: draft
+    skill: child-skills/draft/SKILL.md
+    demo_state_class: DraftState
+    allowed_actions: [verify]
+  - id: verified
+    skill: child-skills/verified/SKILL.md
+    demo_state_class: VerifiedState
+    allowed_actions: [approve]
+  - id: approved
+    skill: child-skills/approved/SKILL.md
+    demo_state_class: ApprovedState
+    allowed_actions: [activate]
+  - id: activated
+    skill: child-skills/activated/SKILL.md
+    demo_state_class: ActivatedState
+    allowed_actions: []
+transitions:
+  - {from: draft, action: verify, to: verified}
+  - {from: verified, action: approve, to: approved}
+  - {from: approved, action: activate, to: activated}
+persistence:
+  format: versioned-json
+  fields: [schema, vendor_id, state, revision]
+  write: atomic-replace
+  commit_order: persist-before-memory
+recovery: reload-before-action
+illegal_transition: reject-before-write
+demo:
+  python: ">=3.10"
+  standard_library_only: true
+  network_required: false
+  interprets_skill_markdown: false
+  default_workflow: fixtures/valid/vendor-onboarding.json
+  command: python3 scripts/run_demo.py

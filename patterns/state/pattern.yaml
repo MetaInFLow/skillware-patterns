@@ -1,0 +1,9 @@
+id: state
+name: State
+name_zh: 状态模式
+source_tradition: gang-of-four
+source_category: behavioral
+paper_role: main-text
+implementation_status: detailed
+scenario: Vendor Onboarding Workflow
+scenario_zh: 供应商准入流程

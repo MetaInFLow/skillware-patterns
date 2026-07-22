@@ -1,0 +1,1 @@
+ERROR: workflow fields must be exactly: vendor_id, persisted_state, actions; missing: actions
