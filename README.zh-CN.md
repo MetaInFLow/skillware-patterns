@@ -189,10 +189,35 @@ Haodi Fan、Zucong Lan，[《Skillware: A Software Ontology and Engineering Life
 
 贡献应保留既有来源、扁平模式布局、七项准入协议、受控状态、双语定义、独立示例、近似误用案例和聚焦测试。不能仅凭一个熟悉的模式名称就准入新目录。
 
-完整的准入契约、验证要求及贡献许可边界见[贡献指南](CONTRIBUTING.md)。参与本项目须遵守 [Contributor Covenant 行为准则](CODE_OF_CONDUCT.md)。本仓库仍处于发布准备阶段，尚未达到公开发布就绪状态；CI、公开发布与 release 创建仍待 Task 20 完成。
+完整的准入契约、验证要求及贡献许可边界见[贡献指南](CONTRIBUTING.md)。参与本项目须遵守 [Contributor Covenant 行为准则](CODE_OF_CONDUCT.md)。本仓库仍处于发布准备阶段，尚未达到公开发布就绪状态。CI、公开发布与 release 创建仍处于待办状态。
 
 ## 许可证
 
-许可边界按文件位置正式生效。所有 `patterns/*/sample/**`、`scripts/**`、`tests/**`、`.github/workflows/**` 和 `pyproject.toml` 均采用 [Apache License 2.0](LICENSE-CODE)。定义、模式元数据、参与者映射、对应记录、误用记录、catalog 文件、docs、READMEs 与治理文本均采用 [Creative Commons Attribution 4.0 International](LICENSE-DOCS)。
+正式生效的文件边界完整且互不重叠：
 
-规范许可证文件保留其自身文本。链接的第三方制品仍遵循其上游许可证，本仓库不对其重新授权。完整边界见[贡献指南](CONTRIBUTING.md#license-boundary)。
+```text
+Apache-2.0
+  .github/**
+  .gitignore
+  pyproject.toml
+  scripts/**
+  tests/**
+  patterns/*/sample/**
+
+CC-BY-4.0
+  README.md
+  README.zh-CN.md
+  CITATION.cff
+  CONTRIBUTING.md
+  CODE_OF_CONDUCT.md
+  catalog/**
+  docs/**
+  patterns/.gitkeep
+  patterns/*/** excluding patterns/*/sample/**
+
+Canonical upstream texts (outside repository relicensing)
+  LICENSE-CODE
+  LICENSE-DOCS
+```
+
+Apache-2.0 类采用 [Apache License 2.0](LICENSE-CODE)，CC-BY-4.0 类采用 [Creative Commons Attribution 4.0 International](LICENSE-DOCS)。LICENSE-CODE 与 LICENSE-DOCS 保留规范的上游文本，不属于本仓库重新授权的范围。链接的第三方制品仍遵循其上游许可证。贡献条款见[贡献指南](CONTRIBUTING.md#license-boundary)。

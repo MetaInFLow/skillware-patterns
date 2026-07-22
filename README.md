@@ -189,10 +189,35 @@ Use [CITATION.cff](CITATION.cff) for formal software and preferred-paper metadat
 
 Contributions should preserve established source provenance, the flat pattern layout, the seven-element admission protocol, controlled statuses, bilingual definitions, a standalone sample, a close misuse case, and focused tests. A new directory is not admitted solely because it carries a familiar pattern name.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete admission contract, validation requirements, and contribution license boundary. Participation is governed by the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). This repository remains in release preparation and is not yet public-release ready; CI, publication, and release creation remain pending.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete admission contract, validation requirements, and contribution license boundary. Participation is governed by the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). This repository remains in release preparation and is not yet public-release ready. CI, publication, and release creation remain pending.
 
 ## Licenses
 
-The license boundary is operative by file location. All `patterns/*/sample/**`, `scripts/**`, `tests/**`, `.github/workflows/**`, and `pyproject.toml` are licensed under the [Apache License 2.0](LICENSE-CODE). Definitions, pattern metadata, participant maps, correspondence records, misuse records, catalog files, docs, READMEs, and governance prose are licensed under [Creative Commons Attribution 4.0 International](LICENSE-DOCS).
+The operative file boundary is exhaustive and disjoint:
 
-Canonical license files retain their own texts. Linked third-party artifacts remain under their upstream license and are not relicensed by this repository. See [CONTRIBUTING.md](CONTRIBUTING.md#license-boundary) for the complete boundary.
+```text
+Apache-2.0
+  .github/**
+  .gitignore
+  pyproject.toml
+  scripts/**
+  tests/**
+  patterns/*/sample/**
+
+CC-BY-4.0
+  README.md
+  README.zh-CN.md
+  CITATION.cff
+  CONTRIBUTING.md
+  CODE_OF_CONDUCT.md
+  catalog/**
+  docs/**
+  patterns/.gitkeep
+  patterns/*/** excluding patterns/*/sample/**
+
+Canonical upstream texts (outside repository relicensing)
+  LICENSE-CODE
+  LICENSE-DOCS
+```
+
+The Apache-2.0 class is licensed under the [Apache License 2.0](LICENSE-CODE), and the CC-BY-4.0 class is licensed under [Creative Commons Attribution 4.0 International](LICENSE-DOCS). LICENSE-CODE and LICENSE-DOCS retain their canonical upstream texts and are outside repository relicensing. Linked third-party artifacts remain under their upstream license. See [CONTRIBUTING.md](CONTRIBUTING.md#license-boundary) for contribution terms.

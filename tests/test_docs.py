@@ -13,11 +13,66 @@ PAPER_TITLE = (
     "Persistent Behavioral Artifacts"
 )
 AUTHORING_REVISION = "1fc1dfd"
-REPOSITORY_URL = "https://github.com/MetaInFlow/skillware-patterns"
 GOVERNANCE_DOCS = (
     "CONTRIBUTING.md",
     "CODE_OF_CONDUCT.md",
 )
+CITATION_TOP_LEVEL_KEYS = {
+    "cff-version",
+    "title",
+    "message",
+    "type",
+    "authors",
+    "version",
+    "preferred-citation",
+}
+SOFTWARE_AUTHORS = [
+    {
+        "family-names": "Fan",
+        "given-names": "Anthony",
+        "email": "anthonyfan@metainflow.cn",
+    },
+    {
+        "family-names": "Lan",
+        "given-names": "Neil",
+        "email": "neillan@metainflow.cn",
+    },
+]
+PREFERRED_CITATION = {
+    "type": "article",
+    "title": PAPER_TITLE,
+    "authors": [
+        {"family-names": "Fan", "given-names": "Haodi"},
+        {"family-names": "Lan", "given-names": "Zucong"},
+    ],
+    "year": 2026,
+    "url": ARXIV_URL,
+    "doi": "10.48550/arXiv.2607.18970",
+}
+LICENSE_BOUNDARY_BLOCK = """```text
+Apache-2.0
+  .github/**
+  .gitignore
+  pyproject.toml
+  scripts/**
+  tests/**
+  patterns/*/sample/**
+
+CC-BY-4.0
+  README.md
+  README.zh-CN.md
+  CITATION.cff
+  CONTRIBUTING.md
+  CODE_OF_CONDUCT.md
+  catalog/**
+  docs/**
+  patterns/.gitkeep
+  patterns/*/** excluding patterns/*/sample/**
+
+Canonical upstream texts (outside repository relicensing)
+  LICENSE-CODE
+  LICENSE-DOCS
+```"""
 
 REQUIRED_DOCS = (
     "skillware-definition.md",
@@ -356,6 +411,33 @@ def external_markdown_links(text: str) -> list[str]:
     return [target for target in markdown_links(text) if target.startswith("http")]
 
 
+def assert_citation_contract(citation) -> None:
+    if not isinstance(citation, dict):
+        raise AssertionError("citation must be a mapping")
+    actual_keys = set(citation)
+    if actual_keys != CITATION_TOP_LEVEL_KEYS:
+        missing = sorted(CITATION_TOP_LEVEL_KEYS - actual_keys)
+        illegal = sorted(actual_keys - CITATION_TOP_LEVEL_KEYS)
+        raise AssertionError(
+            f"invalid top-level keys: missing={missing}, illegal={illegal}"
+        )
+    expected_strings = {
+        "cff-version": "1.2.0",
+        "title": "Skillware Patterns",
+        "message": "Cite the Skillware paper and this software artifact.",
+        "type": "software",
+        "version": "0.1.0",
+    }
+    for key, expected in expected_strings.items():
+        value = citation[key]
+        if not isinstance(value, str) or value != expected:
+            raise AssertionError(f"{key} must be the exact required string")
+    if citation["authors"] != SOFTWARE_AUTHORS:
+        raise AssertionError("software authors do not match the required people")
+    if citation["preferred-citation"] != PREFERRED_CITATION:
+        raise AssertionError("preferred-citation does not match the public paper")
+
+
 class MethodologyDocsTest(unittest.TestCase):
     def test_required_methodology_documents_exist(self):
         for name in REQUIRED_DOCS:
@@ -508,41 +590,27 @@ class GovernanceDocsTest(unittest.TestCase):
             (ROOT / "CITATION.cff").read_text(encoding="utf-8")
         )
 
-        self.assertEqual(citation["cff-version"], "1.2.0")
-        self.assertEqual(citation["title"], "Skillware Patterns")
-        self.assertEqual(citation["type"], "software")
-        self.assertEqual(citation["version"], "0.1.0")
-        self.assertEqual(citation["repository-code"], REPOSITORY_URL)
-        self.assertEqual(str(citation["date-released"]), "2026-07-22")
-        self.assertEqual(
-            citation["authors"],
-            [
-                {
-                    "family-names": "Fan",
-                    "given-names": "Anthony",
-                    "email": "anthonyfan@metainflow.cn",
-                },
-                {
-                    "family-names": "Lan",
-                    "given-names": "Neil",
-                    "email": "neillan@metainflow.cn",
-                },
-            ],
+        assert_citation_contract(citation)
+        self.assertNotIn("repository-code", citation)
+        self.assertNotIn("date-released", citation)
+
+    def test_citation_contract_rejects_missing_message_and_illegal_key(self):
+        citation = yaml.safe_load(
+            (ROOT / "CITATION.cff").read_text(encoding="utf-8")
         )
-        self.assertEqual(
-            citation["preferred-citation"],
-            {
-                "type": "article",
-                "title": PAPER_TITLE,
-                "authors": [
-                    {"family-names": "Fan", "given-names": "Haodi"},
-                    {"family-names": "Lan", "given-names": "Zucong"},
-                ],
-                "year": 2026,
-                "url": ARXIV_URL,
-                "doi": "10.48550/arXiv.2607.18970",
-            },
+        without_message = dict(citation)
+        without_message.pop("message")
+        with self.assertRaisesRegex(AssertionError, r"missing=\['message'\]"):
+            assert_citation_contract(without_message)
+
+        with_premature_release_metadata = dict(citation)
+        with_premature_release_metadata["repository-code"] = (
+            "https://github.com/MetaInFlow/skillware-patterns"
         )
+        with self.assertRaisesRegex(
+            AssertionError, r"illegal=\['repository-code'\]"
+        ):
+            assert_citation_contract(with_premature_release_metadata)
 
     def test_contributing_requires_the_complete_admission_contract(self):
         text = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
@@ -554,7 +622,6 @@ class GovernanceDocsTest(unittest.TestCase):
             "close negative or misuse case",
             "standalone sample",
             "Python standard library",
-            "pinned public correspondence evidence",
             "controlled claim status",
             "bilingual parity",
             "full repository test suite",
@@ -569,6 +636,16 @@ class GovernanceDocsTest(unittest.TestCase):
             text,
         )
         self.assertIn(
+            "When ecosystem correspondence is claimed, provide pinned public "
+            "correspondence evidence at an immutable revision.",
+            text,
+        )
+        self.assertIn(
+            "When no ecosystem correspondence is claimed, use `not observable` "
+            "and state the evidentiary limit in the correspondence record.",
+            text,
+        )
+        self.assertIn(
             "The current scope of 10 GoF implementations and 2 implementations "
             "from other established traditions is neither an automatic admission "
             "cap nor a claim that this repository introduces new patterns.",
@@ -578,22 +655,34 @@ class GovernanceDocsTest(unittest.TestCase):
     def test_contributing_defines_the_complete_dual_license_boundary(self):
         text = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
 
-        for phrase in (
-            "`patterns/*/sample/**`",
-            "`scripts/**`",
-            "`tests/**`",
-            "`.github/workflows/**`",
-            "`pyproject.toml`",
-            "Apache License 2.0",
-            "definitions, pattern metadata, participant maps, correspondence "
-            "records, misuse records, catalog files, docs, READMEs, and "
-            "governance prose",
-            "Creative Commons Attribution 4.0 International",
-            "Canonical license files retain their own license texts.",
+        self.assertIn(LICENSE_BOUNDARY_BLOCK, text)
+        self.assertIn("Apache License 2.0", text)
+        self.assertIn("Creative Commons Attribution 4.0 International", text)
+        self.assertIn(
+            "LICENSE-CODE and LICENSE-DOCS retain their canonical upstream texts "
+            "and are outside repository relicensing.",
+            text,
+        )
+        self.assertIn(
             "Linked third-party artifacts remain under their upstream licenses.",
-        ):
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase.lower(), text.lower())
+            text,
+        )
+
+    def test_publication_ci_will_use_external_cff_schema_validation(self):
+        text = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+        pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "Publication CI must validate `CITATION.cff` against the CFF 1.2.0 "
+            "schema with an external validator.",
+            text,
+        )
+        self.assertIn(
+            "The validator is CI tooling and must not be added to runtime "
+            "dependencies.",
+            text,
+        )
+        self.assertNotIn("cffconvert", pyproject.lower())
 
     def test_code_of_conduct_is_contributor_covenant_2_1_with_contact(self):
         text = (ROOT / "CODE_OF_CONDUCT.md").read_text(encoding="utf-8")
@@ -935,14 +1024,7 @@ class ReadmeContractTest(unittest.TestCase):
             self.assertIn("](CODE_OF_CONDUCT.md)", contributing)
             self.assertIn("](LICENSE-CODE)", licenses)
             self.assertIn("](LICENSE-DOCS)", licenses)
-            for code_path in (
-                "`patterns/*/sample/**`",
-                "`scripts/**`",
-                "`tests/**`",
-                "`.github/workflows/**`",
-                "`pyproject.toml`",
-            ):
-                self.assertIn(code_path, licenses)
+            self.assertIn(LICENSE_BOUNDARY_BLOCK, licenses)
             self.assertIn("Apache License 2.0", licenses)
             self.assertIn("Creative Commons Attribution 4.0 International", licenses)
             self.assertRegex(text, r"upstream license|上游许可证")
@@ -954,6 +1036,11 @@ class ReadmeContractTest(unittest.TestCase):
             self.assertNotIn(stale_phrase, self.english)
         for stale_phrase in ("下一任务", "后续发布治理文件", "计划中的发布边界"):
             self.assertNotIn(stale_phrase, self.chinese)
+        self.assertIn(
+            "CI, publication, and release creation remain pending.", self.english
+        )
+        self.assertIn("CI、公开发布与 release 创建仍处于待办状态。", self.chinese)
+        self.assertNotRegex(self.chinese, r"Task\s*\d+|任务\s*\d+")
 
 
 if __name__ == "__main__":
