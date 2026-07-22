@@ -1,6 +1,6 @@
 id: vendor-onboarding-workflow
 name: Vendor Onboarding Workflow
-name_zh: 供应商接入工作流
+name_zh: 供应商准入流程
 pattern: state
 entry_skill: SKILL.md
 state_contract: vendor-onboarding-state-v1

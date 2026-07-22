@@ -1,4 +1,4 @@
-# 供应商接入工作流
+# 供应商准入流程
 
 这个独立 State 样例让供应商依次经过持久化的 draft、verified、approved 和
 activated 状态。每个 ConcreteState 拥有自身允许的动作和后继状态；Context 在
@@ -27,4 +27,5 @@ python3 -m unittest discover tests -v
 Python 不加载或解释 `SKILL.md`。
 
 写入采用同目录原子替换，而且只有替换成功后内存才会前进。本样例只支持单写入者；
-原子替换不能代替跨进程并发控制。
+原子替换不能代替跨进程并发控制。首次构造是显式 bootstrap 边界；此后若已知状态
+记录被删除，将返回损坏错误，绝不会静默重建 `draft`。

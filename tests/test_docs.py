@@ -111,7 +111,7 @@ TABLE5_TRACEABILITY = {
         "[definition](../patterns/state/definition.md)",
         "[sample](../patterns/state/sample/)",
         f"[pinned research record]({RESEARCH_BASE}/research/patterns/state.md)",
-        "Strong structural candidate.",
+        "Candidate checkpoint behavior; full GoF participant delegation unverified.",
     ),
     "Strategy": (
         "Stable request and result contract selects among interchangeable procedures",

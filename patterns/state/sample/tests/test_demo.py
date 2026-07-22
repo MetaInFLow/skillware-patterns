@@ -136,6 +136,34 @@ class StateDemoTest(unittest.TestCase):
 
         self.assertEqual(self.state_path.read_bytes(), corrupted)
 
+    def test_non_utf8_state_is_rejected_with_stable_error(self):
+        demo = self.require_demo()
+        corrupted = b"\xff\xfe"
+        self.state_path.write_bytes(corrupted)
+
+        with self.assertRaisesRegex(
+            demo.CorruptedStateError,
+            r"^corrupted state: invalid UTF-8$",
+        ):
+            demo.VendorWorkflow(self.state_path, vendor_id="vendor-acme")
+
+        self.assertEqual(self.state_path.read_bytes(), corrupted)
+
+    def test_deleted_initialized_state_is_not_silently_recreated(self):
+        demo = self.require_demo()
+        workflow = demo.VendorWorkflow(self.state_path, vendor_id="vendor-acme")
+        self.state_path.unlink()
+
+        with self.assertRaisesRegex(
+            demo.CorruptedStateError,
+            r"^corrupted state: state record is missing$",
+        ):
+            workflow.transition("verify")
+
+        self.assertFalse(self.state_path.exists())
+        self.assertEqual(workflow.state, "draft")
+        self.assertEqual(workflow.revision, 0)
+
     def test_vendor_identity_mismatch_is_rejected_on_reload(self):
         demo = self.require_demo()
         demo.VendorWorkflow(self.state_path, vendor_id="vendor-acme")
@@ -174,6 +202,10 @@ class StateDemoTest(unittest.TestCase):
             ("fixtures/invalid/illegal-transition.json", "expected/illegal-transition-error.txt"),
             ("fixtures/invalid/corrupted-state.json", "expected/corrupted-state-error.txt"),
             ("fixtures/invalid/malformed-workflow.json", "expected/malformed-workflow-error.txt"),
+            ("fixtures/invalid/state-list.json", "expected/invalid-state-type-error.txt"),
+            ("fixtures/invalid/state-object.json", "expected/invalid-state-type-error.txt"),
+            ("fixtures/invalid/state-null.json", "expected/invalid-state-type-error.txt"),
+            ("fixtures/invalid/unsupported-schema.json", "expected/unsupported-schema-error.txt"),
         )
 
         for fixture_path, expected_path in cases:
@@ -191,6 +223,28 @@ class StateDemoTest(unittest.TestCase):
                     completed.stderr,
                     (SAMPLE / expected_path).read_text(encoding="utf-8"),
                 )
+
+    def test_non_utf8_workflow_fixture_matches_stable_cli_error(self):
+        self.require_demo()
+        fixture_path = Path(self.temp_dir.name) / "non-utf8-workflow.json"
+        fixture_path.write_bytes(b"\xff\xfe")
+
+        completed = subprocess.run(
+            [sys.executable, str(DEMO_PATH), str(fixture_path)],
+            cwd=SAMPLE,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(completed.returncode, 2)
+        self.assertEqual(completed.stdout, "")
+        self.assertEqual(
+            completed.stderr,
+            (SAMPLE / "expected/non-utf8-workflow-error.txt").read_text(
+                encoding="utf-8"
+            ),
+        )
 
     def test_default_cli_matches_expected_output(self):
         self.require_demo()

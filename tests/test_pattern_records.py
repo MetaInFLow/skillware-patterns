@@ -88,6 +88,28 @@ class PatternRecordContractTest(unittest.TestCase):
                 )
                 self.assertEqual(metadata, self.catalog[record.name])
 
+    def test_sample_display_metadata_matches_catalog_scenario(self):
+        for record in self.materialized:
+            with self.subTest(pattern=record.name):
+                metadata = yaml.safe_load(
+                    (record / "pattern.yaml").read_text(encoding="utf-8")
+                )
+                sample = yaml.safe_load(
+                    (record / "sample/skillware.yaml").read_text(encoding="utf-8")
+                )
+                self.assertEqual(sample["name"], metadata["scenario"])
+                self.assertEqual(sample["name_zh"], metadata["scenario_zh"])
+                self.assertTrue(
+                    (record / "sample/README.md")
+                    .read_text(encoding="utf-8")
+                    .startswith(f"# {metadata['scenario']}\n")
+                )
+                self.assertTrue(
+                    (record / "sample/README.zh-CN.md")
+                    .read_text(encoding="utf-8")
+                    .startswith(f"# {metadata['scenario_zh']}\n")
+                )
+
     def test_definitions_have_the_complete_section_contract(self):
         for record in self.materialized:
             for filename in ("definition.md", "definition.zh-CN.md"):
@@ -464,15 +486,65 @@ class PatternRecordContractTest(unittest.TestCase):
         self.assertEqual(contract["recovery"], "reload-before-action")
         self.assertEqual(contract["illegal_transition"], "reject-before-write")
 
-    def test_state_record_does_not_invent_ecosystem_correspondence(self):
+    def test_state_has_publicly_verifiable_local_candidate_evidence(self):
         correspondence = (PATTERNS / "state/correspondence.md").read_text(
             encoding="utf-8"
         )
+        evidence = PATTERNS / "state/evidence/openmontage-frozen-case.md"
 
-        self.assertIn("**Status:** no ecosystem correspondence assessed", correspondence)
+        self.assertTrue(evidence.is_file())
+        self.assertIn(
+            "[frozen evidence](evidence/openmontage-frozen-case.md)",
+            correspondence,
+        )
+        self.assertIn("**Status:** candidate correspondence", correspondence)
         self.assertNotIn("confirmed correspondence", correspondence)
-        self.assertNotIn("candidate correspondence", correspondence)
-        self.assertFalse((PATTERNS / "state/evidence").exists())
+
+        evidence_text = evidence.read_text(encoding="utf-8")
+        for required in (
+            "db91727598d08d40919d7d68a47864a5467bd448",
+            "AGENT_GUIDE.md",
+            "lib/checkpoint.py",
+            "skills/meta/checkpoint-protocol.md",
+            "schemas/checkpoints/checkpoint.schema.json",
+            "**Claim status:** candidate correspondence",
+            "does not establish the complete GoF State participant relation",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, evidence_text)
+        self.assertNotIn("**Claim status:** confirmed correspondence", evidence_text)
+
+    def test_state_openmontage_evidence_urls_are_structurally_pinned(self):
+        evidence = (
+            PATTERNS / "state/evidence/openmontage-frozen-case.md"
+        ).read_text(encoding="utf-8")
+        urls = re.findall(r"https://github\.com/[^)\s]+", evidence)
+        expected_paths = {
+            "AGENT_GUIDE.md",
+            "lib/checkpoint.py",
+            "skills/meta/checkpoint-protocol.md",
+            "schemas/checkpoints/checkpoint.schema.json",
+        }
+        pinned_paths = set()
+
+        for url in urls:
+            parsed = urlparse(url)
+            parts = parsed.path.strip("/").split("/")
+            if len(parts) < 5 or parts[2] not in {"blob", "tree"}:
+                continue
+            owner, repository, _, revision = parts[:4]
+            upstream_path = "/".join(parts[4:])
+            with self.subTest(url=url):
+                self.assertEqual(parsed.scheme, "https")
+                self.assertEqual(parsed.netloc, "github.com")
+                self.assertEqual((owner, repository), ("calesthio", "OpenMontage"))
+                self.assertEqual(
+                    revision, "db91727598d08d40919d7d68a47864a5467bd448"
+                )
+                self.assertIn(upstream_path, expected_paths)
+            pinned_paths.add(upstream_path)
+
+        self.assertEqual(pinned_paths, expected_paths)
 
     def test_state_public_record_has_no_private_research_links(self):
         record = PATTERNS / "state"

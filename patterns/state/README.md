@@ -1,7 +1,7 @@
 # State / 状态模式
 
 This record transfers the canonical Gang of Four State pattern to Skillware
-through a Vendor Onboarding Workflow / 供应商接入工作流. The persisted workflow is
+through a Vendor Onboarding Workflow / 供应商准入流程. The persisted workflow is
 the Context, `vendor-onboarding-state-v1` is the State contract, and four child
 Skills are ConcreteStates for draft, verified, approved, and activated.
 
@@ -16,7 +16,9 @@ persisted state before delegation and atomically commits only a legal result:
 - [Runnable sample](sample/)
 - [Misuse discriminator](misuse/explanation.md)
 
-The local sample is **constructive** evidence. No fixed public ecosystem case
-was assessed for this record, so it claims no confirmed or candidate ecosystem
-correspondence. The sample does not establish ecosystem frequency, production
-reliability, cross-Host equivalence, or comparative benefit.
+The local sample is **constructive** evidence. OpenMontage checkpoint behavior
+is a **candidate correspondence** at one fixed public revision: persisted
+checkpoint status controls resume and next-stage behavior, but the reviewed
+paths do not establish the complete GoF participant relation. Neither claim
+establishes ecosystem frequency, production reliability, cross-Host
+equivalence, or comparative benefit.

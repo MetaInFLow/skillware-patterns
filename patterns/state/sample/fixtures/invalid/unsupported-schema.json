@@ -1,0 +1,10 @@
+{
+  "vendor_id": "vendor-acme",
+  "persisted_state": {
+    "schema": "vendor-onboarding-state-v0",
+    "vendor_id": "vendor-acme",
+    "state": "draft",
+    "revision": 0
+  },
+  "actions": []
+}

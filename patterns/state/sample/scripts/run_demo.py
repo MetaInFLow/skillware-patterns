@@ -190,7 +190,13 @@ class VendorWorkflow:
     def _read_record(self):
         try:
             record = json.loads(self.path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, UnicodeError):
+        except FileNotFoundError:
+            raise CorruptedStateError(
+                "corrupted state: state record is missing"
+            ) from None
+        except UnicodeError:
+            raise CorruptedStateError("corrupted state: invalid UTF-8") from None
+        except json.JSONDecodeError:
             raise CorruptedStateError("corrupted state: invalid JSON") from None
         except OSError:
             raise
@@ -216,6 +222,8 @@ class VendorWorkflow:
                 f"expected '{self.vendor_id}', found '{persisted_vendor}'"
             )
         state_name = record["state"]
+        if not isinstance(state_name, str):
+            raise CorruptedStateError("corrupted state: state must be a string")
         if state_name not in STATE_TYPES:
             raise CorruptedStateError(
                 f"corrupted state: unknown state '{state_name}'"
@@ -302,6 +310,8 @@ def run_vendor_workflow(workflow):
 def load_workflow(path):
     try:
         return json.loads(path.read_text(encoding="utf-8"))
+    except UnicodeError:
+        raise ValidationError("fixture is not valid UTF-8") from None
     except json.JSONDecodeError:
         raise ValidationError("fixture is not valid JSON") from None
 

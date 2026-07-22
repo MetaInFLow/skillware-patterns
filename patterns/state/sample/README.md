@@ -29,4 +29,6 @@ not load or interpret `SKILL.md`.
 
 Writes use an atomic same-directory replacement, and memory advances only after
 that replacement succeeds. The sample is single-writer: atomic replacement is
-not a substitute for cross-process concurrency control.
+not a substitute for cross-process concurrency control. Initial construction is
+the explicit bootstrap boundary; deletion of the known state record after that
+point is a corruption error and never recreates `draft` silently.

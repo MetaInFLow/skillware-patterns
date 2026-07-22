@@ -15,9 +15,12 @@ The Context owns one UTF-8 JSON record with exactly these fields:
 | `state` | string | `draft`, `verified`, `approved`, or `activated`. |
 | `revision` | integer | `0`, `1`, `2`, or `3`, matching the acyclic state progression. |
 
-The Context reloads and validates this record before handling an action. A
-missing record creates a new `draft` workflow. Invalid JSON, fields, schema,
-vendor identity, state, or revision is corrupted state and must not be
+Constructing the initial Context is an explicit bootstrap operation: if no
+record exists then, it creates a new `draft` workflow. After initialization,
+the Context reloads and validates the record before every action. If that known
+record has been deleted, reload fails with `corrupted state: state record is
+missing`; it never recreates `draft`. Invalid UTF-8, JSON, fields, schema,
+vendor identity, state, or revision is also corrupted state and must not be
 overwritten implicitly.
 
 ## State operation

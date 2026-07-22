@@ -47,7 +47,10 @@ verified alone accepts `approve`, approved alone accepts `activate`, and
 activated accepts nothing. The ConcreteState either rejects before any write or
 asks the Context to atomically persist its nominated successor. The Context
 updates its in-memory State only after replacement succeeds. A fresh Context
-recovers the same persisted State after restart.
+recovers the same persisted State after restart. Initial Context construction
+is the explicit bootstrap boundary and may create `draft` if the record is
+absent; disappearance during a later reload is corruption and never silently
+creates a replacement workflow.
 
 ## Consequences
 
@@ -92,9 +95,9 @@ column alone is insufficient when callers still own all transition branches.
 The repository sample is **constructive** evidence. It materializes all three
 GoF roles, four distinct ConcreteState handlers, three owned transitions,
 versioned persisted state, atomic replacement, reload before action, restart
-recovery, corruption validation, and rejection before write. Focused tests also
-prove exact outputs, deterministic reruns, input immutability, and failed-write
-memory/disk consistency.
+recovery, missing-record and corruption validation, and rejection before write.
+Focused tests also prove exact outputs, deterministic reruns, input
+immutability, non-UTF-8 rejection, and failed-write memory/disk consistency.
 
 ## Counter-Evidence
 
@@ -114,19 +117,24 @@ artifact deliberately demonstrates the conditional-text near miss.
 
 ## Open-Source Correspondence
 
-No ecosystem correspondence was assessed for this record. No public repository,
-revision, or source paths are cited, and no candidate or confirmed claim is
-made. The local constructive sample must not be presented as external evidence.
-See [`correspondence.md`](correspondence.md).
+OpenMontage is a **candidate correspondence** at commit
+`db91727598d08d40919d7d68a47864a5467bd448`. Its checkpoint library persists
+stage and status, derives the next stage from completed checkpoints, and the
+checkpoint protocol changes resume behavior for `in_progress` and
+`awaiting_human`. The reviewed paths do not define separate State and
+ConcreteState participants or Context-to-State delegation, so this is not a
+confirmed GoF mapping. See [`correspondence.md`](correspondence.md) and the
+[frozen evidence](evidence/openmontage-frozen-case.md).
 
 ## Verification
 
 From `sample/`, run `python3 scripts/run_demo.py` and `python3 -m unittest
 discover tests -v`. Verification covers the full action sequence, persisted
 reload after every step, approved-state restart recovery, per-state handler
-ownership, illegal-transition no-write, atomic replacement failure, corrupted
-state, vendor identity mismatch, exact fixture outputs and errors, deterministic
-reruns, and standalone standard-library execution without network access.
+ownership, illegal-transition no-write, atomic replacement failure, missing and
+corrupted state, invalid UTF-8, non-string state values, vendor identity
+mismatch, exact fixture outputs and errors, deterministic reruns, and standalone
+standard-library execution without network access.
 
 ## Limitations
 

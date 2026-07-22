@@ -46,10 +46,18 @@ implementation_paths:
   - sample/fixtures/invalid/illegal-transition.json
   - sample/fixtures/invalid/corrupted-state.json
   - sample/fixtures/invalid/malformed-workflow.json
+  - sample/fixtures/invalid/state-list.json
+  - sample/fixtures/invalid/state-object.json
+  - sample/fixtures/invalid/state-null.json
+  - sample/fixtures/invalid/unsupported-schema.json
   - sample/expected/vendor-onboarding-result.json
   - sample/expected/recover-approved-result.json
   - sample/expected/illegal-transition-error.txt
   - sample/expected/corrupted-state-error.txt
   - sample/expected/malformed-workflow-error.txt
+  - sample/expected/invalid-state-type-error.txt
+  - sample/expected/unsupported-schema-error.txt
+  - sample/expected/non-utf8-workflow-error.txt
   - sample/tests/test_demo.py
 misuse_path: misuse/SKILL.md
+evidence_path: evidence/openmontage-frozen-case.md

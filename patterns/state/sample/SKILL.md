@@ -23,8 +23,10 @@ Agent Host and Agent Runtime are execution context, not State participants.
 
 ## Agent mode
 
-1. Load the state record before every requested action. Create `draft` only
-   when no record exists; never replace corrupted state.
+1. At explicit workflow bootstrap, create `draft` only when no record exists.
+   After this Context is initialized, load the record before every requested
+   action; a missing, corrupted, or non-UTF-8 record is an error and must never
+   be recreated implicitly.
 2. Validate schema, vendor identity, state, and revision against
    `references/vendor-state-contract.md`.
 3. Invoke only the child Skill named by the persisted state through
@@ -48,7 +50,9 @@ Agent Host and Agent Runtime are execution context, not State participants.
 `scripts/run_demo.py` implements the Context, State operation, and four distinct
 ConcreteState classes with Python standard-library persistence. It reloads
 before each action and again after the sequence to expose restart recovery.
-Python does not interpret the natural-language Skills.
+Constructing a new workflow is the explicit bootstrap boundary. Deletion after
+that point is corruption, not a request to bootstrap again. Python does not
+interpret the natural-language Skills.
 
 ## Output contract
 

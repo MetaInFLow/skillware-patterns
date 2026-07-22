@@ -1,20 +1,36 @@
 # State correspondence
 
-## Ecosystem correspondence
+## Candidate ecosystem correspondence
 
-- **Status:** no ecosystem correspondence assessed
-- **Scope:** no public repository, revision, or fixed source paths were
-  evaluated for participant-level State correspondence in this record.
+- **Status:** candidate correspondence
+- **Paper wording:** Candidate checkpoint behavior; full GoF participant
+  delegation unverified.
+- **Case:** OpenMontage (`calesthio/OpenMontage`)
+- **Fixed upstream commit:** `db91727598d08d40919d7d68a47864a5467bd448`
+- **Agent execution guide:**
+  [`AGENT_GUIDE.md`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/AGENT_GUIDE.md)
+- **Checkpoint implementation:**
+  [`lib/checkpoint.py`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/lib/checkpoint.py)
+- **Checkpoint behavioral source:**
+  [`skills/meta/checkpoint-protocol.md`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/skills/meta/checkpoint-protocol.md)
+- **Checkpoint schema:**
+  [`schemas/checkpoints/checkpoint.schema.json`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/schemas/checkpoints/checkpoint.schema.json)
+- **Vendored assessment:**
+  [frozen evidence](evidence/openmontage-frozen-case.md)
 
-The broader catalog screening names persisted checkpoints, state records, and
-transition manifests as possible carriers. Those labels are discovery cues,
-not evidence that any specific system materializes Context, State, and
-ConcreteState with state-dependent delegation and owned legal transitions.
+At this revision, OpenMontage persists schema-validated stage checkpoints with
+`completed`, `failed`, `awaiting_human`, and `in_progress` status. Its helper
+derives the next pipeline stage from completed checkpoints, while the checkpoint
+protocol tells execution to resume partial work, wait for approval, or advance
+depending on persisted status. This is source evidence for persisted and
+resumed task-state-controlled behavior.
 
-No confirmed or candidate ecosystem claim is made here. A later assessment
-would need a fixed public revision and paths that demonstrate persisted state,
-behavior selected by the current state, ConcreteState transition ownership,
-illegal-transition handling, and restart recovery.
+The correspondence remains candidate. The reviewed files centralize checkpoint
+logic and status branches; they do not materialize separate GoF State and
+ConcreteState participants or show a Context delegating the same operation to
+those objects. Static source inspection also does not prove end-to-end Agent
+Runtime behavior. Checkpoint vocabulary alone is not sufficient to confirm
+State.
 
 ## Constructive sample
 
@@ -32,6 +48,6 @@ illegal-transition handling, and restart recovery.
 
 The Context reloads one versioned record, delegates to a distinct ConcreteState,
 and atomically persists the successor only after legal handling. Tests prove
-restart recovery, deterministic rejection before write, corruption rejection,
-and stable fixture output. This local construction is not ecosystem evidence
-and does not establish Agent Runtime interpretation.
+restart recovery, deterministic rejection before write, deletion and corruption
+rejection, and stable fixture output. This local construction is independent of
+the OpenMontage case and does not establish Agent Runtime interpretation.
