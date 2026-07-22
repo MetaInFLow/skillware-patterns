@@ -41,11 +41,15 @@ implementation_paths:
   - sample/fixtures/valid/linear.json
   - sample/fixtures/invalid/unknown-target.json
   - sample/fixtures/invalid/malformed-issue.json
+  - sample/fixtures/invalid/extra-request-field.json
+  - sample/fixtures/invalid/extra-issue-field.json
   - sample/expected/github-result.json
   - sample/expected/jira-result.json
   - sample/expected/linear-result.json
   - sample/expected/unknown-target-error.txt
   - sample/expected/malformed-issue-error.txt
+  - sample/expected/extra-request-field-error.txt
+  - sample/expected/extra-issue-field-error.txt
   - sample/tests/test_demo.py
 misuse_path: misuse/SKILL.md
 evidence_path: evidence/gstack-frozen-case.md

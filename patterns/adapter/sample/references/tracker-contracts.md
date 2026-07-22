@@ -5,7 +5,9 @@
 The Adaptee accepts four required, non-empty string fields: `id`, `title`,
 `description`, and `severity`. Severity is one of `low`, `medium`, `high`, or
 `critical`. Every Adapter preserves canonical `id` as `external_id` so a
-published payload remains traceable to the same issue.
+published payload remains traceable to the same issue. The outer request has
+exactly `target` and `issue`; the nested issue has exactly the four canonical
+fields. Additional fields are rejected rather than silently discarded.
 
 ## GitHub Target
 

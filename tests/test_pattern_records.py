@@ -199,15 +199,36 @@ class PatternRecordContractTest(unittest.TestCase):
         evidence_text = evidence.read_text(encoding="utf-8")
         for required in (
             "11de390be1be6849eb9a15f91ff4922dd16c589a",
+            "SKILL.md.tmpl",
             "scripts/gen-skill-docs.ts",
             "hosts/claude.ts",
             "hosts/codex.ts",
             "test/codex-e2e.test.ts",
-            "strong correspondence",
+            "**Claim status:** confirmed correspondence",
+            "canonical Adaptee template",
+            "generated `SKILL.md` surface",
+            "Strong correspondence. Parity requires runtime tests.",
             "Runtime-parity limitation",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, evidence_text)
+
+        self.assertIn("**Status:** confirmed correspondence", correspondence)
+        self.assertIn(
+            "**Paper wording:** Strong correspondence. Parity requires runtime tests.",
+            correspondence,
+        )
+        self.assertNotIn("**Status:** strong correspondence", correspondence)
+        self.assertNotIn("**Claim status:** strong correspondence", evidence_text)
+
+        for filename in ("definition.md", "definition.zh-CN.md"):
+            with self.subTest(filename=filename):
+                definition = (record / filename).read_text(encoding="utf-8")
+                self.assertIn("confirmed correspondence", definition)
+                self.assertIn(
+                    "Strong correspondence. Parity requires runtime tests.",
+                    definition,
+                )
 
     def test_adapter_public_record_has_no_private_research_links(self):
         record = PATTERNS / "adapter"

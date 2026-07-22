@@ -30,12 +30,26 @@ def validate_request(request):
     if not isinstance(request, dict):
         raise ValidationError("request must be a JSON object")
 
+    unexpected_request_fields = sorted(set(request) - {"target", "issue"})
+    if unexpected_request_fields:
+        raise ValidationError(
+            "request fields must be exactly: target, issue; unexpected: "
+            + ", ".join(unexpected_request_fields)
+        )
+
     target = request.get("target")
     if target not in TARGETS:
         raise ValidationError("target must be one of: github, jira, linear")
 
     issue = request.get("issue")
     required_fields = ("id", "title", "description", "severity")
+    if isinstance(issue, dict):
+        unexpected_issue_fields = sorted(set(issue) - set(required_fields))
+        if unexpected_issue_fields:
+            raise ValidationError(
+                "issue fields must be exactly: id, title, description, severity; "
+                "unexpected: " + ", ".join(unexpected_issue_fields)
+            )
     if not isinstance(issue, dict) or any(
         not isinstance(issue.get(field), str) or not issue[field].strip()
         for field in required_fields

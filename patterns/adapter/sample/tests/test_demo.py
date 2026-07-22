@@ -30,6 +30,9 @@ class AdapterDemoTest(unittest.TestCase):
     def load_json(self, relative_path):
         return json.loads((SAMPLE / relative_path).read_text(encoding="utf-8"))
 
+    def load_text(self, relative_path):
+        return (SAMPLE / relative_path).read_text(encoding="utf-8")
+
     def assert_fixture_result(self, fixture, expected):
         request = self.load_json(fixture)
         result = self.demo.publish_issue(request)
@@ -123,6 +126,52 @@ class AdapterDemoTest(unittest.TestCase):
                 severity_field, severity = severity_representations[target]
                 self.assertEqual(payload[severity_field], severity)
 
+    def test_every_canonical_severity_has_an_exact_mapping_for_every_target(self):
+        severity_mappings = {
+            "low": {
+                "github": ["severity:low"],
+                "jira": {"name": "Low"},
+                "linear": 4,
+            },
+            "medium": {
+                "github": ["severity:medium"],
+                "jira": {"name": "Medium"},
+                "linear": 3,
+            },
+            "high": {
+                "github": ["severity:high"],
+                "jira": {"name": "High"},
+                "linear": 2,
+            },
+            "critical": {
+                "github": ["severity:critical"],
+                "jira": {"name": "Highest"},
+                "linear": 1,
+            },
+        }
+
+        for severity, target_values in severity_mappings.items():
+            for target, target_value in target_values.items():
+                with self.subTest(severity=severity, target=target):
+                    request = self.load_json("fixtures/valid/github.json")
+                    request["target"] = target
+                    request["issue"]["severity"] = severity
+                    payload = self.demo.publish_issue(request)["payload"]
+                    title_field = "summary" if target == "jira" else "title"
+                    description_field = "body" if target == "github" else "description"
+                    severity_field = "labels" if target == "github" else "priority"
+                    self.assertEqual(
+                        payload,
+                        {
+                            "external_id": "ISSUE-104",
+                            title_field: "Checkout retries exhaust",
+                            description_field: (
+                                "Payment requests fail after retry budget is exhausted."
+                            ),
+                            severity_field: target_value,
+                        },
+                    )
+
     def test_publish_does_not_mutate_input(self):
         for target in ("github", "jira", "linear"):
             with self.subTest(target=target):
@@ -158,6 +207,24 @@ class AdapterDemoTest(unittest.TestCase):
         with self.assertRaisesRegex(
             self.demo.ValidationError,
             "issue requires non-empty string fields: id, title, description, severity",
+        ):
+            self.demo.publish_issue(request)
+
+    def test_extra_top_level_field_is_rejected_clearly(self):
+        request = self.load_json("fixtures/invalid/extra-request-field.json")
+
+        with self.assertRaisesRegex(
+            self.demo.ValidationError,
+            "request fields must be exactly: target, issue; unexpected: trace_id",
+        ):
+            self.demo.publish_issue(request)
+
+    def test_extra_issue_field_is_rejected_clearly(self):
+        request = self.load_json("fixtures/invalid/extra-issue-field.json")
+
+        with self.assertRaisesRegex(
+            self.demo.ValidationError,
+            "issue fields must be exactly: id, title, description, severity; unexpected: reporter",
         ):
             self.demo.publish_issue(request)
 
@@ -222,10 +289,12 @@ class AdapterDemoTest(unittest.TestCase):
             json.loads(completed.stdout), self.load_json("expected/linear-result.json")
         )
 
-    def test_cli_exits_nonzero_for_unknown_target_and_malformed_issue(self):
-        for fixture, message in (
-            ("unknown-target.json", "target must be one of"),
-            ("malformed-issue.json", "issue requires non-empty string fields"),
+    def test_cli_errors_exactly_match_committed_expectations(self):
+        for fixture, expectation in (
+            ("unknown-target.json", "unknown-target-error.txt"),
+            ("malformed-issue.json", "malformed-issue-error.txt"),
+            ("extra-request-field.json", "extra-request-field-error.txt"),
+            ("extra-issue-field.json", "extra-issue-field-error.txt"),
         ):
             with self.subTest(fixture=fixture):
                 completed = subprocess.run(
@@ -240,7 +309,10 @@ class AdapterDemoTest(unittest.TestCase):
                     check=False,
                 )
                 self.assertNotEqual(completed.returncode, 0)
-                self.assertIn(message, completed.stderr)
+                self.assertEqual(
+                    completed.stderr,
+                    self.load_text(f"expected/{expectation}"),
+                )
 
     def test_participant_and_evidence_paths_resolve_locally(self):
         participant_map = yaml.safe_load(

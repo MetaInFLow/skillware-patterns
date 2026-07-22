@@ -24,7 +24,10 @@ Require a request object with:
 - `issue.severity`: exactly `low`, `medium`, `high`, or `critical`.
 
 Reject an unknown target, missing field, empty field, wrong field type, or
-unsupported severity. Never mutate the request or nested issue object.
+unsupported severity. The request must contain exactly `target` and `issue`,
+and `issue` must contain exactly the four canonical fields; reject additional
+fields clearly instead of silently discarding them. Never mutate the request
+or nested issue object.
 
 ## Canonical semantics
 

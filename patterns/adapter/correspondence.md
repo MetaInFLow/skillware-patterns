@@ -1,12 +1,16 @@
 # Adapter correspondence
 
-## Strong ecosystem correspondence
+## Confirmed ecosystem correspondence
 
-- **Status:** strong correspondence
-- **Paper claim:** Strong correspondence. Parity requires runtime tests.
+- **Status:** confirmed correspondence
+- **Paper wording:** Strong correspondence. Parity requires runtime tests.
 - **Case:** gstack Skill suite (`garrytan/gstack`)
 - **Fixed upstream commit:** `11de390be1be6849eb9a15f91ff4922dd16c589a`
-- **Canonical and generated surface:**
+- **Canonical Adaptee template:**
+  [`SKILL.md.tmpl`](https://github.com/garrytan/gstack/blob/11de390be1be6849eb9a15f91ff4922dd16c589a/SKILL.md.tmpl)
+- **Generated Skill surface:**
+  [`SKILL.md`](https://github.com/garrytan/gstack/blob/11de390be1be6849eb9a15f91ff4922dd16c589a/SKILL.md)
+- **Generation implementation:**
   [`scripts/gen-skill-docs.ts`](https://github.com/garrytan/gstack/blob/11de390be1be6849eb9a15f91ff4922dd16c589a/scripts/gen-skill-docs.ts)
 - **Claude target configuration:**
   [`hosts/claude.ts`](https://github.com/garrytan/gstack/blob/11de390be1be6849eb9a15f91ff4922dd16c589a/hosts/claude.ts)
@@ -17,18 +21,20 @@
 - **Vendored observation record:**
   [frozen evidence](evidence/gstack-frozen-case.md)
 
-The canonical Skill semantics are the Adaptee. A generated or system-specific
-binding is the Adapter because it translates discovery paths, frontmatter,
-tool names, and other target conventions without making the canonical
-procedure target-specific. The Host-specific Skill contract is the Target, and
-task-level invocation is the Client. An Agent Host can carry and activate the
-binding, while the Agent Runtime interprets it; neither platform role becomes
-a GoF participant automatically.
+`SKILL.md.tmpl` is the canonical Adaptee template. The generated `SKILL.md`
+surface is output, not the canonical source. The generator plus a selected
+system-specific binding is the Adapter because it translates discovery paths,
+frontmatter, tool names, and other target conventions without making the
+canonical procedure target-specific. The Host-specific Skill contract is the
+Target, and task-level invocation is the Client. An Agent Host can carry and
+activate the binding, while the Agent Runtime interprets it; neither platform
+role becomes a GoF participant automatically.
 
 The local evidence record preserves the fixed revision, exact paths,
 counterevidence, and claim boundary needed to audit this correspondence without
-access to a separate research repository. The source relation is strong, but
-runtime parity still requires tests under each Target Host.
+access to a separate research repository. The controlled status is confirmed
+correspondence; the separately labeled paper wording records the qualification
+that runtime parity still requires tests under each Target Host.
 
 ## Constructive sample
 

@@ -1,0 +1,10 @@
+{
+  "target": "github",
+  "issue": {
+    "id": "ISSUE-104",
+    "title": "Checkout retries exhaust",
+    "description": "Payment requests fail after retry budget is exhausted.",
+    "severity": "critical",
+    "reporter": "payments-on-call"
+  }
+}

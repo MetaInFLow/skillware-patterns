@@ -88,8 +88,10 @@ The repository sample is **constructive** evidence: three thin bindings
 translate one canonical issue into exact GitHub, Jira, and Linear payloads.
 Focused tests check output equality, identity and semantic parity, input
 immutability, rejection behavior, local paths, standalone imports, and CLI
-execution. Separately, the frozen gstack case supplies a **strong
+execution. Separately, the frozen gstack case supplies a **confirmed
 correspondence** for generated and system-specific Host surfaces.
+
+**Paper wording (not status):** Strong correspondence. Parity requires runtime tests.
 
 ## Counter-Evidence
 
@@ -109,13 +111,14 @@ near miss.
 ## Open-Source Correspondence
 
 gstack is evaluated at commit
-`11de390be1be6849eb9a15f91ff4922dd16c589a`. Its generator and system-specific
-Host configurations translate canonical Skill sources into target discovery,
-frontmatter, path, and tool-name conventions. The canonical Skill semantics
-are the Adaptee, each generated or system-specific binding is an Adapter, the
-Host-specific Skill contract is the Target, and task-level invocation is the
-Client. See [`correspondence.md`](correspondence.md) for pinned links and the
-runtime-parity limitation. This ecosystem claim is independent of the local
+`11de390be1be6849eb9a15f91ff4922dd16c589a`. Its `SKILL.md.tmpl` is the
+canonical Adaptee template. The generator and system-specific Host
+configurations translate that source into target discovery, frontmatter, path,
+and tool-name conventions; generated `SKILL.md` files are output surfaces, not
+the canonical source. Each generation binding is an Adapter, the Host-specific
+Skill contract is the Target, and task-level invocation is the Client. See
+[`correspondence.md`](correspondence.md) for pinned links and the runtime-parity
+limitation. This confirmed correspondence is independent of the local
 constructive sample.
 
 ## Verification
@@ -129,7 +132,7 @@ imports.
 
 ## Limitations
 
-One constructive scenario and one strong ecosystem correspondence do not
+One constructive scenario and one confirmed ecosystem correspondence do not
 establish pattern frequency, comparative quality, or cross-Host runtime
 parity. The demo uses deterministic Python as an executable oracle for the
 behavioral contract; it does not simulate probabilistic Agent Runtime

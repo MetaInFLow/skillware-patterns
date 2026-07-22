@@ -2,8 +2,8 @@
 
 ## Evidence identity
 
-- **Claim status:** strong correspondence
-- **Paper claim:** Strong correspondence. Parity requires runtime tests.
+- **Claim status:** confirmed correspondence
+- **Paper wording:** Strong correspondence. Parity requires runtime tests.
 - **Target repository:** [`garrytan/gstack`](https://github.com/garrytan/gstack)
 - **Frozen commit:** `11de390be1be6849eb9a15f91ff4922dd16c589a`
 - **Evaluation unit:** the gstack Skill suite, generated Host bindings, and
@@ -16,7 +16,9 @@ evidence about gstack.
 
 ## Public upstream evidence
 
-- Canonical root Skill surface:
+- Canonical Adaptee template:
+  [`SKILL.md.tmpl`](https://github.com/garrytan/gstack/blob/11de390be1be6849eb9a15f91ff4922dd16c589a/SKILL.md.tmpl)
+- Generated `SKILL.md` surface:
   [`SKILL.md`](https://github.com/garrytan/gstack/blob/11de390be1be6849eb9a15f91ff4922dd16c589a/SKILL.md)
 - Host-specific generation:
   [`scripts/gen-skill-docs.ts`](https://github.com/garrytan/gstack/blob/11de390be1be6849eb9a15f91ff4922dd16c589a/scripts/gen-skill-docs.ts)
@@ -37,11 +39,11 @@ source used for the observations.
 ## Participant mapping observations
 
 - **Client:** task-level invocation asks a target Host to discover and use a
-  generated gstack Skill surface.
+  generated `SKILL.md` surface.
 - **Target:** each Host-specific Skill discovery and activation contract,
   including its frontmatter, path, and tool-name conventions.
-- **Adaptee:** the canonical gstack Skill semantics from which target surfaces
-  are generated.
+- **Adaptee:** `SKILL.md.tmpl`, the canonical Adaptee template from which
+  target surfaces are generated.
 - **Adapter:** the generator plus a selected system-specific binding that
   translates canonical sources into the Target conventions.
 
@@ -61,12 +63,12 @@ automatic GoF participants.
   and invocation paths. The claim does not extend equal support to every name.
 - Some Host integrations use methodology-oriented artifacts rather than the
   same direct generated-Skill installation path.
-- One strong correspondence does not establish ecosystem frequency,
+- One confirmed correspondence does not establish ecosystem frequency,
   comparative quality, or an automatic benefit from using Adapter.
 
 ## Runtime-parity limitation
 
-The exact revision and paths support a **strong correspondence** for explicit
+The exact revision and paths support a **confirmed correspondence** for explicit
 canonical-to-Target translation. They do not prove that every generated
 binding installs successfully, exposes the same capabilities, or produces
 behaviorally equivalent Agent Runtime execution across Hosts. Runtime parity
