@@ -38,10 +38,6 @@ def validate_exact_fields(value, expected_fields, label):
     missing = [field for field in expected_fields if field not in actual]
     unexpected = sorted(actual - expected)
     if not missing and not unexpected:
-        if tuple(value) != tuple(expected_fields):
-            raise ValidationError(
-                f"{label} field order must be: {', '.join(expected_fields)}"
-            )
         return
 
     details = []
@@ -298,6 +294,11 @@ def validate_section_record(section, recursive=True):
         raise ValidationError("section must be a JSON object")
     section_id = section.get("id", "<unknown>")
     validate_exact_fields(section, SECTION_FIELDS, f"section '{section_id}'")
+    if tuple(section) != SECTION_FIELDS:
+        raise ValidationError(
+            f"section '{section_id}' field order must be: "
+            + ", ".join(SECTION_FIELDS)
+        )
     if not isinstance(section["id"], str) or not section["id"].strip():
         raise ValidationError("section.id must be a non-empty string")
     section_id = section["id"]

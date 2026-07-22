@@ -229,6 +229,51 @@ class CompositeDemoTest(unittest.TestCase):
             self.load_json("expected/investment-memo.json"),
         )
 
+    def test_reordered_semantically_identical_workflow_input_is_accepted(self):
+        source = self.load_json("fixtures/valid/investment-memo.json")
+        reordered_nodes = []
+        for node in source["nodes"]:
+            reordered = {
+                key: (
+                    {
+                        input_key: node["input"][input_key]
+                        for input_key in reversed(tuple(node["input"]))
+                    }
+                    if key == "input"
+                    else node[key]
+                )
+                for key in reversed(tuple(node))
+            }
+            reordered_nodes.append(reordered)
+        workflow = {
+            "nodes": reordered_nodes,
+            "root": source["root"],
+            "component_contract": source["component_contract"],
+        }
+
+        self.assertEqual(
+            self.demo.build_memo(workflow),
+            self.load_json("expected/investment-memo.json"),
+        )
+
+    def test_default_leaf_executor_accepts_reordered_request_fields(self):
+        workflow = self.load_json("fixtures/valid/investment-memo.json")
+        market = workflow["nodes"][1]
+        request = {
+            "input": {
+                key: market["input"][key]
+                for key in reversed(tuple(market["input"]))
+            },
+            "skill": market["skill"],
+            "title": market["title"],
+            "id": market["id"],
+        }
+
+        self.assertEqual(
+            self.demo.execute_market_analysis(request),
+            self.load_json("expected/investment-memo.json")["children"][0],
+        )
+
     def test_recursive_builder_supports_a_nested_composite(self):
         workflow = self.load_json("fixtures/valid/investment-memo.json")
         workflow["root"] = "memo-package"
