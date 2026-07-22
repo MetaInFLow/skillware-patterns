@@ -1,0 +1,59 @@
+pattern: Specification
+pattern_id: specification
+source_tradition: Domain-Driven Design (Eric Evans)
+participants:
+  Specification:
+    role: Named expense approval rule
+    role_zh: 命名的费用审批规则
+    behavior: Decides whether an exact Candidate satisfies one reusable pure rule.
+    behavior_zh: 判断精确 Candidate 是否满足某一可复用纯规则。
+    implementations:
+      - id: has-receipt
+        path: sample/child-skills/has-receipt/SKILL.md
+      - id: within-budget
+        path: sample/child-skills/within-budget/SKILL.md
+      - id: authorized-amount
+        path: sample/child-skills/authorized-amount/SKILL.md
+      - id: department
+        path: sample/child-skills/department/SKILL.md
+    paths:
+      - sample/scripts/run_demo.py
+      - sample/references/expense-candidate-contract.md
+  Candidate:
+    role: Expense submitted for approval
+    role_zh: 提交审批的费用数据
+    behavior: Supplies exactly the bounded fields required by the evaluated policy.
+    behavior_zh: 仅提供当前策略所需的有界字段。
+    paths:
+      - sample/fixtures/valid/approved-expense.json
+      - sample/references/expense-candidate-contract.md
+  Composite Specifications:
+    role: And, Or, and Not rule composition
+    role_zh: And、Or 与 Not 规则组合
+    behavior: Preserves the Specification boolean interface and provides structured traces.
+    behavior_zh: 保留 Specification 布尔接口并提供结构化轨迹。
+    paths:
+      - sample/SKILL.md
+      - sample/scripts/run_demo.py
+      - sample/expected/approved-expense-result.json
+execution_context:
+  Agent Host:
+    responsibility: Activates the Expense Approval Policy Skillware Unit.
+    responsibility_zh: 激活费用审批规则 Skillware Unit。
+    evidence_status: not observable
+    note: The constructive sample supplies no Agent Host integration evidence.
+  Agent Runtime:
+    responsibility: Interprets activated Behavioral Source and applies its policy.
+    responsibility_zh: 解释已激活的 Behavioral Source 并应用策略。
+    evidence_status: not observable
+    note: The deterministic Python oracle is not evidence of model interpretation.
+ecosystem_correspondence:
+  evidence_status: not observable
+  note: No frozen external implementation is assessed; the local sample is constructive only.
+implementation_paths:
+  - sample/SKILL.md
+  - sample/skillware.yaml
+  - sample/scripts/run_demo.py
+  - sample/references/expense-candidate-contract.md
+  - sample/tests/test_demo.py
+misuse_path: misuse/SKILL.md

@@ -142,6 +142,51 @@ class PatternRecordContractTest(unittest.TestCase):
                     resolved.relative_to(record.resolve())
                     self.assertTrue(resolved.is_file())
 
+    def test_specification_preserves_ddd_roles_and_unobserved_ecosystem_status(self):
+        record = PATTERNS / "specification"
+        participant_map = yaml.safe_load(
+            (record / "participant-map.yaml").read_text(encoding="utf-8")
+        )
+        correspondence = (record / "correspondence.md").read_text(encoding="utf-8")
+
+        self.assertEqual(
+            set(participant_map["participants"]),
+            {"Specification", "Candidate", "Composite Specifications"},
+        )
+        self.assertEqual(
+            set(participant_map["execution_context"]),
+            {"Agent Host", "Agent Runtime"},
+        )
+        for role in participant_map["execution_context"].values():
+            self.assertEqual(role["evidence_status"], "not observable")
+        self.assertEqual(
+            participant_map["ecosystem_correspondence"]["evidence_status"],
+            "not observable",
+        )
+        self.assertIn("**Status:** not observable", correspondence)
+        self.assertNotIn("candidate correspondence", correspondence)
+        self.assertNotIn("confirmed correspondence", correspondence)
+        self.assertFalse((record / "evidence").exists())
+
+    def test_specification_contract_declares_exact_pure_evaluation_policy(self):
+        contract = yaml.safe_load(
+            (PATTERNS / "specification/sample/skillware.yaml").read_text(
+                encoding="utf-8"
+            )
+        )
+
+        self.assertEqual(contract["policy_contract"], "expense-approval-policy-v1")
+        self.assertEqual(
+            contract["candidate_fields"],
+            ["receipt", "budget", "amount", "department"],
+        )
+        self.assertEqual(contract["amount_type"], "bounded-nonnegative-integer")
+        self.assertEqual(contract["boolean_evaluation"], "left-to-right-short-circuit")
+        self.assertEqual(contract["explanation_modes"], ["short-circuit", "all"])
+        self.assertEqual(contract["missing_fields"], "reject")
+        self.assertEqual(contract["extra_fields"], "reject")
+        self.assertEqual(contract["mutation_policy"], "none")
+
     def test_facade_has_publicly_verifiable_local_evidence(self):
         record = PATTERNS / "facade"
         evidence = record / "evidence/superpowers-frozen-case.md"

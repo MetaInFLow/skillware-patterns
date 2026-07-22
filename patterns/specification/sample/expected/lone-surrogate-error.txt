@@ -1,0 +1,1 @@
+ERROR: candidate.department must contain valid Unicode

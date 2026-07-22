@@ -1,0 +1,9 @@
+id: specification
+name: Specification
+name_zh: 规约模式
+source_tradition: domain-driven-design
+source_category: domain
+paper_role: repository-supplement
+implementation_status: detailed
+scenario: Expense Approval Policy
+scenario_zh: 费用审批规则

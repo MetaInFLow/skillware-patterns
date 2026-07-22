@@ -1,0 +1,1 @@
+ERROR: candidate.amount must be an integer

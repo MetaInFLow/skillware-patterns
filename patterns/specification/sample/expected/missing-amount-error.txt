@@ -1,0 +1,1 @@
+ERROR: candidate fields must be exactly: receipt, budget, amount, department; missing: amount

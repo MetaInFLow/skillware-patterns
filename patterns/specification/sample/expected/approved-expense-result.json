@@ -1,0 +1,29 @@
+{
+  "specification": "HasReceipt AND WithinBudget AND AuthorizedAmount(1000) AND NOT Department('restricted')",
+  "result": true,
+  "evaluation": "all",
+  "explanation": "AND satisfied all 4 specifications.",
+  "evaluations": [
+    {
+      "specification": "HasReceipt",
+      "result": true,
+      "explanation": "receipt must be true; observed true"
+    },
+    {
+      "specification": "WithinBudget",
+      "result": true,
+      "explanation": "amount 400 must be <= budget 500; observed within budget"
+    },
+    {
+      "specification": "AuthorizedAmount(1000)",
+      "result": true,
+      "explanation": "amount 400 must be <= authorized maximum 1000; observed authorized"
+    },
+    {
+      "specification": "Department('restricted')",
+      "result": false,
+      "explanation": "department must equal 'restricted'; observed 'sales'"
+    }
+  ],
+  "skipped": []
+}

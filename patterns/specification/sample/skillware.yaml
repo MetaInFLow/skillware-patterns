@@ -1,0 +1,52 @@
+name: Expense Approval Policy
+name_zh: 费用审批规则
+policy_contract: expense-approval-policy-v1
+source_tradition: Domain-Driven Design (Eric Evans), not GoF
+participants:
+  specification:
+    paths:
+      - child-skills/has-receipt/SKILL.md
+      - child-skills/within-budget/SKILL.md
+      - child-skills/authorized-amount/SKILL.md
+      - child-skills/department/SKILL.md
+  candidate:
+    path: fixtures/valid/approved-expense.json
+  composite_specifications:
+    operators:
+      - AND
+      - OR
+      - NOT
+    path: scripts/run_demo.py
+default_policy: HasReceipt AND WithinBudget AND AuthorizedAmount(1000) AND NOT Department('restricted')
+candidate_fields:
+  - receipt
+  - budget
+  - amount
+  - department
+amount_type: bounded-nonnegative-integer
+amount_range:
+  minimum: 0
+  maximum: 1000000000
+currency_unit: integration-defined-prefer-cents
+bool_as_number: reject
+floating_point_amounts: reject
+department_normalization: nfc
+department_comparison: case-sensitive
+missing_fields: reject
+extra_fields: reject
+validation_order: validate-complete-candidate-before-evaluation
+boolean_evaluation: left-to-right-short-circuit
+explanation_modes:
+  - short-circuit
+  - all
+all_evaluation_precondition: pure-side-effect-free-specifications
+mutation_policy: none
+specification_objects: immutable-after-construction
+input_limit_bytes: 65536
+maximum_json_depth: 16
+duplicate_json_members: reject-at-any-depth
+unicode_policy: strict-utf8-and-valid-unicode
+oracle_scope: local-sequential-in-process
+trusted_code_limitation: python-code-is-not-a-security-sandbox
+oracle_path: scripts/run_demo.py
+contract_path: references/expense-candidate-contract.md

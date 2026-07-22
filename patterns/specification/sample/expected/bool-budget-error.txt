@@ -1,0 +1,1 @@
+ERROR: candidate.budget must be an integer

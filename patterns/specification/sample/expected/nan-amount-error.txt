@@ -1,0 +1,1 @@
+ERROR: candidate input contains invalid JSON
