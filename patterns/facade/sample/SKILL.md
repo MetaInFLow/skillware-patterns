@@ -35,9 +35,11 @@ For `5xx spike`:
 
 1. Use `child-skills/diagnose/SKILL.md` to summarize the observed failure and
    propose immediate diagnostic actions.
-2. Use `child-skills/assess-impact/SKILL.md` to classify likely customer impact.
-3. Use `child-skills/draft-communication/SKILL.md` to draft a status update from
-   the service, signal, and assessed impact.
+2. Pass the service, signal, and diagnosis to
+   `child-skills/assess-impact/SKILL.md` to classify likely customer impact.
+3. Pass the service, signal, and returned impact assessment to
+   `child-skills/draft-communication/SKILL.md`; derive the status update from
+   that assessment.
 4. Assemble the public result without exposing orchestration details.
 
 ## Fallback

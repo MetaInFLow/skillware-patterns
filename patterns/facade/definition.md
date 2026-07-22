@@ -37,11 +37,12 @@ without learning the subsystem's internal selection and coordination details.
 ## Collaboration
 
 The Client supplies `service` and `signal` to the Facade. For the known `5xx
-spike` signal, the Facade obtains a diagnosis, passes the incident context to
-impact assessment, obtains a communication draft, and assembles only the four
-public result fields. For an unknown signal, it applies the declared human
-triage fallback while preserving the same result contract. Subsystem routing
-details are not returned to the Client.
+spike` signal, the Facade obtains a diagnosis, passes that result with the
+incident context to impact assessment, then passes the returned assessment to
+communication drafting. It assembles only the four public result fields. For
+an unknown signal, it applies the declared human triage fallback while
+preserving the same result contract. Subsystem routing details are not returned
+to the Client.
 
 ## Consequences
 

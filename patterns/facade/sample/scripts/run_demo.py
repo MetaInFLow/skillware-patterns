@@ -27,9 +27,12 @@ def validate_request(request):
     return service.strip(), signal.strip().lower()
 
 
-def diagnose_5xx_spike(service):
+def diagnose_5xx_spike(service, signal):
+    observation = (
+        "elevated 5xx responses" if signal == "5xx spike" else signal
+    )
     return {
-        "summary": f"{service} is experiencing elevated 5xx responses.",
+        "summary": f"{service} is experiencing {observation}.",
         "actions": [
             "page-on-call",
             "inspect-recent-deployments",
@@ -38,14 +41,25 @@ def diagnose_5xx_spike(service):
     }
 
 
-def assess_5xx_impact():
-    return "Customer requests may fail; treat checkout availability as degraded."
+def assess_5xx_impact(service, signal, diagnosis):
+    service_scope = service.removesuffix("-api") or service
+    return {
+        "statement": (
+            "Customer requests may fail; "
+            f"treat {service_scope} availability as degraded."
+        ),
+        "communication": "customer impact is being assessed",
+        "basis": f"{diagnosis['summary']} Observed signal: {signal}.",
+    }
 
 
-def draft_5xx_communication(service):
+def draft_5xx_communication(service, signal, impact):
+    observation = (
+        "elevated 5xx responses" if signal == "5xx spike" else signal
+    )
     return (
-        f"Investigating elevated 5xx responses for {service}; "
-        "customer impact is being assessed."
+        f"Investigating {observation} for {service}; "
+        f"{impact['communication']}."
     )
 
 
@@ -61,17 +75,23 @@ def fallback_response(service, signal):
     }
 
 
-def respond_to_incident(request):
+def respond_to_incident(
+    request,
+    *,
+    diagnose=diagnose_5xx_spike,
+    assess_impact=assess_5xx_impact,
+    draft_communication=draft_5xx_communication,
+):
     service, signal = validate_request(request)
     if signal != "5xx spike":
         return fallback_response(service, signal)
 
-    diagnosis = diagnose_5xx_spike(service)
-    impact = assess_5xx_impact()
-    communication = draft_5xx_communication(service)
+    diagnosis = diagnose(service, signal)
+    impact = assess_impact(service, signal, diagnosis)
+    communication = draft_communication(service, signal, impact)
     return {
         "summary": diagnosis["summary"],
-        "impact": impact,
+        "impact": impact["statement"],
         "actions": diagnosis["actions"],
         "communication": communication,
     }

@@ -9,13 +9,17 @@ type: component
 
 ## Contract
 
-Accept the service and confirmed `5xx spike` context. Return: `Customer
-requests may fail; treat checkout availability as degraded.`
+Accept the service, confirmed `5xx spike` signal, and diagnosis result. Return
+an internal assessment with a public statement and communication clause. The
+public statement is: `Customer requests may fail; treat <service scope>
+availability as degraded.` The communication clause states that customer
+impact is being assessed.
 
 ## Example
 
-The statement distinguishes likely customer failure from a claim that every
-request has failed.
+For `checkout-api`, the service scope is `checkout`. The statement
+distinguishes likely customer failure from a claim that every request has
+failed.
 
 ## Anti-pattern
 

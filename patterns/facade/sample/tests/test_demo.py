@@ -51,6 +51,78 @@ class FacadeDemoTest(unittest.TestCase):
             list(result), ["summary", "impact", "actions", "communication"]
         )
 
+    def test_facade_passes_context_and_prior_results_between_specialists(self):
+        calls = []
+
+        def diagnose(service, signal):
+            calls.append(("diagnose", service, signal))
+            return {"summary": "diagnosis", "actions": ["contain"]}
+
+        def assess_impact(service, signal, diagnosis):
+            calls.append(("assess-impact", service, signal, diagnosis))
+            return {
+                "statement": "assessed impact",
+                "communication": "assessed impact is confirmed",
+            }
+
+        def draft_communication(service, signal, impact):
+            calls.append(("draft-communication", service, signal, impact))
+            return f"update from {impact['communication']}"
+
+        result = self.demo.respond_to_incident(
+            {"service": "orders-api", "signal": "5xx spike"},
+            diagnose=diagnose,
+            assess_impact=assess_impact,
+            draft_communication=draft_communication,
+        )
+
+        diagnosis = {"summary": "diagnosis", "actions": ["contain"]}
+        impact = {
+            "statement": "assessed impact",
+            "communication": "assessed impact is confirmed",
+        }
+        self.assertEqual(
+            calls,
+            [
+                ("diagnose", "orders-api", "5xx spike"),
+                ("assess-impact", "orders-api", "5xx spike", diagnosis),
+                ("draft-communication", "orders-api", "5xx spike", impact),
+            ],
+        )
+        self.assertEqual(
+            result,
+            {
+                "summary": "diagnosis",
+                "impact": "assessed impact",
+                "actions": ["contain"],
+                "communication": "update from assessed impact is confirmed",
+            },
+        )
+
+    def test_second_service_has_no_checkout_leakage(self):
+        result = self.demo.respond_to_incident(
+            {"service": "inventory-api", "signal": "5xx spike"}
+        )
+
+        self.assertIn("inventory", result["impact"])
+        self.assertNotIn("checkout", json.dumps(result).lower())
+
+    def test_communication_uses_the_returned_impact_clause(self):
+        communication = self.demo.draft_5xx_communication(
+            "inventory-api",
+            "5xx spike",
+            {
+                "statement": "Inventory requests are delayed.",
+                "communication": "inventory impact is confirmed",
+            },
+        )
+
+        self.assertEqual(
+            communication,
+            "Investigating elevated 5xx responses for inventory-api; "
+            "inventory impact is confirmed.",
+        )
+
     def test_missing_required_field_raises_clear_validation_error(self):
         request = self.load_json("fixtures/invalid/malformed-request.json")
 

@@ -9,13 +9,15 @@ type: component
 
 ## Contract
 
-Accept `service`, `signal`, and the assessed impact. For a recognized `5xx
-spike`, return: `Investigating elevated 5xx responses for <service>; customer
-impact is being assessed.`
+Accept `service`, `signal`, and the returned impact assessment. For a
+recognized `5xx spike`, combine the service with the assessment's
+communication clause. Do not substitute a hard-coded impact claim.
 
 ## Example
 
-For `checkout-api`, replace `<service>` with that exact service identifier.
+If the assessment clause is `customer impact is being assessed`, return:
+`Investigating elevated 5xx responses for <service>; customer impact is being
+assessed.`
 
 ## Anti-pattern
 
