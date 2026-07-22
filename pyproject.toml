@@ -1,0 +1,9 @@
+[project]
+name = "skillware-patterns"
+version = "0.1.0"
+description = "Executable pattern-transfer supplement for the Skillware paper"
+requires-python = ">=3.10"
+dependencies = ["PyYAML>=6.0,<7"]
+
+[tool.uv]
+dev-dependencies = []
