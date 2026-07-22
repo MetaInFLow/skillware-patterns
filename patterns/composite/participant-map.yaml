@@ -11,15 +11,16 @@ participants:
     path: sample/references/section-contract.md
   Leaf:
     role: Independently inspectable atomic analysis Skills
-    behavior: Produces one Component record with children set to an empty list.
+    behavior: In Agent mode each child Skill consumes declared input and returns one Component record; deterministic demo executors model the same callable contract.
     paths:
       - sample/child-skills/market-analysis/SKILL.md
       - sample/child-skills/financial-analysis/SKILL.md
       - sample/child-skills/competition-analysis/SKILL.md
       - sample/child-skills/risk-analysis/SKILL.md
+    demo_executor_path: sample/scripts/run_demo.py
   Composite:
     role: Root memo Skill and serialized containment workflow
-    behavior: Resolves child references recursively and returns a Component record containing child Component records.
+    behavior: Validates one rooted tree, invokes children in declared order, validates their records, and returns a Component containing them.
     paths:
       - sample/SKILL.md
       - sample/fixtures/valid/investment-memo.json
@@ -43,6 +44,11 @@ implementation_paths:
   - sample/fixtures/invalid/invalid-kind.json
   - sample/fixtures/invalid/leaf-with-children.json
   - sample/fixtures/invalid/invalid-json.json
+  - sample/fixtures/invalid/shared-child.json
+  - sample/fixtures/invalid/repeated-child.json
+  - sample/fixtures/invalid/unreachable-node.json
+  - sample/fixtures/invalid/disconnected-cycle.json
+  - sample/fixtures/invalid/root-has-parent.json
   - sample/expected/investment-memo.json
   - sample/expected/cycle-error.txt
   - sample/expected/missing-child-error.txt
@@ -52,6 +58,11 @@ implementation_paths:
   - sample/expected/invalid-kind-error.txt
   - sample/expected/leaf-with-children-error.txt
   - sample/expected/invalid-json-error.txt
+  - sample/expected/shared-child-error.txt
+  - sample/expected/repeated-child-error.txt
+  - sample/expected/unreachable-node-error.txt
+  - sample/expected/disconnected-cycle-error.txt
+  - sample/expected/root-has-parent-error.txt
   - sample/tests/test_demo.py
 misuse_path: misuse/SKILL.md
 evidence_path: evidence/openmontage-frozen-case.md

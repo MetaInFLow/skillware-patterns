@@ -1,0 +1,1 @@
+error: node 'investment-memo' repeats child 'market-analysis'

@@ -7,7 +7,8 @@ type: component
 
 # Financial Analysis
 
-Read the declared management accounts and cash-plan evidence. Return exactly
-`id`, `title`, `content`, `evidence`, and `children` under
-`memo-section-v1`. Use `id: financial-analysis`, preserve evidence order, and
-return `children: []`. Never add sub-sections or change the shared result shape.
+Accept `growth_signal`, `burn_profile`, `financing_condition`, and ordered
+`sources`. Analyze the supplied financial inputs and return exactly `id`,
+`title`, `content`, `evidence`, and `children` under `memo-section-v1`. Use
+`id: financial-analysis`, cite sources in order, and return `children: []`.
+Never add sub-sections or change the shared result shape.

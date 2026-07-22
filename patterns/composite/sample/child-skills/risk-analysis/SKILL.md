@@ -7,7 +7,8 @@ type: component
 
 # Risk Analysis
 
-Read the declared risk-register evidence. Return exactly `id`, `title`,
-`content`, `evidence`, and `children` under `memo-section-v1`. Use
-`id: risk-analysis`, preserve evidence order, and return `children: []`.
-Never add sub-sections or change the shared result shape.
+Accept ordered `risks`, `gate_policy`, and ordered `sources`. Analyze the
+supplied risk inputs and return exactly `id`, `title`, `content`, `evidence`,
+and `children` under `memo-section-v1`. Use `id: risk-analysis`, cite sources
+in order, and return `children: []`. Never add sub-sections or change the
+shared result shape.

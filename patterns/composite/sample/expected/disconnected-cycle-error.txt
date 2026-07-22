@@ -1,0 +1,1 @@
+error: cycle detected: orphan-a -> orphan-b -> orphan-a

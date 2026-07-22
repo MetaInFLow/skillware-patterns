@@ -1,0 +1,42 @@
+{
+  "component_contract": "memo-section-v1",
+  "root": "investment-memo",
+  "nodes": [
+    {
+      "id": "investment-memo",
+      "kind": "composite",
+      "title": "Investment Memo",
+      "content": "Root.",
+      "evidence": ["fixture:root"],
+      "children": ["diligence-a", "diligence-b"]
+    },
+    {
+      "id": "diligence-a",
+      "kind": "composite",
+      "title": "Diligence A",
+      "content": "First branch.",
+      "evidence": ["fixture:a"],
+      "children": ["risk-analysis"]
+    },
+    {
+      "id": "diligence-b",
+      "kind": "composite",
+      "title": "Diligence B",
+      "content": "Second branch.",
+      "evidence": ["fixture:b"],
+      "children": ["risk-analysis"]
+    },
+    {
+      "id": "risk-analysis",
+      "kind": "leaf",
+      "title": "Risk Analysis",
+      "skill": "child-skills/risk-analysis/SKILL.md",
+      "input": {
+        "risks": ["one", "two"],
+        "gate_policy": "review each",
+        "sources": ["risk"]
+      },
+      "children": []
+    }
+  ]
+}

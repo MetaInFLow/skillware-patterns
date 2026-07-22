@@ -16,4 +16,5 @@ Run these tools in any convenient order:
 
 The root returns only paths to those outputs. It does not require a shared
 result contract, does not return child section records, and does not validate
-part-whole references or cycles.
+part-whole references or cycles. Its workflow also lets two groups reuse the
+same risk output, producing a shared-child DAG instead of a tree.

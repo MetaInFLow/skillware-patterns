@@ -6,28 +6,31 @@
 - **Paper wording:** Candidate correspondence plus constructive repository fixture.
 - **Case:** OpenMontage Skill system (`calesthio/OpenMontage`)
 - **Fixed upstream commit:** `db91727598d08d40919d7d68a47864a5467bd448`
-- **Staged workflow Skill:**
-  [`.agents/skills/create-video/SKILL.md`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/.agents/skills/create-video/SKILL.md)
-- **Routing Skill:**
-  [`.agents/skills/hyperframes/SKILL.md`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/.agents/skills/hyperframes/SKILL.md)
-- **Workflow guide:**
-  [`AGENT_GUIDE.md`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/AGENT_GUIDE.md)
+- **Pipeline manifest:**
+  [`pipeline_defs/animation.yaml`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/pipeline_defs/animation.yaml)
+- **Manifest-selected orchestrator:**
+  [`skills/pipelines/animation/executive-producer.md`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/skills/pipelines/animation/executive-producer.md)
+- **Manifest-selected stage director:**
+  [`skills/pipelines/animation/research-director.md`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/skills/pipelines/animation/research-director.md)
 - **Pipeline loader:**
   [`lib/pipeline_loader.py`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/lib/pipeline_loader.py)
+- **Corrected non-stage Skill:**
+  [`.agents/skills/create-video/SKILL.md`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/.agents/skills/create-video/SKILL.md)
 - **Vendored observation record:**
   [frozen evidence](evidence/openmontage-frozen-case.md)
 
-The fixed public paths show a staged Skill workflow, a root routing surface,
-and deterministic pipeline support. This is structurally compatible with a
-parent Skill coordinating child stages. It remains a candidate because the
-bounded frozen review does not fully establish that atomic stages and nested
-stage groups return the same invocation/result contract, nor does it fully
-establish an explicit acyclic part-whole tree. Those missing Composite
-properties must not be inferred from repository nesting or the word "stage."
+The animation manifest explicitly selects an executive producer and stage
+director instructions, and the loader exposes ordered stage and Skill lookup.
+This supports a narrowly scoped candidate correspondence for a parent-like
+workflow coordinating separately inspectable stages. The `create-video` Skill
+is HeyGen vendor/API guidance and is not positive pipeline evidence.
 
-Agent Host and Agent Runtime are execution context. The public root files can
-load instructions and a runtime can interpret them, but neither is a GoF
-Composite participant by default.
+The correspondence is not confirmed. OpenMontage stages declare different
+artifact schemas, so a shared Leaf/Composite result contract is missing. The
+stage relation may also be pipeline dependency rather than part-whole
+containment, and the reviewed paths do not establish a single-parent reachable
+tree or global cycle rejection. Agent Host and Agent Runtime remain execution
+context rather than GoF participants.
 
 ## Constructive sample
 
@@ -40,8 +43,12 @@ Composite participant by default.
 - **Executable oracle:** [`sample/scripts/run_demo.py`](sample/scripts/run_demo.py)
 - **Focused verification:** [`sample/tests/test_demo.py`](sample/tests/test_demo.py)
 
-The local sample demonstrates constructibility with a uniform record, recursive
-child references, stable order, and explicit rejection of cycles and malformed
-graphs. It is not evidence about OpenMontage. Conversely, OpenMontage does not
-validate the local sample. Neither claim supports ecosystem prevalence,
-cross-Host equivalence, or comparative quality improvement.
+In Agent mode the root instructions call each child Skill through the shared
+contract. In demo mode explicit deterministic executors keyed by child Skill
+model those calls; Python does not interpret `SKILL.md`. The builder invokes
+each Leaf once in declared order, validates every returned Component record,
+and assembles the root after validating the entire serialized tree.
+
+The local sample is not evidence about OpenMontage, and OpenMontage does not
+validate the sample. Neither claim supports prevalence, cross-Host equivalence,
+or comparative quality improvement.

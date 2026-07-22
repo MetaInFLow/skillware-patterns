@@ -19,22 +19,25 @@
         "customer_segment": "Segment",
         "workflow_problem": "problem",
         "market_wedge": "wedge",
-        "sources": ["first"]
+        "sources": ["market"]
       },
       "children": []
     },
     {
-      "id": "market-analysis",
-      "kind": "leaf",
-      "title": "Market Analysis Duplicate",
-      "skill": "child-skills/market-analysis/SKILL.md",
-      "input": {
-        "customer_segment": "Segment",
-        "workflow_problem": "problem",
-        "market_wedge": "wedge",
-        "sources": ["second"]
-      },
-      "children": []
+      "id": "orphan-a",
+      "kind": "composite",
+      "title": "Orphan A",
+      "content": "Disconnected A.",
+      "evidence": ["fixture:a"],
+      "children": ["orphan-b"]
+    },
+    {
+      "id": "orphan-b",
+      "kind": "composite",
+      "title": "Orphan B",
+      "content": "Disconnected B.",
+      "evidence": ["fixture:b"],
+      "children": ["orphan-a"]
     }
   ]
 }

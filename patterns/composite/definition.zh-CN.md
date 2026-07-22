@@ -23,9 +23,9 @@ Skillware 发明了新模式，也不主张历史优先权。
 
 - **Client：**调用根投资备忘录的任务调用者，也可以通过相同结果契约调用可独立
   寻址的分析 Leaf。
-- **Component：**公共的 `build_component(workflow, node_id)` 操作与
-  `memo-section-v1` 记录；后者严格包含 `id`、`title`、`content`、
-  `evidence` 和 `children`。
+- **Component：**公共节点调用与 `memo-section-v1` 记录；后者严格包含 `id`、
+  `title`、`content`、`evidence` 和 `children`。演示模式用
+  `build_component(workflow, node_id, leaf_executors=None)` 模拟调用。
 - **Leaf：**市场、财务、竞争和风险分析 Skill。每个都返回一条 Component 记录，
   且 `children: []`。
 - **Composite：**根投资备忘录 Skill 与声明子节点引用的序列化工作流。它返回
@@ -36,11 +36,11 @@ Skillware 发明了新模式，也不主张历史优先权。
 
 ## 协作（Collaboration）
 
-Client 通过 `build_component(workflow, node_id)` 调用根节点或任一 Leaf。
-Composite 先解析 `investment-memo`，再按声明顺序递归解析每个子 ID。Leaf 执行
-原子分析并返回公共五字段记录，其中子列表为空。Composite 把返回的 Component
-记录放入自己的子列表，同时保持公开形状不变。注册过程在覆盖发生前拒绝重复 ID；
-遍历过程拒绝缺失引用，并在循环错误中给出完整引用路径。
+Client 通过 Component 契约调用根节点或任一 Leaf。在 Agent 模式中，根节点以
+声明输入调用每个关联的子 Skill；在演示模式中，构建器调用以该子 Skill 路径为键
+的显式确定性执行器。每个 Leaf 计算并返回子列表为空的公共五字段记录，Composite
+校验并组装这些记录。完整注册表校验先于调用执行，强制满足引用存在、节点唯一、
+单一父节点、从根可达和全局无环。
 
 ## 后果（Consequences）
 
@@ -51,10 +51,10 @@ Composite 先解析 `investment-memo`，再按声明顺序递归解析每个子 
 
 ## Skillware 映射（Skillware Mapping）
 
-自然语言行为源可以定义原子工作和分组工作，序列化工作流则提供节点身份与包含
-引用。确定性构建器是声明契约和遍历规则的可执行判定基准。模式关系跨越根 Skill、
-子 Skill、契约引用和工作流；其成立与载体是 Markdown、JSON、代码还是其他文件
-类型无关。
+自然语言行为源定义原子工作和分组工作，序列化工作流则提供节点身份、Leaf 输入、
+关联 Skill 路径和包含引用。确定性执行器与构建器是协作和遍历规则的可执行判定
+基准，但不解释 `SKILL.md`。模式关系跨越根 Skill、子 Skill、契约引用和工作流，
+而不是由某一种文件类型决定。
 
 ### 最终本体（Final ontology）
 
@@ -80,39 +80,42 @@ Filters；集中协调同级对象时使用 Mediator。
 ## 正向证据（Positive Evidence）
 
 本仓库样例属于**构造性（constructive）**证据。根备忘录和四个 Leaf 返回完全
-相同的键与类型，JSON 工作流声明有序的部分-整体树；聚焦测试验证精确输出、统一
-契约、递归嵌套、输入不变性，以及对循环、重复 ID、缺失节点、错误 kind、畸形
-schema 和契约违规的拒绝。
+相同的键与类型。四个显式执行器根据序列化输入计算 Leaf 记录，依赖注入测试证明
+它们按声明顺序各调用一次。完整注册表测试拒绝缺失引用、重复子节点、共享子节点
+DAG、根的父节点、不可达节点、断开循环、重复 ID、畸形 schema 和错误结果。
 
 ## 反向证据（Counter-Evidence）
 
 确定性函数不能证明 Agent Runtime 会在不同 Host 中以相同方式解释自然语言
 Skill。默认样例只有一层 Composite，尽管聚焦测试额外覆盖了嵌套 Composite。
-工作流直接保存生成后的内容，使判定基准专注组合语义，而不是模拟概率性分析质量。
+执行器只模拟子节点协作和可预测的夹具分析；Python 不调用或解释子 Skill 指令，
+样例也不模拟概率性分析质量。
 
 ## 误判（False Positives）
 
 当市场、财务、竞争和风险 Skill 返回不同形状，而父级只列出路径时，它们所在的
-目录不是 Composite。如果工作流中的边表示依赖而不是部分-整体包含，或 Leaf 与
-分组暴露不同契约，该工作流同样不是 Composite。
+目录不是 Composite。如果工作流中的边表示依赖而不是部分-整体包含、一个子节点
+拥有多个父节点，或 Leaf 与分组暴露不同契约，该工作流同样不是 Composite。
 [`misuse/SKILL.md`](misuse/SKILL.md) 有意展示了这种近似但不成立的案例。
 
 ## 开源对应（Open-Source Correspondence）
 
 OpenMontage 的评估固定在提交
 `db91727598d08d40919d7d68a47864a5467bd448`，精确公共路径包括
-`.agents/skills/create-video/SKILL.md`、`.agents/skills/hyperframes/SKILL.md`、
-`AGENT_GUIDE.md` 与 `lib/pipeline_loader.py`。其阶段化 Skill 工作流只是
-**候选对应（candidate correspondence）**，不是已确认对应：有限的冻结证据没有
-完整证明原子节点与组合节点共享一个结果契约、显式部分-整体树和无环性。固定链接
-与证据边界见 [`correspondence.md`](correspondence.md)。
+`pipeline_defs/animation.yaml`、
+`skills/pipelines/animation/executive-producer.md`、
+`skills/pipelines/animation/research-director.md` 与 `lib/pipeline_loader.py`。
+该清单-编排器-阶段关系只是**候选对应（candidate correspondence）**，不是已确认
+对应。各阶段产物使用不同 schema，并可能构成管道依赖图，而不是统一部分-整体树。
+`.agents/skills/create-video/SKILL.md` 是供应商/API 指南，不是正向阶段证据。固定
+链接与证据边界见 [`correspondence.md`](correspondence.md)。
 
 ## 验证（Verification）
 
 在 `sample/` 中运行 `python3 scripts/run_demo.py` 和 `python3 -m unittest
 discover tests -v`。验证覆盖精确组装结果、四个 Leaf 的声明顺序、递归记录中相同的
-键与类型、Leaf 空子列表、嵌套 Composite 遍历、输入不变性、精确 CLI 错误、本地
-参与者与证据路径，以及不使用网络和共享导入。
+键与类型、Leaf 空子列表、执行器按顺序各调用一次、完整树不变量、严格结果校验、
+输入不变性、精确 CLI 错误、固定证据路径，以及不使用网络和共享导入。
 
 ## 局限（Limitations）
 

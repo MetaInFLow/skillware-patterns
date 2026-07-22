@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 import unittest
+from urllib.parse import urlparse
 
 import yaml
 
@@ -20,6 +21,12 @@ LEAF_IDS = (
     "financial-analysis",
     "competition-analysis",
     "risk-analysis",
+)
+LEAF_SKILL_PATHS = (
+    "child-skills/market-analysis/SKILL.md",
+    "child-skills/financial-analysis/SKILL.md",
+    "child-skills/competition-analysis/SKILL.md",
+    "child-skills/risk-analysis/SKILL.md",
 )
 
 
@@ -44,7 +51,9 @@ class CompositeDemoTest(unittest.TestCase):
     def assert_uniform_contract(self, section):
         self.assertEqual(tuple(section), CONTRACT_KEYS)
         self.assertIsInstance(section["id"], str)
+        self.assertTrue(section["id"].strip())
         self.assertIsInstance(section["title"], str)
+        self.assertTrue(section["title"].strip())
         self.assertIsInstance(section["content"], str)
         self.assertIsInstance(section["evidence"], list)
         self.assertTrue(
@@ -87,6 +96,75 @@ class CompositeDemoTest(unittest.TestCase):
         self.assertEqual(composite["id"], "investment-memo")
         self.assertEqual(leaf["id"], "market-analysis")
         self.assertEqual(leaf["children"], [])
+
+    def test_each_injected_leaf_executor_runs_once_in_declared_order(self):
+        workflow = self.load_json("fixtures/valid/investment-memo.json")
+        expected = self.load_json("expected/investment-memo.json")
+        expected_by_id = {child["id"]: child for child in expected["children"]}
+        calls = []
+
+        def recording_executor(skill_path):
+            def execute(request):
+                output = deepcopy(expected_by_id[request["id"]])
+                calls.append(
+                    {
+                        "skill_key": skill_path,
+                        "request": deepcopy(request),
+                        "output": deepcopy(output),
+                    }
+                )
+                return output
+
+            return execute
+
+        executors = {
+            path: recording_executor(path) for path in LEAF_SKILL_PATHS
+        }
+        result = self.demo.build_memo(workflow, leaf_executors=executors)
+
+        leaf_nodes = workflow["nodes"][1:]
+        self.assertEqual(
+            [call["request"] for call in calls],
+            [
+                {
+                    "id": node["id"],
+                    "title": node["title"],
+                    "skill": node["skill"],
+                    "input": node["input"],
+                }
+                for node in leaf_nodes
+            ],
+        )
+        self.assertEqual(
+            [call["skill_key"] for call in calls], list(LEAF_SKILL_PATHS)
+        )
+        self.assertEqual(
+            [call["output"] for call in calls], expected["children"]
+        )
+        self.assertEqual(result, expected)
+
+    def test_default_executors_are_keyed_to_each_child_skill(self):
+        self.assertEqual(tuple(self.demo.DEFAULT_LEAF_EXECUTORS), LEAF_SKILL_PATHS)
+
+    def test_leaf_executor_result_is_validated_before_composition(self):
+        workflow = self.load_json("fixtures/valid/investment-memo.json")
+
+        def invalid_executor(request):
+            return {
+                "id": request["id"],
+                "title": request["title"],
+                "content": "invalid",
+                "evidence": [],
+            }
+
+        executors = dict(self.demo.DEFAULT_LEAF_EXECUTORS)
+        executors[LEAF_SKILL_PATHS[0]] = invalid_executor
+        with self.assertRaisesRegex(
+            self.demo.ValidationError,
+            "^section 'market-analysis' fields must be exactly: id, title, "
+            "content, evidence, children; missing: children$",
+        ):
+            self.demo.build_memo(workflow, leaf_executors=executors)
 
     def test_root_assembles_all_four_leaves_in_declared_order(self):
         workflow = self.load_json("fixtures/valid/investment-memo.json")
@@ -139,6 +217,59 @@ class CompositeDemoTest(unittest.TestCase):
 
         self.assertEqual(workflow, original)
 
+    def test_tree_validation_rejects_shared_repeated_and_unreachable_nodes(self):
+        cases = (
+            (
+                "fixtures/invalid/shared-child.json",
+                "node 'risk-analysis' must have exactly one parent; found 2: "
+                "diligence-a, diligence-b",
+            ),
+            (
+                "fixtures/invalid/repeated-child.json",
+                "node 'investment-memo' repeats child 'market-analysis'",
+            ),
+            (
+                "fixtures/invalid/unreachable-node.json",
+                "unreachable nodes from root 'investment-memo': orphan-analysis",
+            ),
+            (
+                "fixtures/invalid/root-has-parent.json",
+                "root node 'investment-memo' must have zero parents; found 1: "
+                "orphan-parent",
+            ),
+        )
+        for fixture, message in cases:
+            with self.subTest(fixture=fixture):
+                with self.assertRaisesRegex(
+                    self.demo.ValidationError, f"^{re.escape(message)}$"
+                ):
+                    self.demo.build_memo(self.load_json(fixture))
+
+    def test_disconnected_cycle_is_detected_before_reachability(self):
+        workflow = self.load_json("fixtures/invalid/disconnected-cycle.json")
+
+        with self.assertRaisesRegex(
+            self.demo.ValidationError,
+            "^cycle detected: orphan-a -> orphan-b -> orphan-a$",
+        ):
+            self.demo.build_memo(workflow)
+
+    def test_whole_tree_validation_runs_before_any_leaf_executor(self):
+        workflow = self.load_json("fixtures/invalid/unreachable-node.json")
+        calls = []
+
+        def should_not_run(request):
+            calls.append(request)
+            return {}
+
+        executors = {path: should_not_run for path in LEAF_SKILL_PATHS}
+        with self.assertRaisesRegex(
+            self.demo.ValidationError,
+            "^unreachable nodes from root 'investment-memo': orphan-analysis$",
+        ):
+            self.demo.build_memo(workflow, leaf_executors=executors)
+        self.assertEqual(calls, [])
+
     def test_cycle_error_includes_the_full_serialized_reference_path(self):
         workflow = self.load_json("fixtures/invalid/cycle.json")
 
@@ -184,8 +315,8 @@ class CompositeDemoTest(unittest.TestCase):
             ),
             (
                 "fixtures/invalid/malformed-node.json",
-                "nodes[1] fields must be exactly: id, kind, title, content, "
-                "evidence, children; missing: evidence",
+                "nodes[1] fields must be exactly: id, kind, title, skill, "
+                "input, children; missing: input",
             ),
             (
                 "fixtures/invalid/leaf-with-children.json",
@@ -213,6 +344,37 @@ class CompositeDemoTest(unittest.TestCase):
             "content, evidence, children; missing: children$",
         ):
             self.demo.validate_section_record(malformed)
+
+    def test_contract_validator_rejects_empty_or_non_string_id_and_title(self):
+        valid = {
+            "id": "market-analysis",
+            "title": "Market Analysis",
+            "content": "Content",
+            "evidence": [],
+            "children": [],
+        }
+        cases = (
+            ("id", "", "section.id must be a non-empty string"),
+            ("id", 7, "section.id must be a non-empty string"),
+            (
+                "title",
+                "   ",
+                "section 'market-analysis'.title must be a non-empty string",
+            ),
+            (
+                "title",
+                ["Market"],
+                "section 'market-analysis'.title must be a non-empty string",
+            ),
+        )
+        for field, value, message in cases:
+            with self.subTest(field=field, value=value):
+                section = deepcopy(valid)
+                section[field] = value
+                with self.assertRaisesRegex(
+                    self.demo.ValidationError, f"^{re.escape(message)}$"
+                ):
+                    self.demo.validate_section_record(section)
 
     def test_cli_defaults_to_the_valid_workflow_and_prints_exact_json(self):
         completed = subprocess.run(
@@ -277,6 +439,26 @@ class CompositeDemoTest(unittest.TestCase):
                 "fixtures/invalid/leaf-with-children.json",
                 "expected/leaf-with-children-error.txt",
             ),
+            (
+                "fixtures/invalid/shared-child.json",
+                "expected/shared-child-error.txt",
+            ),
+            (
+                "fixtures/invalid/repeated-child.json",
+                "expected/repeated-child-error.txt",
+            ),
+            (
+                "fixtures/invalid/unreachable-node.json",
+                "expected/unreachable-node-error.txt",
+            ),
+            (
+                "fixtures/invalid/disconnected-cycle.json",
+                "expected/disconnected-cycle-error.txt",
+            ),
+            (
+                "fixtures/invalid/root-has-parent.json",
+                "expected/root-has-parent-error.txt",
+            ),
             ("fixtures/invalid/invalid-json.json", "expected/invalid-json-error.txt"),
         )
         for fixture, expectation in cases:
@@ -324,9 +506,12 @@ class CompositeDemoTest(unittest.TestCase):
 
         for required in (
             "db91727598d08d40919d7d68a47864a5467bd448",
+            "pipeline_defs/animation.yaml",
+            "skills/pipelines/animation/executive-producer.md",
+            "skills/pipelines/animation/research-director.md",
             ".agents/skills/create-video/SKILL.md",
-            "AGENT_GUIDE.md",
             "lib/pipeline_loader.py",
+            "vendor/API guidance, not pipeline-stage evidence",
             "candidate correspondence",
             "Missing or partial evidence",
         ):
@@ -337,6 +522,39 @@ class CompositeDemoTest(unittest.TestCase):
             correspondence,
         )
         self.assertNotIn("confirmed correspondence", correspondence.lower())
+
+    def test_openmontage_evidence_urls_use_exact_public_pinned_paths(self):
+        evidence = (RECORD / "evidence/openmontage-frozen-case.md").read_text(
+            encoding="utf-8"
+        )
+        urls = re.findall(r"https://github\.com/[^)\s]+", evidence)
+        expected_paths = {
+            "pipeline_defs/animation.yaml",
+            "skills/pipelines/animation/executive-producer.md",
+            "skills/pipelines/animation/research-director.md",
+            "lib/pipeline_loader.py",
+            ".agents/skills/create-video/SKILL.md",
+        }
+        pinned_paths = set()
+
+        for url in urls:
+            parsed = urlparse(url)
+            parts = parsed.path.strip("/").split("/")
+            if len(parts) < 5 or parts[2] not in {"blob", "tree"}:
+                continue
+            owner, repository, _, revision = parts[:4]
+            upstream_path = "/".join(parts[4:])
+            with self.subTest(url=url):
+                self.assertEqual(parsed.scheme, "https")
+                self.assertEqual(parsed.netloc, "github.com")
+                self.assertEqual((owner, repository), ("calesthio", "OpenMontage"))
+                self.assertEqual(
+                    revision, "db91727598d08d40919d7d68a47864a5467bd448"
+                )
+                self.assertIn(upstream_path, expected_paths)
+            pinned_paths.add(upstream_path)
+
+        self.assertEqual(pinned_paths, expected_paths)
 
     def test_demo_uses_only_the_standard_library_and_no_other_pattern(self):
         tree = ast.parse(SCRIPT.read_text(encoding="utf-8"))
@@ -351,7 +569,9 @@ class CompositeDemoTest(unittest.TestCase):
             if isinstance(node, ast.ImportFrom) and node.module
         )
 
-        self.assertLessEqual(imports, {"argparse", "json", "pathlib", "sys"})
+        self.assertLessEqual(
+            imports, {"argparse", "copy", "json", "pathlib", "sys"}
+        )
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertNotIn("patterns/", source)
         self.assertNotIn("../", source)

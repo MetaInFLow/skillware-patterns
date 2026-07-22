@@ -8,7 +8,7 @@
       "title": "Investment Memo",
       "content": "Root.",
       "evidence": ["fixture:root"],
-      "children": ["market-analysis"]
+      "children": ["market-analysis", "market-analysis"]
     },
     {
       "id": "market-analysis",
@@ -19,20 +19,7 @@
         "customer_segment": "Segment",
         "workflow_problem": "problem",
         "market_wedge": "wedge",
-        "sources": ["first"]
-      },
-      "children": []
-    },
-    {
-      "id": "market-analysis",
-      "kind": "leaf",
-      "title": "Market Analysis Duplicate",
-      "skill": "child-skills/market-analysis/SKILL.md",
-      "input": {
-        "customer_segment": "Segment",
-        "workflow_problem": "problem",
-        "market_wedge": "wedge",
-        "sources": ["second"]
+        "sources": ["market"]
       },
       "children": []
     }

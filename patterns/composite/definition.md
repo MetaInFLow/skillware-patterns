@@ -28,9 +28,9 @@ object and a composition of objects uniformly through one Component contract.
 
 - **Client:** the task caller invoking the root investment memo, or invoking an
   independently addressable analysis Leaf through the same result contract.
-- **Component:** the common `build_component(workflow, node_id)` operation and
-  `memo-section-v1` record with exactly `id`, `title`, `content`, `evidence`,
-  and `children`.
+- **Component:** the common node invocation and `memo-section-v1` record with
+  exactly `id`, `title`, `content`, `evidence`, and `children`. Demo mode models
+  invocation as `build_component(workflow, node_id, leaf_executors=None)`.
 - **Leaf:** the market, financial, competition, and risk analysis Skills. Each
   returns one Component record with `children: []`.
 - **Composite:** the root investment-memo Skill together with the serialized
@@ -43,14 +43,14 @@ object and a composition of objects uniformly through one Component contract.
 
 ## Collaboration
 
-The Client invokes either the root or a Leaf through
-`build_component(workflow, node_id)`. The Composite resolves
-`investment-memo`, then recursively resolves each child ID in declared order.
-A Leaf performs its atomic analysis and returns the common five-field record
-with an empty child list. A Composite assembles returned Component records into
-its own child list without changing the public shape. Registration rejects
-duplicate IDs before overwrite; traversal rejects missing references and
-cycles with the complete reference path.
+The Client invokes either the root or a Leaf through the Component contract.
+In Agent mode, the root calls each associated child Skill with declared input.
+In demo mode, the builder calls an explicit deterministic executor keyed by
+that child Skill path. Each Leaf computes and returns the common five-field
+record with an empty child list; the Composite validates and assembles those
+records without changing their public shape. Complete registry validation runs
+first and enforces existence, uniqueness, one parent, reachability, and global
+acyclicity.
 
 ## Consequences
 
@@ -63,12 +63,12 @@ and the need to define ownership, identity, cycle, and error policies.
 
 ## Skillware Mapping
 
-Natural-language behavioral sources can define both atomic and grouped work,
-while a serialized workflow supplies node identity and containment references.
-The deterministic builder is an executable oracle for the declared contract
-and traversal rules. The pattern relation spans the root Skill, child Skills,
-contract reference, and workflow; it is independent of whether those carriers
-are Markdown, JSON, code, or another file type.
+Natural-language behavioral sources define atomic and grouped work, while a
+serialized workflow supplies node identity, Leaf inputs, associated Skill
+paths, and containment references. The deterministic executors and builder are
+an executable oracle for the declared collaboration and traversal rules; they
+do not interpret `SKILL.md`. The pattern relation spans the root Skill, child
+Skills, contract reference, and workflow rather than any one file type.
 
 ### Final ontology
 
@@ -99,25 +99,28 @@ Mediator for centralized peer coordination.
 ## Positive Evidence
 
 The repository sample is **constructive** evidence. Its root memo and four
-Leaves return the exact same keys and types, its JSON workflow declares an
-ordered part-whole tree, and focused tests verify exact output, uniformity,
-recursive nesting, immutability, and rejection of cycles, duplicates, missing
-nodes, bad kinds, malformed schema, and contract violations.
+Leaves return the exact same keys and types. Four explicit executors compute
+Leaf records from serialized inputs, and dependency-injection tests prove each
+is called exactly once in declared order. Whole-registry tests reject missing
+references, repeated children, shared-child DAGs, root parents, unreachable
+nodes, disconnected cycles, duplicates, malformed schema, and bad results.
 
 ## Counter-Evidence
 
 The deterministic functions do not prove that an Agent Runtime will interpret
 natural-language Skills identically across Hosts. The default sample has one
 Composite level, although a focused test exercises a nested Composite. The
-workflow stores generated content directly so the oracle isolates composition
-semantics rather than modeling probabilistic analysis quality.
+executors model child collaboration and predictable fixture analysis; Python
+does not invoke or interpret the child Skill instructions and the sample does
+not model probabilistic analysis quality.
 
 ## False Positives
 
 A directory of market, finance, competition, and risk Skills is not Composite
 when their results differ and a parent only lists paths. A workflow graph is
 also not Composite if the same edge represents dependency rather than
-part-whole containment, or if Leaves and groups expose different contracts.
+part-whole containment, if a child has multiple parents, or if Leaves and
+groups expose different contracts.
 The [`misuse/SKILL.md`](misuse/SKILL.md) artifact intentionally demonstrates
 this near miss.
 
@@ -125,11 +128,14 @@ this near miss.
 
 OpenMontage is evaluated at commit
 `db91727598d08d40919d7d68a47864a5467bd448`, including exact public paths
-`.agents/skills/create-video/SKILL.md`, `.agents/skills/hyperframes/SKILL.md`,
-`AGENT_GUIDE.md`, and `lib/pipeline_loader.py`. The staged Skill workflow is a
-**candidate correspondence**, not a confirmed one: the bounded frozen evidence
-does not completely establish one atomic/composite result contract, an
-explicit part-whole tree, and acyclicity. See
+`pipeline_defs/animation.yaml`,
+`skills/pipelines/animation/executive-producer.md`,
+`skills/pipelines/animation/research-director.md`, and
+`lib/pipeline_loader.py`. The manifest-to-orchestrator-to-stage relation is a
+**candidate correspondence**, not a confirmed one. Stage artifacts use
+different schemas and may form a pipeline dependency graph rather than one
+uniform part-whole tree. `.agents/skills/create-video/SKILL.md` is vendor/API
+guidance, not positive stage evidence. See
 [`correspondence.md`](correspondence.md) for pinned links and the evidence
 boundary.
 
@@ -138,8 +144,9 @@ boundary.
 From `sample/`, run `python3 scripts/run_demo.py` and `python3 -m unittest
 discover tests -v`. Verification checks the exact assembled memo, all four
 Leaves in declared order, identical recursive keys and types, empty Leaf child
-lists, nested Composite traversal, input immutability, exact CLI errors, local
-participant and evidence paths, and absence of network or shared imports.
+lists, exactly-once injected executor calls, complete tree invariants, strict
+result validation, input immutability, exact CLI errors, pinned evidence paths,
+and absence of network or shared imports.
 
 ## Limitations
 

@@ -4,64 +4,68 @@
 
 - **Claim status:** candidate correspondence
 - **Paper wording:** Candidate correspondence plus constructive repository fixture.
-- **Target repository:** [`calesthio/OpenMontage`](https://github.com/calesthio/OpenMontage)
+- **Target repository:** `calesthio/OpenMontage`
 - **Frozen commit:** `db91727598d08d40919d7d68a47864a5467bd448`
-- **Evaluation unit:** OpenMontage's canonical Agent Skills, root workflow guide,
-  and deterministic pipeline support at that commit
-- **Method:** bounded source inspection recorded in the frozen public case
+- **Evaluation unit:** the animation pipeline manifest, its executive producer,
+  one declared stage director, and the pipeline loader at that commit
+- **Method:** bounded source inspection of the exact public artifacts below
 
-This local record vendors the concise observations and limits needed to audit
-the candidate claim. It does not reproduce upstream code and does not treat the
-constructive investment-memo sample as OpenMontage evidence.
+This local record vendors concise observations and limits. It does not
+reproduce upstream code or use the constructive investment-memo sample as
+OpenMontage evidence.
 
 ## Public upstream evidence
 
-- Staged video workflow Skill:
-  [`.agents/skills/create-video/SKILL.md`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/.agents/skills/create-video/SKILL.md)
-- Read-first routing Skill:
-  [`.agents/skills/hyperframes/SKILL.md`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/.agents/skills/hyperframes/SKILL.md)
-- Root workflow, stages, checkpoints, and lifecycle guide:
-  [`AGENT_GUIDE.md`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/AGENT_GUIDE.md)
-- Deterministic pipeline loading support:
+- Animation pipeline manifest:
+  [`pipeline_defs/animation.yaml`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/pipeline_defs/animation.yaml)
+- Manifest-selected orchestrator:
+  [`skills/pipelines/animation/executive-producer.md`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/skills/pipelines/animation/executive-producer.md)
+- Manifest-selected atomic stage director:
+  [`skills/pipelines/animation/research-director.md`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/skills/pipelines/animation/research-director.md)
+- Manifest loading and stage lookup:
   [`lib/pipeline_loader.py`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/lib/pipeline_loader.py)
-- Checkpoint implementation used by the staged workflow:
-  [`lib/checkpoint.py`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/lib/checkpoint.py)
+- Corrected negative evidence:
+  [`.agents/skills/create-video/SKILL.md`](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/.agents/skills/create-video/SKILL.md)
+  is vendor/API guidance, not pipeline-stage evidence.
 
-The exact revision and paths come from the frozen OpenMontage case inventory.
-No private repository or workstation-specific link is required to inspect the
-public source.
+At this revision, `pipeline_defs/animation.yaml` names the executive producer
+as its orchestration Skill, declares an ordered `stages` list, and associates
+the research stage with `pipelines/animation/research-director`. The executive
+producer says it loads the manifest and each director in order. The loader
+validates manifests and exposes stage order and stage-Skill lookup. These
+observations establish staged coordination with separately inspectable stage
+instructions.
 
 ## Candidate participant observations
 
-- A task-level caller can be the **Client** of a root video workflow.
-- A shared stage invocation/result surface could be the **Component**.
-- Independently named atomic stage Skills could be **Leaves**.
-- A parent workflow Skill plus pipeline composition could be the **Composite**.
+- A task-level caller could be the **Client** of the animation pipeline.
+- The executive producer plus manifest is structurally parent-like.
+- The research director and other manifest-selected directors are separately
+  inspectable stage units.
 
-The reviewed paths establish staged coordination and independently inspectable
-Skills. They support investigation of this mapping, but they do not complete
-all four participant relations.
+This is evidence for investigating a Composite mapping, not confirmation of
+the complete participant relation.
 
 ## Missing or partial evidence
 
-- The frozen case records staged Skills and pipeline tooling, but does not
-  verify one exact invocation and result schema shared by atomic stages and
-  nested stage groups.
-- The reviewed paths do not fully prove that the stage relation is a declared
-  part-whole tree rather than a workflow dependency graph.
-- A complete acyclicity rule and full cycle path error were not observed in the
-  bounded case record.
-- Host bootstrap and Agent Runtime interpretation were not executed across
-  supported environments.
+- The manifest declares different stage artifact schemas such as
+  `research_brief`, `proposal_packet`, and `script`; one uniform Leaf/Composite
+  invocation and result contract is not established.
+- The ordered stage and artifact-dependency relation may be a pipeline graph
+  rather than a GoF part-whole tree.
+- The reviewed upstream implementation does not establish the one-parent,
+  reachability, repeated-child, and global acyclicity invariants used by the
+  constructive Composite sample.
+- The stage director files are manifest-addressed Markdown instructions, not
+  evidence that Python interprets `SKILL.md` or that all Hosts invoke them
+  equivalently.
 
-For these reasons the status remains **candidate correspondence**, not a
-confirmed mapping. Repository folders and repeated stage terminology cannot
-fill the missing evidence.
+The status therefore remains **candidate correspondence** and is narrower than
+a claim that OpenMontage implements Composite.
 
 ## Claim boundary
 
-The public artifacts support a concise claim that OpenMontage staged Skill
-workflows are a candidate Composite correspondence at the frozen revision.
-They do not establish a complete GoF Composite implementation, ecosystem
-frequency, cross-Host behavioral equivalence, quality, robustness, or any
-comparative benefit from using the pattern.
+The pinned artifacts support only a candidate correspondence based on explicit
+manifest-to-orchestrator-to-stage relationships. They do not establish a
+complete GoF Composite, ecosystem frequency, cross-Host equivalence, quality,
+robustness, or comparative benefit.

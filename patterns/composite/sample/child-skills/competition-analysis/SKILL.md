@@ -7,7 +7,8 @@ type: component
 
 # Competition Analysis
 
-Read the declared competitor-matrix evidence. Return exactly `id`, `title`,
-`content`, `evidence`, and `children` under `memo-section-v1`. Use
-`id: competition-analysis`, preserve evidence order, and return
-`children: []`. Never add sub-sections or change the shared result shape.
+Accept `differentiator`, `alternatives`, and ordered `sources`. Analyze the
+supplied competition inputs and return exactly `id`, `title`, `content`,
+`evidence`, and `children` under `memo-section-v1`. Use
+`id: competition-analysis`, cite sources in order, and return `children: []`.
+Never add sub-sections or change the shared result shape.

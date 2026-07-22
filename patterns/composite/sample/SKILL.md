@@ -1,7 +1,7 @@
 ---
 name: investment-memo-builder
 description: Assemble a validated investment memo tree. Use when market, financial, competition, and risk sections must share one recursive contract.
-intent: Build one investment memo from independently inspectable analysis Skills while preserving a uniform section result at every tree level.
+intent: Build one investment memo by invoking independently inspectable analysis Skills and preserving a uniform section result at every tree level.
 type: workflow
 ---
 
@@ -15,54 +15,61 @@ section contract.
 
 ## Component contract
 
-Invoke any node through `build_component(workflow, node_id)`, whether its kind
-is Leaf or Composite. Every node returns exactly `id`, `title`, `content`,
-`evidence`, and `children` as defined in
-`references/section-contract.md`. Strings remain strings,
-`evidence` remains a list of strings, and `children` remains a list of section
-records. A Leaf always returns `children: []`. This root Composite returns the
-same keys and places complete child section records in `children`.
+Invoke any node with its declared input, whether the node is a Leaf or
+Composite. Every node returns exactly `id`, `title`, `content`, `evidence`, and
+`children` under `memo-section-v1`. A Leaf returns `children: []`; this root
+returns the same shape with complete child section records. The exact contract
+is in `references/section-contract.md`.
 
-## Workflow
+## Agent mode
 
-1. Load `fixtures/valid/investment-memo.json` or the caller-selected JSON
-   workflow without mutating it.
-2. Validate the workflow and every node before creating the registry. Reject a
-   duplicate ID before it can overwrite an earlier node.
-3. Resolve `root`, then recursively resolve each Composite child reference in
-   declared order.
-4. Run the independently inspectable Leaf behavior associated with each leaf
-   node and produce a `memo-section-v1` record with an empty `children` list.
-5. Assemble each Composite as a `memo-section-v1` record containing its child
-   records, then validate the final tree before returning it.
+1. Load the JSON workflow without changing it and validate the complete node
+   registry as one rooted tree.
+2. For each Leaf reference in declared order, call the associated child Skill
+   with its `input` object.
+3. Require the child Skill to return a valid `memo-section-v1` record with its
+   declared identity, title, and empty `children`.
+4. Assemble validated child records into the root Component record and return
+   only that record.
 
-Reject a missing root or child, invalid kind or schema, Leaf with children,
-contract violation, or reference cycle. Report the full cycle path.
-
-## Child Skills
+The associated child Skills are:
 
 - `child-skills/market-analysis/SKILL.md`
 - `child-skills/financial-analysis/SKILL.md`
 - `child-skills/competition-analysis/SKILL.md`
 - `child-skills/risk-analysis/SKILL.md`
 
-The default root contains these four Leaves in exactly this order. Each child
-remains addressable and inspectable independently of the root.
+## Demo mode
+
+`scripts/run_demo.py` supplies four deterministic Leaf executors keyed by those
+child Skill paths. Each executor accepts the same `id`, `title`, `skill`, and
+`input` request, computes one section, and returns `memo-section-v1`. The
+builder supports injected executor mappings so tests can observe calls without
+changing workflow data. Python models the collaboration contract; it does not
+load or interpret the child `SKILL.md` files.
+
+## Tree rules
+
+Before invoking a Leaf, reject a missing root or child, invalid node schema or
+kind, duplicate node ID, repeated child, root with a parent, non-root node with
+zero or multiple parents, unreachable node, or cycle anywhere in the registry.
+A cycle error reports its complete cycle path. These rules reject shared-child
+DAGs and disconnected components rather than assembling them as trees.
 
 ## Output contract
 
 Return the root section record only. Do not add wrapper fields, flatten child
-records, omit a Leaf's empty `children`, or reorder children.
+records, omit a Leaf's empty `children`, reorder children, or accept an
+executor result before validating its exact keys and types.
 
 ## Example
 
-The default workflow builds `investment-memo` for Northstar Analytics. Its
-four child IDs are `market-analysis`, `financial-analysis`,
-`competition-analysis`, and `risk-analysis`. The exact tree is committed at
-`expected/investment-memo.json`.
+The default workflow builds `investment-memo` for Northstar Analytics. It calls
+market, financial, competition, and risk Leaves exactly once in that order.
+The exact assembled tree is in `expected/investment-memo.json`.
 
 ## Anti-pattern
 
-Do not classify a folder of unrelated Skills as Composite. A workflow whose
-atomic and grouped results use different shapes also fails uniform Component
-treatment. See `../misuse/SKILL.md`.
+Do not classify a folder, dependency graph, shared-child DAG, or workflow with
+different Leaf and Composite result shapes as Composite. See
+`../misuse/SKILL.md`.

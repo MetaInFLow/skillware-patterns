@@ -7,7 +7,8 @@ type: component
 
 # Market Analysis
 
-Read the declared market interview and sizing evidence. Return exactly `id`,
-`title`, `content`, `evidence`, and `children` under `memo-section-v1`. Use
-`id: market-analysis`, preserve evidence order, and return `children: []`.
-Never add sub-sections or change the shared result shape.
+Accept `customer_segment`, `workflow_problem`, `market_wedge`, and ordered
+`sources`. Analyze the supplied market inputs and return exactly `id`, `title`,
+`content`, `evidence`, and `children` under `memo-section-v1`. Use
+`id: market-analysis`, cite the declared sources in order, and return
+`children: []`. Never add sub-sections or change the shared result shape.

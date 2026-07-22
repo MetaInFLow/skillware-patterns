@@ -36,6 +36,7 @@ class MaterializedSampleTest(unittest.TestCase):
         )
 
     def test_each_materialized_sample_is_standalone_and_executable(self):
+        self.assertIn(PATTERNS / "composite", self.materialized)
         for record in self.materialized:
             with self.subTest(pattern=record.name):
                 with TemporaryDirectory() as temp_dir:
@@ -51,24 +52,6 @@ class MaterializedSampleTest(unittest.TestCase):
                         sample,
                         [sys.executable, "scripts/run_demo.py"],
                     )
-
-    def test_composite_focused_suite_and_demo_are_wired_into_root_harness(self):
-        record = PATTERNS / "composite"
-        self.assertTrue(record.is_dir())
-        with TemporaryDirectory() as temp_dir:
-            isolated_record = Path(temp_dir) / "composite"
-            shutil.copytree(record, isolated_record)
-            sample = isolated_record / "sample"
-
-            self.run_sample_command(
-                sample,
-                [sys.executable, "-m", "unittest", "discover", "tests", "-v"],
-            )
-            self.run_sample_command(
-                sample,
-                [sys.executable, "scripts/run_demo.py"],
-            )
-
 
 if __name__ == "__main__":
     unittest.main()

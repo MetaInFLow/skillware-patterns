@@ -10,12 +10,16 @@ root: investment-memo
 leaves:
   - id: market-analysis
     skill: child-skills/market-analysis/SKILL.md
+    demo_executor: execute_market_analysis
   - id: financial-analysis
     skill: child-skills/financial-analysis/SKILL.md
+    demo_executor: execute_financial_analysis
   - id: competition-analysis
     skill: child-skills/competition-analysis/SKILL.md
+    demo_executor: execute_competition_analysis
   - id: risk-analysis
     skill: child-skills/risk-analysis/SKILL.md
+    demo_executor: execute_risk_analysis
 response:
   fields: [id, title, content, evidence, children]
   leaf_children: []
@@ -23,5 +27,7 @@ demo:
   python: ">=3.10"
   standard_library_only: true
   network_required: false
+  interprets_skill_markdown: false
+  dependency_injection: leaf_executors
   default_workflow: fixtures/valid/investment-memo.json
   command: python3 scripts/run_demo.py

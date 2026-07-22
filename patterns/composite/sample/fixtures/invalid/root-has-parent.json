@@ -19,22 +19,17 @@
         "customer_segment": "Segment",
         "workflow_problem": "problem",
         "market_wedge": "wedge",
-        "sources": ["first"]
+        "sources": ["market"]
       },
       "children": []
     },
     {
-      "id": "market-analysis",
-      "kind": "leaf",
-      "title": "Market Analysis Duplicate",
-      "skill": "child-skills/market-analysis/SKILL.md",
-      "input": {
-        "customer_segment": "Segment",
-        "workflow_problem": "problem",
-        "market_wedge": "wedge",
-        "sources": ["second"]
-      },
-      "children": []
+      "id": "orphan-parent",
+      "kind": "composite",
+      "title": "Orphan Parent",
+      "content": "Points at the declared root.",
+      "evidence": ["fixture:orphan"],
+      "children": ["investment-memo"]
     }
   ]
 }

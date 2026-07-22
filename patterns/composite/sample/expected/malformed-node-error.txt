@@ -1,1 +1,1 @@
-error: nodes[1] fields must be exactly: id, kind, title, content, evidence, children; missing: evidence
+error: nodes[1] fields must be exactly: id, kind, title, skill, input, children; missing: input

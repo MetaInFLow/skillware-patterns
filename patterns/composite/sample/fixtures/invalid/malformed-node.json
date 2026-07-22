@@ -14,7 +14,7 @@
       "id": "market-analysis",
       "kind": "leaf",
       "title": "Market Analysis",
-      "content": "Market.",
+      "skill": "child-skills/market-analysis/SKILL.md",
       "children": []
     }
   ]

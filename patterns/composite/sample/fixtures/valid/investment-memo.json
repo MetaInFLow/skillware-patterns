@@ -19,32 +19,50 @@
       "id": "market-analysis",
       "kind": "leaf",
       "title": "Market Analysis",
-      "content": "Mid-market finance teams face fragmented forecasting workflows; a focused analytics wedge has credible demand.",
-      "evidence": ["fixture:market-interviews", "fixture:market-sizing"],
+      "skill": "child-skills/market-analysis/SKILL.md",
+      "input": {
+        "customer_segment": "Mid-market finance teams",
+        "workflow_problem": "fragmented forecasting workflows",
+        "market_wedge": "a focused analytics wedge",
+        "sources": ["market-interviews", "market-sizing"]
+      },
       "children": []
     },
     {
       "id": "financial-analysis",
       "kind": "leaf",
       "title": "Financial Analysis",
-      "content": "Revenue growth is promising, but the current burn profile requires milestone-based financing.",
-      "evidence": ["fixture:management-accounts", "fixture:cash-plan"],
+      "skill": "child-skills/financial-analysis/SKILL.md",
+      "input": {
+        "growth_signal": "Revenue growth is promising",
+        "burn_profile": "the current burn profile",
+        "financing_condition": "milestone-based financing",
+        "sources": ["management-accounts", "cash-plan"]
+      },
       "children": []
     },
     {
       "id": "competition-analysis",
       "kind": "leaf",
       "title": "Competition Analysis",
-      "content": "The company differentiates through workflow integration while competing with suites and point solutions.",
-      "evidence": ["fixture:competitor-matrix"],
+      "skill": "child-skills/competition-analysis/SKILL.md",
+      "input": {
+        "differentiator": "workflow integration",
+        "alternatives": "suites and point solutions",
+        "sources": ["competitor-matrix"]
+      },
       "children": []
     },
     {
       "id": "risk-analysis",
       "kind": "leaf",
       "title": "Risk Analysis",
-      "content": "Primary risks are sales-cycle length, platform dependency, and valuation; diligence gates are defined for each.",
-      "evidence": ["fixture:risk-register"],
+      "skill": "child-skills/risk-analysis/SKILL.md",
+      "input": {
+        "risks": ["sales-cycle length", "platform dependency", "valuation"],
+        "gate_policy": "diligence gates are defined for each",
+        "sources": ["risk-register"]
+      },
       "children": []
     }
   ]

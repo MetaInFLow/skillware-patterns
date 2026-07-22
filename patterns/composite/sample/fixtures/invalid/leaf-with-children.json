@@ -14,16 +14,26 @@
       "id": "market-analysis",
       "kind": "leaf",
       "title": "Market Analysis",
-      "content": "Market.",
-      "evidence": ["fixture:market"],
+      "skill": "child-skills/market-analysis/SKILL.md",
+      "input": {
+        "customer_segment": "Segment",
+        "workflow_problem": "problem",
+        "market_wedge": "wedge",
+        "sources": ["market"]
+      },
       "children": ["financial-analysis"]
     },
     {
       "id": "financial-analysis",
       "kind": "leaf",
       "title": "Financial Analysis",
-      "content": "Financials.",
-      "evidence": ["fixture:financial"],
+      "skill": "child-skills/financial-analysis/SKILL.md",
+      "input": {
+        "growth_signal": "Growth",
+        "burn_profile": "burn",
+        "financing_condition": "financing",
+        "sources": ["financial"]
+      },
       "children": []
     }
   ]
