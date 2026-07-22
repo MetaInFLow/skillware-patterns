@@ -183,16 +183,16 @@ tests/                   目录、文档、模式记录与示例契约
 
 Haodi Fan、Zucong Lan，[《Skillware: A Software Ontology and Engineering Lifecycle for Persistent Behavioral Artifacts》](https://arxiv.org/abs/2607.18970)，arXiv:2607.18970 [cs.SE]，2026 年 7 月 21 日提交。
 
-正式的软件与首选论文引用元数据 `CITATION.cff` 仍是下一任务中的发布准备制品；当前可通过[论文映射](docs/paper-map.md)定位到主张级路径。写作版本 `1fc1dfd` 在其中作为不带链接的溯源标识保留。
+正式的软件与首选论文引用元数据见 [CITATION.cff](CITATION.cff)。[论文映射](docs/paper-map.md)提供主张级路径；写作版本 `1fc1dfd` 在其中作为不带链接的溯源标识保留。
 
 ## 贡献
 
 贡献应保留既有来源、扁平模式布局、七项准入协议、受控状态、双语定义、独立示例、近似误用案例和聚焦测试。不能仅凭一个熟悉的模式名称就准入新目录。
 
-正式贡献指南与行为准则属于后续发布治理文件。在它们加入之前，拟议改动应限于可复现的修正、证据补充和协议完整的模式记录。本仓库仍处于发布准备阶段，尚未达到公开发布就绪状态。
+完整的准入契约、验证要求及贡献许可边界见[贡献指南](CONTRIBUTING.md)。参与本项目须遵守 [Contributor Covenant 行为准则](CODE_OF_CONDUCT.md)。本仓库仍处于发布准备阶段，尚未达到公开发布就绪状态；CI、公开发布与 release 创建仍待 Task 20 完成。
 
 ## 许可证
 
-计划中的发布边界采用双许可证：可执行示例、测试和维护脚本使用 Apache License 2.0；定义、筛查记录、参与者映射、文档和研究材料使用 Creative Commons Attribution 4.0 International。第三方证据继续遵循其上游许可证，本仓库仅按固定版本引用，不重新授权。
+许可边界按文件位置正式生效。所有 `patterns/*/sample/**`、`scripts/**`、`tests/**`、`.github/workflows/**` 和 `pyproject.toml` 均采用 [Apache License 2.0](LICENSE-CODE)。定义、模式元数据、参与者映射、对应记录、误用记录、catalog 文件、docs、READMEs 与治理文本均采用 [Creative Commons Attribution 4.0 International](LICENSE-DOCS)。
 
-`LICENSE-CODE` 与 `LICENSE-DOCS` 是后续发布治理文件，将在公开发布前使上述条款正式生效。
+规范许可证文件保留其自身文本。链接的第三方制品仍遵循其上游许可证，本仓库不对其重新授权。完整边界见[贡献指南](CONTRIBUTING.md#license-boundary)。

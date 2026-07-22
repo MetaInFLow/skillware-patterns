@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+title: Skillware Patterns
+message: Cite the Skillware paper and this software artifact.
+type: software
+authors:
+  - family-names: Fan
+    given-names: Anthony
+    email: anthonyfan@metainflow.cn
+  - family-names: Lan
+    given-names: Neil
+    email: neillan@metainflow.cn
+version: 0.1.0
+date-released: 2026-07-22
+repository-code: https://github.com/MetaInFlow/skillware-patterns
+preferred-citation:
+  type: article
+  title: "Skillware: A Software Ontology and Engineering Lifecycle for Persistent Behavioral Artifacts"
+  authors:
+    - family-names: Fan
+      given-names: Haodi
+    - family-names: Lan
+      given-names: Zucong
+  year: 2026
+  url: https://arxiv.org/abs/2607.18970
+  doi: 10.48550/arXiv.2607.18970

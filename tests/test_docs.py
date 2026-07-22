@@ -13,6 +13,11 @@ PAPER_TITLE = (
     "Persistent Behavioral Artifacts"
 )
 AUTHORING_REVISION = "1fc1dfd"
+REPOSITORY_URL = "https://github.com/MetaInFlow/skillware-patterns"
+GOVERNANCE_DOCS = (
+    "CONTRIBUTING.md",
+    "CODE_OF_CONDUCT.md",
+)
 
 REQUIRED_DOCS = (
     "skillware-definition.md",
@@ -497,6 +502,116 @@ class MethodologyDocsTest(unittest.TestCase):
                 self.assertTrue((DOCS / target).resolve().exists())
 
 
+class GovernanceDocsTest(unittest.TestCase):
+    def test_citation_has_exact_software_and_preferred_paper_metadata(self):
+        citation = yaml.safe_load(
+            (ROOT / "CITATION.cff").read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(citation["cff-version"], "1.2.0")
+        self.assertEqual(citation["title"], "Skillware Patterns")
+        self.assertEqual(citation["type"], "software")
+        self.assertEqual(citation["version"], "0.1.0")
+        self.assertEqual(citation["repository-code"], REPOSITORY_URL)
+        self.assertEqual(str(citation["date-released"]), "2026-07-22")
+        self.assertEqual(
+            citation["authors"],
+            [
+                {
+                    "family-names": "Fan",
+                    "given-names": "Anthony",
+                    "email": "anthonyfan@metainflow.cn",
+                },
+                {
+                    "family-names": "Lan",
+                    "given-names": "Neil",
+                    "email": "neillan@metainflow.cn",
+                },
+            ],
+        )
+        self.assertEqual(
+            citation["preferred-citation"],
+            {
+                "type": "article",
+                "title": PAPER_TITLE,
+                "authors": [
+                    {"family-names": "Fan", "given-names": "Haodi"},
+                    {"family-names": "Lan", "given-names": "Zucong"},
+                ],
+                "year": 2026,
+                "url": ARXIV_URL,
+                "doi": "10.48550/arXiv.2607.18970",
+            },
+        )
+
+    def test_contributing_requires_the_complete_admission_contract(self):
+        text = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+
+        for phrase in (
+            "canonical, established source or tradition",
+            "exact participant map",
+            "runnable positive case",
+            "close negative or misuse case",
+            "standalone sample",
+            "Python standard library",
+            "pinned public correspondence evidence",
+            "controlled claim status",
+            "bilingual parity",
+            "full repository test suite",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+        for element in ADMISSION_ELEMENTS:
+            with self.subTest(element=element):
+                self.assertIn(element, text)
+        self.assertIn(
+            "This contribution does not rename an engineering mechanism as a pattern.",
+            text,
+        )
+        self.assertIn(
+            "The current scope of 10 GoF implementations and 2 implementations "
+            "from other established traditions is neither an automatic admission "
+            "cap nor a claim that this repository introduces new patterns.",
+            text,
+        )
+
+    def test_contributing_defines_the_complete_dual_license_boundary(self):
+        text = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+
+        for phrase in (
+            "`patterns/*/sample/**`",
+            "`scripts/**`",
+            "`tests/**`",
+            "`.github/workflows/**`",
+            "`pyproject.toml`",
+            "Apache License 2.0",
+            "definitions, pattern metadata, participant maps, correspondence "
+            "records, misuse records, catalog files, docs, READMEs, and "
+            "governance prose",
+            "Creative Commons Attribution 4.0 International",
+            "Canonical license files retain their own license texts.",
+            "Linked third-party artifacts remain under their upstream licenses.",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase.lower(), text.lower())
+
+    def test_code_of_conduct_is_contributor_covenant_2_1_with_contact(self):
+        text = (ROOT / "CODE_OF_CONDUCT.md").read_text(encoding="utf-8")
+
+        self.assertIn("Contributor Covenant Code of Conduct", text)
+        self.assertIn("version 2.1", text)
+        self.assertIn("anthonyfan@metainflow.cn", text)
+        self.assertNotIn("[INSERT CONTACT METHOD]", text)
+
+    def test_governance_document_links_resolve(self):
+        for name in GOVERNANCE_DOCS:
+            text = (ROOT / name).read_text(encoding="utf-8")
+            for target in local_markdown_links(text):
+                clean_target = target.split("#", 1)[0]
+                with self.subTest(document=name, target=target):
+                    self.assertTrue((ROOT / clean_target).exists())
+
+
 class ReadmeContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -806,6 +921,39 @@ class ReadmeContractTest(unittest.TestCase):
                 clean_target = target.split("#", 1)[0]
                 with self.subTest(readme=name, target=target):
                     self.assertTrue((ROOT / clean_target).exists())
+
+    def test_governance_sections_are_operational_and_bilingually_aligned(self):
+        for citation_heading, contribution_heading, license_heading, text in (
+            ("Citation", "Contributing", "Licenses", self.english),
+            ("引用", "贡献", "许可证", self.chinese),
+        ):
+            citation = readme_section(text, citation_heading)
+            contributing = readme_section(text, contribution_heading)
+            licenses = readme_section(text, license_heading)
+            self.assertIn("](CITATION.cff)", citation)
+            self.assertIn("](CONTRIBUTING.md)", contributing)
+            self.assertIn("](CODE_OF_CONDUCT.md)", contributing)
+            self.assertIn("](LICENSE-CODE)", licenses)
+            self.assertIn("](LICENSE-DOCS)", licenses)
+            for code_path in (
+                "`patterns/*/sample/**`",
+                "`scripts/**`",
+                "`tests/**`",
+                "`.github/workflows/**`",
+                "`pyproject.toml`",
+            ):
+                self.assertIn(code_path, licenses)
+            self.assertIn("Apache License 2.0", licenses)
+            self.assertIn("Creative Commons Attribution 4.0 International", licenses)
+            self.assertRegex(text, r"upstream license|上游许可证")
+        for stale_phrase in (
+            "next task",
+            "upcoming publication-governance",
+            "planned release boundary",
+        ):
+            self.assertNotIn(stale_phrase, self.english)
+        for stale_phrase in ("下一任务", "后续发布治理文件", "计划中的发布边界"):
+            self.assertNotIn(stale_phrase, self.chinese)
 
 
 if __name__ == "__main__":

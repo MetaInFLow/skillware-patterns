@@ -183,16 +183,16 @@ The repository does not claim invention of established patterns. Pattern, implem
 
 Haodi Fan and Zucong Lan. [*Skillware: A Software Ontology and Engineering Lifecycle for Persistent Behavioral Artifacts*](https://arxiv.org/abs/2607.18970). arXiv:2607.18970 [cs.SE], submitted 21 July 2026.
 
-Formal software and preferred-paper metadata in `CITATION.cff` remains a release-preparation artifact for the next task. The [paper map](docs/paper-map.md) provides claim-level paths now; authoring revision `1fc1dfd` is recorded there as unlinked provenance.
+Use [CITATION.cff](CITATION.cff) for formal software and preferred-paper metadata. The [paper map](docs/paper-map.md) provides claim-level paths; authoring revision `1fc1dfd` is recorded there as unlinked provenance.
 
 ## Contributing
 
 Contributions should preserve established source provenance, the flat pattern layout, the seven-element admission protocol, controlled statuses, bilingual definitions, a standalone sample, a close misuse case, and focused tests. A new directory is not admitted solely because it carries a familiar pattern name.
 
-The formal contribution guide and code of conduct are upcoming publication-governance files. Until they are added, proposed changes should remain scoped to reproducible corrections, evidence additions, and protocol-complete pattern records. This repository remains in release preparation and is not yet public-release ready.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete admission contract, validation requirements, and contribution license boundary. Participation is governed by the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). This repository remains in release preparation and is not yet public-release ready; CI, publication, and release creation remain pending.
 
 ## Licenses
 
-The planned release boundary is dual licensed: executable samples, tests, and maintenance scripts under Apache License 2.0; definitions, screening records, participant maps, documentation, and research material under Creative Commons Attribution 4.0 International. Third-party evidence remains under its upstream license and is referenced by fixed revision rather than relicensed here.
+The license boundary is operative by file location. All `patterns/*/sample/**`, `scripts/**`, `tests/**`, `.github/workflows/**`, and `pyproject.toml` are licensed under the [Apache License 2.0](LICENSE-CODE). Definitions, pattern metadata, participant maps, correspondence records, misuse records, catalog files, docs, READMEs, and governance prose are licensed under [Creative Commons Attribution 4.0 International](LICENSE-DOCS).
 
-`LICENSE-CODE` and `LICENSE-DOCS` are upcoming publication-governance files and will make those terms operative before the public release.
+Canonical license files retain their own texts. Linked third-party artifacts remain under their upstream license and are not relicensed by this repository. See [CONTRIBUTING.md](CONTRIBUTING.md#license-boundary) for the complete boundary.
