@@ -83,6 +83,14 @@ The repository root harness automatically copies this record to an isolated
 directory, runs the focused tests, and runs the default demo without network
 access or imports from another pattern.
 
+## Ontology boundary
+
+Behavioral Source -> Skill Artifact -> Skillware Unit -> Agent Host -> Agent Runtime -> Execution Trace -> Task Outcome
+
+The Template Method roles belong to the pattern mapping. Agent Host and Agent
+Runtime remain execution context and are not reclassified as Template Method
+participants.
+
 ## Limits
 
 The domain content is illustrative and is not a legal, compliance, clinical,

@@ -26,21 +26,38 @@ REQUIRED_FILES = (
     "misuse/explanation.md",
 )
 
-DEFINITION_SECTIONS = (
-    "Intent",
-    "Forces",
-    "Participants",
-    "Collaboration",
-    "Consequences",
-    "Skillware Mapping",
-    "Applicability",
-    "Non-Applicability",
-    "Positive Evidence",
-    "Counter-Evidence",
-    "False Positives",
-    "Open-Source Correspondence",
-    "Verification",
-    "Limitations",
+ENGLISH_DEFINITION_HEADINGS = (
+    "## Intent",
+    "## Forces",
+    "## Participants",
+    "## Collaboration",
+    "## Consequences",
+    "## Skillware Mapping",
+    "## False Positives",
+    "## Open-Source Correspondence",
+    "## Limitations",
+)
+
+CHINESE_DEFINITION_HEADINGS = (
+    ("## 意图（Intent）",),
+    ("## 作用力（Forces）",),
+    ("## 参与者（Participants）",),
+    ("## 协作（Collaboration）",),
+    ("## 后果（Consequences）", "## 结果（Consequences）"),
+    ("## Skillware 映射（Skillware Mapping）",),
+    ("## 误判（False Positives）", "## 假阳性（False Positives）"),
+    ("## 开源对应（Open-Source Correspondence）",),
+    ("## 局限（Limitations）",),
+)
+
+ONTOLOGY = (
+    "Behavioral Source",
+    "Skill Artifact",
+    "Skillware Unit",
+    "Agent Host",
+    "Agent Runtime",
+    "Execution Trace",
+    "Task Outcome",
 )
 
 
@@ -69,17 +86,24 @@ class PatternRecordContractTest(unittest.TestCase):
             path for path in PATTERNS.iterdir() if path.is_dir()
         )
 
-    def test_every_materialized_directory_is_a_catalog_pattern(self):
-        unknown = [
-            path.name for path in self.materialized if path.name not in self.catalog
-        ]
-        self.assertEqual(unknown, [])
+    def test_catalog_and_materialized_records_are_exactly_equal(self):
+        self.assertEqual(len(self.catalog), 12)
+        self.assertEqual(
+            [path.name for path in self.materialized],
+            sorted(self.catalog),
+        )
 
     def test_every_materialized_record_has_required_files(self):
         for record in self.materialized:
             for relative_path in REQUIRED_FILES:
                 with self.subTest(pattern=record.name, path=relative_path):
                     self.assertTrue((record / relative_path).is_file())
+
+            for relative_path in ("sample/fixtures", "sample/expected", "sample/tests"):
+                with self.subTest(pattern=record.name, path=relative_path):
+                    directory = record / relative_path
+                    self.assertTrue(directory.is_dir())
+                    self.assertTrue(any(path.is_file() for path in directory.rglob("*")))
 
     def test_pattern_metadata_exactly_matches_catalog_row(self):
         for record in self.materialized:
@@ -113,21 +137,38 @@ class PatternRecordContractTest(unittest.TestCase):
 
     def test_definitions_have_the_complete_section_contract(self):
         for record in self.materialized:
-            for filename in ("definition.md", "definition.zh-CN.md"):
-                text = (record / filename).read_text(encoding="utf-8")
-                headings = [line for line in text.splitlines() if line.startswith("## ")]
-                for section in DEFINITION_SECTIONS:
-                    with self.subTest(
-                        pattern=record.name, file=filename, section=section
-                    ):
-                        self.assertTrue(
-                            any(
-                                heading == f"## {section}"
-                                or f"（{section}）" in heading
-                                for heading in headings
-                            ),
-                            f"{filename} missing {section} heading",
-                        )
+            english = set(
+                line
+                for line in (record / "definition.md")
+                .read_text(encoding="utf-8")
+                .splitlines()
+                if line.startswith("## ")
+            )
+            chinese = set(
+                line
+                for line in (record / "definition.zh-CN.md")
+                .read_text(encoding="utf-8")
+                .splitlines()
+                if line.startswith("## ")
+            )
+            for heading in ENGLISH_DEFINITION_HEADINGS:
+                with self.subTest(pattern=record.name, file="definition.md", heading=heading):
+                    self.assertIn(heading, english)
+            for alternatives in CHINESE_DEFINITION_HEADINGS:
+                with self.subTest(
+                    pattern=record.name,
+                    file="definition.zh-CN.md",
+                    heading=alternatives[0],
+                ):
+                    self.assertTrue(chinese.intersection(alternatives))
+
+    def test_every_root_sample_skill_uses_the_final_ontology(self):
+        chain = " -> ".join(ONTOLOGY)
+        for record in self.materialized:
+            text = (record / "sample/SKILL.md").read_text(encoding="utf-8")
+            with self.subTest(pattern=record.name):
+                self.assertIn(chain, text)
+                self.assertNotIn("Agent Execution Core", text)
 
     def test_participant_map_paths_exist_inside_the_record(self):
         for record in self.materialized:

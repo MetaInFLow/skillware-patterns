@@ -61,6 +61,13 @@ python3 -m unittest discover tests -v
 The repository root harness copies this record to an isolated directory, runs
 the focused tests, and runs the default demo.
 
+## Ontology boundary
+
+Behavioral Source -> Skill Artifact -> Skillware Unit -> Agent Host -> Agent Runtime -> Execution Trace -> Task Outcome
+
+The Mediator roles belong to the pattern mapping. Agent Host and Agent Runtime
+remain execution context and are not reclassified as Mediator participants.
+
 ## Limits
 
 Colleague binding and lack of peer references are trusted in-process code

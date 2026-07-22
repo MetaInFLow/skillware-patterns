@@ -72,12 +72,15 @@ The literal `~Department('restricted')` is true for department `sales`.
 
 ## Ontology and limits
 
-Behavioral Source persists in these Skill Artifacts within one Skillware Unit.
-An Agent Host may activate the unit and an Agent Runtime may interpret it to
-produce an Execution Trace and Task Outcome; neither runtime relationship is
-observed by this local oracle. Python code is trusted and is not a security
-sandbox. Persistence-query translation, currency conversion, authorization
-identity, and policy version migration are outside this sample.
+Behavioral Source -> Skill Artifact -> Skillware Unit -> Agent Host -> Agent Runtime -> Execution Trace -> Task Outcome
+
+The DDD roles belong to the pattern mapping. Agent Host and Agent Runtime
+remain execution context and are not reclassified as Specification
+participants. Neither runtime relationship is observed by this local oracle.
+Python code is trusted and is not a security sandbox. Persistence-query
+translation, currency conversion, authorization identity, and policy version
+migration are outside this sample.
+
 Predicate evaluator and explanation callables receive deep copies, but are
 trusted deterministic and pure code only by contract; closures, reflection,
 and external side effects are not sandboxed.

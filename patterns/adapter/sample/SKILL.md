@@ -69,6 +69,13 @@ descriptor uses `POST /repos/acme/payments/issues`, GitHub API version
 `2022-11-28`, the canonical title, and body markers for `ISSUE-104` and
 `critical`. The exact result is in `expected/github-result.json`.
 
+## Ontology boundary
+
+Behavioral Source -> Skill Artifact -> Skillware Unit -> Agent Host -> Agent Runtime -> Execution Trace -> Task Outcome
+
+The Adapter roles belong to the pattern mapping. Agent Host and Agent Runtime
+remain execution context and are not reclassified as Adapter participants.
+
 ## Anti-pattern
 
 Do not copy this Skill per tracker, rename a few fields, or treat impact

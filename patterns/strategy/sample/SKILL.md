@@ -76,6 +76,13 @@ canonical.
 The default two-file, non-security-sensitive fixture selects Fast Scan. The
 security-sensitive fixture and four-file fixture both select Deep Review.
 
+## Ontology boundary
+
+Behavioral Source -> Skill Artifact -> Skillware Unit -> Agent Host -> Agent Runtime -> Execution Trace -> Task Outcome
+
+The Strategy roles belong to the pattern mapping. Agent Host and Agent Runtime
+remain execution context and are not reclassified as Strategy participants.
+
 ## Anti-pattern
 
 Branches that perform unrelated work and return incompatible objects are not

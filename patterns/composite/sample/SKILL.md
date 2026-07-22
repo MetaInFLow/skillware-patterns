@@ -68,6 +68,13 @@ The default workflow builds `investment-memo` for Northstar Analytics. It calls
 market, financial, competition, and risk Leaves exactly once in that order.
 The exact assembled tree is in `expected/investment-memo.json`.
 
+## Ontology boundary
+
+Behavioral Source -> Skill Artifact -> Skillware Unit -> Agent Host -> Agent Runtime -> Execution Trace -> Task Outcome
+
+The Composite roles belong to the pattern mapping. Agent Host and Agent Runtime
+remain execution context and are not reclassified as Composite participants.
+
 ## Anti-pattern
 
 Do not classify a folder, dependency graph, shared-child DAG, or workflow with

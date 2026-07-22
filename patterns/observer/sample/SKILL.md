@@ -73,6 +73,13 @@ The default fixture publishes version `1.2.0` to audit, changelog, and
 team-notification in that order. The unregistration fixture removes changelog
 before publication, so only audit and team-notification are attempted.
 
+## Ontology boundary
+
+Behavioral Source -> Skill Artifact -> Skillware Unit -> Agent Host -> Agent Runtime -> Execution Trace -> Task Outcome
+
+The Observer roles belong to the pattern mapping. Agent Host and Agent Runtime
+remain execution context and are not reclassified as Observer participants.
+
 ## Anti-pattern
 
 Polling release files or broadcasting to every discovered consumer is not

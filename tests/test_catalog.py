@@ -2,6 +2,7 @@ from contextlib import redirect_stdout
 from copy import deepcopy
 from io import StringIO
 from pathlib import Path
+import shutil
 from tempfile import TemporaryDirectory
 import unittest
 
@@ -343,6 +344,7 @@ class ValidatorTest(unittest.TestCase):
         self.temp_dir = TemporaryDirectory()
         self.root = Path(self.temp_dir.name)
         (self.root / "catalog").mkdir()
+        shutil.copytree(ROOT / "patterns", self.root / "patterns")
         self.original_root = validate_repository.ROOT
         validate_repository.ROOT = self.root
         self.write_yaml("gof-23-screening.yaml", self.valid_screen)
@@ -360,6 +362,180 @@ class ValidatorTest(unittest.TestCase):
 
     def test_valid_catalogs_have_no_errors(self):
         self.assertEqual(validate_repository.validate(), [])
+
+    def test_valid_repository_main_is_silent(self):
+        output = StringIO()
+
+        with redirect_stdout(output):
+            status = validate_repository.main()
+
+        self.assertEqual(status, 0)
+        self.assertEqual(output.getvalue(), "")
+
+    def test_missing_and_extra_record_directories_are_rejected(self):
+        shutil.rmtree(self.root / "patterns/facade")
+        (self.root / "patterns/not-in-catalog").mkdir()
+
+        errors = validate_repository.validate()
+
+        self.assertIn("missing pattern record directory: patterns/facade", errors)
+        self.assertIn(
+            "pattern directory is not declared in catalog: patterns/not-in-catalog",
+            errors,
+        )
+
+    def test_pattern_metadata_must_exactly_match_the_catalog(self):
+        metadata = deepcopy(self.valid_index[0])
+        metadata["scenario"] = "Different Scenario"
+        (self.root / "patterns/facade/pattern.yaml").write_text(
+            yaml.safe_dump(metadata, allow_unicode=True, sort_keys=False),
+            encoding="utf-8",
+        )
+
+        self.assertIn(
+            "facade: pattern.yaml metadata does not exactly match catalog row",
+            validate_repository.validate(),
+        )
+
+    def test_missing_catalog_metadata_field_is_rejected_without_crashing(self):
+        index = deepcopy(self.valid_index)
+        index[0].pop("scenario_zh")
+        self.write_yaml("pattern-index.yaml", index)
+
+        errors = validate_repository.validate()
+
+        self.assertIn("catalog/pattern-index.yaml: row 1 has invalid fields", errors)
+        self.assertIn(
+            "catalog/pattern-index.yaml: row 1 field 'scenario_zh' must be a "
+            "non-empty string",
+            errors,
+        )
+
+    def test_missing_cross_checked_catalog_fields_do_not_raise(self):
+        index = deepcopy(self.valid_index)
+        index[0].pop("source_tradition")
+        self.write_yaml("pattern-index.yaml", index)
+
+        errors = validate_repository.validate()
+
+        self.assertIn("catalog/pattern-index.yaml: row 1 has invalid fields", errors)
+        self.assertIn("facade: invalid source_tradition", errors)
+
+        self.write_yaml("pattern-index.yaml", self.valid_index)
+        screen = deepcopy(self.valid_screen)
+        next(row for row in screen if row["id"] == "facade").pop("name")
+        self.write_yaml("gof-23-screening.yaml", screen)
+
+        errors = validate_repository.validate()
+
+        self.assertIn(
+            "catalog/gof-23-screening.yaml: row 10 has invalid fields",
+            errors,
+        )
+        self.assertIn(
+            "facade: GoF screen name/category metadata does not match detailed "
+            "catalog",
+            errors,
+        )
+
+    def test_every_recursive_participant_path_must_exist(self):
+        nested = self.root / "patterns/facade/maps"
+        nested.mkdir()
+        (nested / "participant-map.yaml").write_text(
+            "participants:\n  Specialist:\n    path: missing/SKILL.md\n",
+            encoding="utf-8",
+        )
+
+        self.assertIn(
+            "patterns/facade/maps/participant-map.yaml: "
+            "missing participant path 'missing/SKILL.md'",
+            validate_repository.validate(),
+        )
+
+    def test_repository_relative_participant_path_may_target_its_own_record(self):
+        path = self.root / "patterns/facade/participant-map.yaml"
+        participant_map = yaml.safe_load(path.read_text(encoding="utf-8"))
+        participant_map["participants"]["Client"]["path"] = (
+            "patterns/facade/sample/SKILL.md"
+        )
+        path.write_text(
+            yaml.safe_dump(participant_map, allow_unicode=True, sort_keys=False),
+            encoding="utf-8",
+        )
+
+        self.assertEqual(validate_repository.validate(), [])
+
+    def test_participant_paths_must_not_escape_their_pattern_record(self):
+        participant_map = yaml.safe_load(
+            (self.root / "patterns/facade/participant-map.yaml").read_text(
+                encoding="utf-8"
+            )
+        )
+        participant_map["participants"]["Client"]["path"] = (
+            "../../catalog/pattern-index.yaml"
+        )
+        (self.root / "patterns/facade/participant-map.yaml").write_text(
+            yaml.safe_dump(participant_map, allow_unicode=True, sort_keys=False),
+            encoding="utf-8",
+        )
+
+        self.assertIn(
+            "patterns/facade/participant-map.yaml: participant path escapes "
+            "pattern record '../../catalog/pattern-index.yaml'",
+            validate_repository.validate(),
+        )
+
+    def test_definition_headings_are_language_appropriate(self):
+        path = self.root / "patterns/facade/definition.zh-CN.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace(
+                "## 意图（Intent）", "## Intent", 1
+            ),
+            encoding="utf-8",
+        )
+
+        self.assertIn(
+            "facade: definition.zh-CN.md missing heading 意图（Intent）",
+            validate_repository.validate(),
+        )
+
+    def test_catalog_traditions_and_detailed_gof_set_are_cross_checked(self):
+        index = deepcopy(self.valid_index)
+        row = next(item for item in index if item["id"] == "pipes-and-filters")
+        row["source_tradition"] = "gang-of-four"
+        self.write_yaml("pattern-index.yaml", index)
+
+        errors = validate_repository.validate()
+
+        self.assertIn(
+            "detailed catalog must contain exactly 10 gang-of-four records, found 11",
+            errors,
+        )
+        self.assertIn(
+            "pipes-and-filters must use source_tradition "
+            "'pattern-oriented-software-architecture'",
+            errors,
+        )
+
+    def test_sample_skill_requires_final_ontology_and_current_terms(self):
+        path = self.root / "patterns/specification/sample/SKILL.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace(
+                "Behavioral Source -> Skill Artifact -> Skillware Unit -> Agent Host "
+                "-> Agent Runtime -> Execution Trace -> Task Outcome",
+                "Agent Execution Core",
+            ),
+            encoding="utf-8",
+        )
+
+        errors = validate_repository.validate()
+
+        self.assertIn("specification: sample/SKILL.md missing final ontology", errors)
+        self.assertIn(
+            "specification: sample/SKILL.md contains obsolete term "
+            "'Agent Execution Core'",
+            errors,
+        )
 
     def test_missing_catalog_file_is_actionable(self):
         (self.root / "catalog/gof-23-screening.yaml").unlink()

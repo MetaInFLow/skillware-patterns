@@ -55,6 +55,14 @@ The literal API `run_pipeline({'text':'URGENT email a@example.com: cannot
 login'})` yields trace `normalize`, `redact`, `classify`, `prioritize`, `draft`,
 redacts the email, and assigns high priority.
 
+## Ontology boundary
+
+Behavioral Source -> Skill Artifact -> Skillware Unit -> Agent Host -> Agent Runtime -> Execution Trace -> Task Outcome
+
+The POSA roles belong to the pattern mapping. Agent Host and Agent Runtime
+remain execution context and are not reclassified as Pipes and Filters
+participants.
+
 ## Limits
 
 Buffering, backpressure, concurrency, network transport, retries, distributed

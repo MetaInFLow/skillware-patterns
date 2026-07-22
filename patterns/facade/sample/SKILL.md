@@ -55,6 +55,13 @@ The response summarizes elevated 5xx failures, identifies degraded checkout
 availability, gives immediate actions, and provides one investigation update.
 The executable expected result is in `expected/incident-result.json`.
 
+## Ontology boundary
+
+Behavioral Source -> Skill Artifact -> Skillware Unit -> Agent Host -> Agent Runtime -> Execution Trace -> Task Outcome
+
+The Facade roles belong to the pattern mapping. Agent Host and Agent Runtime
+remain execution context and are not reclassified as Facade participants.
+
 ## Anti-pattern
 
 Do not merely list the three child Skills and ask the caller to choose. Without

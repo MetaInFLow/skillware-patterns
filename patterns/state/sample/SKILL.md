@@ -65,6 +65,13 @@ produce errors and do not modify the persisted record.
 The default fixture starts in `draft`, then applies `verify`, `approve`, and
 `activate`, ending and recovering in `activated` at revision 3.
 
+## Ontology boundary
+
+Behavioral Source -> Skill Artifact -> Skillware Unit -> Agent Host -> Agent Runtime -> Execution Trace -> Task Outcome
+
+The State roles belong to the pattern mapping. Agent Host and Agent Runtime
+remain execution context and are not reclassified as State participants.
+
 ## Anti-pattern
 
 Conditional text that mentions phases but stores no state, gives no

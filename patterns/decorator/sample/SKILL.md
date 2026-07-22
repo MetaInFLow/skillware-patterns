@@ -76,6 +76,13 @@ The repository root harness automatically copies this record to an isolated
 directory, runs the focused tests, and runs the default demo without network or
 imports from another pattern.
 
+## Ontology boundary
+
+Behavioral Source -> Skill Artifact -> Skillware Unit -> Agent Host -> Agent Runtime -> Execution Trace -> Task Outcome
+
+The Decorator roles belong to the pattern mapping. Agent Host and Agent Runtime
+remain execution context and are not reclassified as Decorator participants.
+
 ## Limits
 
 The three lexical checks are bounded demonstrations, not legal, privacy,
