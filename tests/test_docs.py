@@ -154,6 +154,33 @@ PATTERN_CLAIMS = {
     "Specification": ("not observable", "constructive"),
 }
 
+MAIN_TEXT_RELATIONS_EN = {
+    "Facade": "One entry Skill exposes a stable contract over specialist Skills.",
+    "Adapter": (
+        "A thin binding translates canonical Skill semantics into a target "
+        "system contract."
+    ),
+    "Composite": (
+        "Atomic and composite stages share one invocation and result contract."
+    ),
+    "Observer": (
+        "A subject emits typed events to registered independent consumers."
+    ),
+    "State": "Persisted state controls permitted actions and transitions.",
+    "Strategy": (
+        "One request/result contract selects among interchangeable procedures."
+    ),
+}
+
+MAIN_TEXT_RELATIONS_ZH = {
+    "Facade": "一个入口 Skill 在多个专家 Skill 之上提供稳定契约。",
+    "Adapter": "薄绑定把规范 Skill 语义转换为目标系统契约。",
+    "Composite": "原子阶段和组合阶段共享同一调用及结果契约。",
+    "Observer": "Subject 向已注册且相互独立的消费者发送类型化事件。",
+    "State": "持久状态控制允许的动作与转换。",
+    "Strategy": "一个请求/结果契约在可互换过程之间进行选择。",
+}
+
 TABLE5_TRACEABILITY = {
     "Facade": (
         "Entry Skill exposes one stable access contract over specialist Skills",
@@ -218,35 +245,51 @@ def read_doc(name: str) -> str:
     return (DOCS / name).read_text(encoding="utf-8")
 
 
-def table5_rows(text: str) -> dict[str, tuple[str, ...]]:
-    section = text.split("## Table 5 traceability", 1)[1].split("\n## ", 1)[0]
-    rows = {}
-    for line in section.splitlines():
-        cells = tuple(cell.strip() for cell in line.strip().strip("|").split("|"))
-        if cells and cells[0] in MAIN_TEXT_PATTERNS:
-            rows[cells[0]] = cells[1:]
-    return rows
-
-
 def readme_section(text: str, heading: str) -> str:
     return text.split(f"## {heading}", 1)[1].split("\n## ", 1)[0]
 
 
-def markdown_pattern_rows(
-    section: str, expected_names: tuple[str, ...]
-) -> list[tuple[str, tuple[str, ...]]]:
-    expected = set(expected_names)
-    found = []
+def markdown_data_rows(section: str) -> list[tuple[str, tuple[str, ...]]]:
+    rows = []
+    header_seen = False
     for line in section.splitlines():
-        if not line.startswith("|"):
+        stripped = line.strip()
+        if not stripped.startswith("|") or not stripped.endswith("|"):
             continue
-        cells = tuple(cell.strip() for cell in line.strip().strip("|").split("|"))
+        cells = tuple(cell.strip() for cell in stripped.strip("|").split("|"))
+        if cells and all(re.fullmatch(r":?-{3,}:?", cell) for cell in cells):
+            continue
+        if not header_seen:
+            header_seen = True
+            continue
         first_cell = cells[0]
         match = re.search(r"\[([^]]+)\]", first_cell)
         name = match.group(1) if match else first_cell
-        if name in expected:
-            found.append((name, cells))
-    return found
+        rows.append((name, cells))
+    return rows
+
+
+def assert_exact_pattern_names(rows, expected_names: tuple[str, ...]) -> None:
+    names = tuple(name for name, _ in rows)
+    if len(rows) != len(expected_names):
+        raise AssertionError(
+            f"expected exactly {len(expected_names)} rows, found {len(rows)}: {names}"
+        )
+    if len(names) != len(set(names)):
+        raise AssertionError(f"duplicate pattern rows: {names}")
+    if names != expected_names:
+        raise AssertionError(f"expected ordered rows {expected_names}, found {names}")
+
+
+def assert_exact_participant_relations(rows, expected_relations) -> None:
+    names = tuple(name for name, _ in rows)
+    if tuple(expected_relations) != names:
+        raise AssertionError("relation expectations do not match the table rows")
+    actual = {name: cells[2] for name, cells in rows}
+    if actual != expected_relations:
+        raise AssertionError(
+            f"participant relations differ: expected {expected_relations}, found {actual}"
+        )
 
 
 def markdown_links(text: str) -> list[str]:
@@ -373,8 +416,12 @@ class MethodologyDocsTest(unittest.TestCase):
 
     def test_table5_traceability_preserves_row_level_associations(self):
         text = read_doc("paper-map.md")
+        rows = markdown_data_rows(readme_section(text, "Table 5 traceability"))
 
-        self.assertEqual(table5_rows(text), TABLE5_TRACEABILITY)
+        assert_exact_pattern_names(rows, MAIN_TEXT_PATTERNS)
+        self.assertEqual(
+            {name: cells[1:] for name, cells in rows}, TABLE5_TRACEABILITY
+        )
 
     def test_paper_map_covers_repository_supplement(self):
         text = read_doc("paper-map.md")
@@ -482,18 +529,24 @@ class ReadmeContractTest(unittest.TestCase):
             )
             self.assertNotRegex(text, r"(?i)maturity (?:score|rating)|成熟度(?:评分|分数)")
 
-    def assert_readme_pattern_table(self, text, heading, expected_names, paper_heading):
-        rows = markdown_pattern_rows(readme_section(text, heading), expected_names)
-        names = tuple(name for name, _ in rows)
-        self.assertEqual(names, expected_names)
-        self.assertEqual(len(names), len(set(names)))
+    def assert_readme_pattern_table(
+        self,
+        text,
+        heading,
+        expected_names,
+        paper_heading,
+        expected_relations=None,
+    ):
+        rows = markdown_data_rows(readme_section(text, heading))
+        assert_exact_pattern_names(rows, expected_names)
+        if expected_relations is not None:
+            assert_exact_participant_relations(rows, expected_relations)
 
-        paper_rows = dict(
-            markdown_pattern_rows(
-                readme_section(self.paper_map, paper_heading), expected_names
-            )
+        paper_row_list = markdown_data_rows(
+            readme_section(self.paper_map, paper_heading)
         )
-        self.assertEqual(set(paper_rows), set(expected_names))
+        assert_exact_pattern_names(paper_row_list, expected_names)
+        paper_rows = dict(paper_row_list)
 
         for name, cells in rows:
             with self.subTest(heading=heading, pattern=name):
@@ -531,15 +584,26 @@ class ReadmeContractTest(unittest.TestCase):
                 )
 
     def test_main_text_and_supplement_tables_match_catalog_and_paper_map(self):
-        for text, main_heading, supplement_heading in (
-            (self.english, "Main-text mappings", "Repository supplement"),
-            (self.chinese, "正文映射", "仓库补充实现"),
+        for text, main_heading, supplement_heading, relations in (
+            (
+                self.english,
+                "Main-text mappings",
+                "Repository supplement",
+                MAIN_TEXT_RELATIONS_EN,
+            ),
+            (
+                self.chinese,
+                "正文映射",
+                "仓库补充实现",
+                MAIN_TEXT_RELATIONS_ZH,
+            ),
         ):
             self.assert_readme_pattern_table(
                 text,
                 main_heading,
                 MAIN_TEXT_PATTERNS,
                 "Table 5 traceability",
+                relations,
             )
             self.assert_readme_pattern_table(
                 text,
@@ -547,6 +611,39 @@ class ReadmeContractTest(unittest.TestCase):
                 SUPPLEMENT_PATTERNS,
                 "Repository supplement",
             )
+
+    def test_exact_table_guard_rejects_invented_and_duplicate_rows(self):
+        section = readme_section(self.english, "Main-text mappings")
+        data_lines = [
+            line for line in section.splitlines() if line.startswith("| [")
+        ]
+
+        with_invented = section + (
+            "\n| [Invented](patterns/invented/definition.md) | `invented` / "
+            "`invented` | invented relation | unsupported | constructive | "
+            "[sample](patterns/invented/sample/) |\n"
+        )
+        invented_rows = markdown_data_rows(with_invented)
+        self.assertEqual(invented_rows[-1][0], "Invented")
+        with self.assertRaisesRegex(AssertionError, "expected exactly 6 rows"):
+            assert_exact_pattern_names(invented_rows, MAIN_TEXT_PATTERNS)
+
+        with_duplicate = section.replace(data_lines[-1], data_lines[0])
+        duplicate_rows = markdown_data_rows(with_duplicate)
+        self.assertEqual(duplicate_rows[-1][0], "Facade")
+        with self.assertRaisesRegex(AssertionError, "duplicate pattern rows"):
+            assert_exact_pattern_names(duplicate_rows, MAIN_TEXT_PATTERNS)
+
+    def test_main_text_relation_guard_rejects_incorrect_facade_mapping(self):
+        incorrect = self.english.replace(
+            MAIN_TEXT_RELATIONS_EN["Facade"],
+            "Facade has an intentionally incorrect participant relation.",
+            1,
+        )
+
+        rows = markdown_data_rows(readme_section(incorrect, "Main-text mappings"))
+        with self.assertRaisesRegex(AssertionError, "participant relations differ"):
+            assert_exact_participant_relations(rows, MAIN_TEXT_RELATIONS_EN)
 
     def test_facade_walkthrough_links_real_artifacts_and_exact_commands(self):
         required_paths = (
