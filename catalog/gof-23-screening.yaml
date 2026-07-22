@@ -1,0 +1,252 @@
+- id: abstract-factory
+  name: Abstract Factory
+  name_zh: 抽象工厂模式
+  category: creational
+  source_intent: Create families of related or dependent objects without specifying their concrete classes.
+  skillware_carriers: [host renderers, install-target adapters, manifest templates]
+  screening_result: plausible
+  reasoning: gstack Host renderers and ECC install-target adapters are candidates for compatible Host product families.
+  false_positive_risk: Generating one Host-specific file does not establish a family of compatible products.
+  detailed_sample: false
+
+- id: builder
+  name: Builder
+  name_zh: 建造者模式
+  category: creational
+  source_intent: Separate construction of a complex object from its representation so one process can create different representations.
+  skillware_carriers: [generator Skill, construction schema, profile-specific writers]
+  screening_result: strong
+  reasoning: dot-skill stages material collection, analysis, schema-driven writing, and installation of generated Skillware.
+  false_positive_risk: A single template expansion without staged construction or representation variation is not Builder.
+  detailed_sample: false
+
+- id: factory-method
+  name: Factory Method
+  name_zh: 工厂方法模式
+  category: creational
+  source_intent: Define an object-creation interface while allowing concrete creators to choose the product produced.
+  skillware_carriers: [creator Skill, family profiles, scaffolding scripts]
+  screening_result: plausible
+  reasoning: dot-skill family profiles are candidate concrete creators.
+  false_positive_risk: Selecting a static template without a creator contract or product variation is not Factory Method.
+  detailed_sample: false
+
+- id: prototype
+  name: Prototype
+  name_zh: 原型模式
+  category: creational
+  source_intent: Create new objects by copying a prototypical instance.
+  skillware_carriers: [Skill templates, profile seeds, controlled copy scripts]
+  screening_result: plausible
+  reasoning: dot-skill templates and profile seeds are candidate prototypes; controlled copy semantics require further validation.
+  false_positive_risk: Copying a directory without declared identity and customization semantics is not Prototype.
+  detailed_sample: false
+
+- id: singleton
+  name: Singleton
+  name_zh: 单例模式
+  category: creational
+  source_intent: Ensure a class has one instance and provide a global access point to it.
+  skillware_carriers: [session-scoped service, profile configuration owner]
+  screening_result: weak
+  reasoning: No focused case demonstrates a unique runtime instance across Host and session boundaries.
+  false_positive_risk: A conventional root file or preferred entry point does not prove runtime instance uniqueness.
+  detailed_sample: false
+
+- id: adapter
+  name: Adapter
+  name_zh: 适配器模式
+  category: structural
+  source_intent: Convert one interface into another expected by clients so incompatible collaborators can work together.
+  skillware_carriers: [canonical Skill, Host binding, manifest, tool mapping]
+  screening_result: strong
+  reasoning: gstack translates canonical Skill behavior into Host-specific paths, metadata, and tool vocabulary.
+  false_positive_risk: Renaming or copying a file without semantic interface translation is not Adapter.
+  detailed_sample: true
+
+- id: bridge
+  name: Bridge
+  name_zh: 桥接模式
+  category: structural
+  source_intent: Separate an abstraction from its implementation so both can vary independently.
+  skillware_carriers: [canonical action vocabulary, Host resolver, tool mapping]
+  screening_result: plausible
+  reasoning: gstack's canonical actions and Host resolvers are a candidate separation of abstraction and implementation dimensions.
+  false_positive_risk: A translation shim is Adapter unless abstraction and implementation are independently variable dimensions.
+  detailed_sample: false
+
+- id: composite
+  name: Composite
+  name_zh: 组合模式
+  category: structural
+  source_intent: Compose objects into part-whole trees so clients treat individual objects and compositions uniformly.
+  skillware_carriers: [parent Skill, child Skills, workflow manifest]
+  screening_result: strong
+  reasoning: OpenMontage's stage system is a candidate; the companion repository verifies a common component contract and acyclic part-whole structure.
+  false_positive_risk: A directory of unrelated Skills without a shared component contract is not Composite.
+  detailed_sample: true
+
+- id: decorator
+  name: Decorator
+  name_zh: 装饰器模式
+  category: structural
+  source_intent: Add responsibilities to an object dynamically while preserving its component interface.
+  skillware_carriers: [wrapper Skill, activation wrapper, pre-hook, post-hook]
+  screening_result: strong
+  reasoning: Caveman activation wrappers are a candidate; the companion repository verifies contract-preserving responsibility layering.
+  false_positive_risk: A hook that changes the required task contract or replaces core behavior is not Decorator.
+  detailed_sample: true
+
+- id: facade
+  name: Facade
+  name_zh: 外观模式
+  category: structural
+  source_intent: Provide a unified interface to subsystem interfaces so the subsystem is easier to use.
+  skillware_carriers: [entry Skill, root router, invocation policy]
+  screening_result: strong
+  reasoning: Superpowers using-superpowers and gstack's root router implement unified entry contracts over independently addressable specialist Skills.
+  false_positive_risk: A README or catalog that only lists Skills supplies navigation, not an executable access contract.
+  detailed_sample: true
+
+- id: flyweight
+  name: Flyweight
+  name_zh: 享元模式
+  category: structural
+  source_intent: Share fine-grained objects efficiently by separating reusable intrinsic state from contextual extrinsic state.
+  skillware_carriers: [shared references, shared templates, caches]
+  screening_result: weak
+  reasoning: Shared references alone do not demonstrate intrinsic state sharing and separated extrinsic state.
+  false_positive_risk: Ordinary file reuse or deduplication does not establish the intrinsic and extrinsic state split.
+  detailed_sample: false
+
+- id: proxy
+  name: Proxy
+  name_zh: 代理模式
+  category: structural
+  source_intent: Provide a surrogate that controls access to another object through a compatible interface.
+  skillware_carriers: [local daemon, MCP server, permission gateway]
+  screening_result: plausible
+  reasoning: gstack's browser daemon and EvoZeus dispatch paths are audit candidates; neither currently demonstrates a verified same-interface surrogate relation.
+  false_positive_risk: A gateway or protocol adapter without a compatible surrogate interface is not Proxy.
+  detailed_sample: false
+
+- id: chain-of-responsibility
+  name: Chain of Responsibility
+  name_zh: 职责链模式
+  category: behavioral
+  source_intent: Pass a request along potential handlers until one handles it, avoiding a fixed sender-receiver coupling.
+  skillware_carriers: [handler Skills, typed handoff records, workflow routes]
+  screening_result: plausible
+  reasoning: ECC and financial-services orchestration paths are candidates; each handler must independently decide to handle or forward the same request.
+  false_positive_risk: A fixed processing pipeline in which every stage runs is not Chain of Responsibility.
+  detailed_sample: false
+
+- id: command
+  name: Command
+  name_zh: 命令模式
+  category: behavioral
+  source_intent: Encapsulate a request as an object so invocation, queuing, logging, and undo can vary independently.
+  skillware_carriers: [command record, slash command, receiver Skill, audit record]
+  screening_result: plausible
+  reasoning: ECC command-to-Skill routes are candidates; invoker, request object, receiver, and audit or undo semantics require verification.
+  false_positive_risk: A shortcut or CLI command without an encapsulated request and receiver relationship is not Command.
+  detailed_sample: false
+
+- id: interpreter
+  name: Interpreter
+  name_zh: 解释器模式
+  category: behavioral
+  source_intent: Represent a language grammar and interpret sentences expressed in that language.
+  skillware_carriers: [workflow grammar, parser, expression records]
+  screening_result: plausible
+  reasoning: OpenMontage's pipeline language and parser are candidates when grammar and expression participants are evidenced.
+  false_positive_risk: General model interpretation of prose without an explicit grammar and expression structure is not Interpreter.
+  detailed_sample: false
+
+- id: iterator
+  name: Iterator
+  name_zh: 迭代器模式
+  category: behavioral
+  source_intent: Access aggregate elements sequentially without exposing the aggregate's underlying representation.
+  skillware_carriers: [catalog traversal contract, paginated scanner]
+  screening_result: weak
+  reasoning: Catalog scans and ordinary loops provide insufficient evidence of an independent traversal contract.
+  false_positive_risk: A loop or recursive file scan alone does not establish an Iterator participant contract.
+  detailed_sample: false
+
+- id: mediator
+  name: Mediator
+  name_zh: 中介者模式
+  category: behavioral
+  source_intent: Encapsulate peer interactions so colleagues do not refer to each other explicitly.
+  skillware_carriers: [coordinator Skill, parent Agent, coordination manifest]
+  screening_result: strong
+  reasoning: financial-services workflow orchestration and EvoZeus coordination are candidates; the companion repository verifies colleague isolation.
+  false_positive_risk: A central God Skill that absorbs specialist work is not a sound Mediator.
+  detailed_sample: true
+
+- id: memento
+  name: Memento
+  name_zh: 备忘录模式
+  category: behavioral
+  source_intent: Capture internal state without breaking encapsulation so the object can later be restored.
+  skillware_carriers: [release snapshot, checkpoint, caretaker harness]
+  screening_result: strong
+  reasoning: SkillOpt backups and EvoZeus release snapshots provide partial evidence of capture, caretaker ownership, and recovery.
+  false_positive_risk: A backup or Git commit without an owned operational restore path is not necessarily Memento.
+  detailed_sample: true
+
+- id: observer
+  name: Observer
+  name_zh: 观察者模式
+  category: behavioral
+  source_intent: Define a one-to-many dependency that notifies observers when a subject changes state.
+  skillware_carriers: [lifecycle event, hook, subscription record, event consumer]
+  screening_result: strong
+  reasoning: ECC hooks and OpenMontage lifecycle events are candidates; explicit subject, registration, and notification semantics require path validation.
+  false_positive_risk: Polling or an unregistered hook without a subject notification contract is not Observer.
+  detailed_sample: true
+
+- id: state
+  name: State
+  name_zh: 状态模式
+  category: behavioral
+  source_intent: Let an object alter its behavior when its internal state changes.
+  skillware_carriers: [persisted checkpoint, state record, transition manifest]
+  screening_result: strong
+  reasoning: SkillOpt stages and OpenMontage checkpoints provide candidate persisted state-dependent behavior.
+  false_positive_risk: Prose phase names or stateless routing do not establish behavior controlled by explicit state.
+  detailed_sample: true
+
+- id: strategy
+  name: Strategy
+  name_zh: 策略模式
+  category: behavioral
+  source_intent: Define interchangeable algorithms behind a common interface so they vary independently of their context.
+  skillware_carriers: [specialist Skills, selection policy, shared request contract]
+  screening_result: strong
+  reasoning: ui-ux-pro-max retrieval procedures and financial-analysis workflows provide candidate interchangeable strategy families.
+  false_positive_risk: Alternative subcommands with incompatible result contracts are not interchangeable Strategies.
+  detailed_sample: true
+
+- id: template-method
+  name: Template Method
+  name_zh: 模板方法模式
+  category: behavioral
+  source_intent: Fix an algorithm skeleton while allowing subclasses to redefine selected steps without changing its sequence.
+  skillware_carriers: [workflow Skill, invariant skeleton, domain profiles]
+  screening_result: strong
+  reasoning: Superpowers workflows provide candidate invariant skeletons with bounded task-specific steps.
+  false_positive_risk: A freely reordered checklist or runtime-swappable whole algorithm is not Template Method.
+  detailed_sample: true
+
+- id: visitor
+  name: Visitor
+  name_zh: 访问者模式
+  category: behavioral
+  source_intent: Represent operations over an object structure separately so new operations do not change element classes.
+  skillware_carriers: [repository scanner, validator, heterogeneous element records]
+  screening_result: plausible
+  reasoning: Repository scanners and validators are candidates when operation dispatch over a stable heterogeneous element structure is evidenced.
+  false_positive_risk: A generic recursive scan without element-specific dispatch and a stable structure is not Visitor.
+  detailed_sample: false

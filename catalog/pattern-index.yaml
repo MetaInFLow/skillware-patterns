@@ -1,0 +1,119 @@
+- id: facade
+  name: Facade
+  name_zh: 外观模式
+  source_tradition: gang-of-four
+  source_category: structural
+  paper_role: main-text
+  implementation_status: detailed
+  scenario: Production Incident Response
+  scenario_zh: 生产事故响应
+
+- id: adapter
+  name: Adapter
+  name_zh: 适配器模式
+  source_tradition: gang-of-four
+  source_category: structural
+  paper_role: main-text
+  implementation_status: detailed
+  scenario: Multi-Tracker Issue Publisher
+  scenario_zh: 多问题追踪器发布
+
+- id: composite
+  name: Composite
+  name_zh: 组合模式
+  source_tradition: gang-of-four
+  source_category: structural
+  paper_role: main-text
+  implementation_status: detailed
+  scenario: Investment Memo Builder
+  scenario_zh: 投资备忘录生成
+
+- id: observer
+  name: Observer
+  name_zh: 观察者模式
+  source_tradition: gang-of-four
+  source_category: behavioral
+  paper_role: main-text
+  implementation_status: detailed
+  scenario: Software Release Notification
+  scenario_zh: 软件发布通知
+
+- id: state
+  name: State
+  name_zh: 状态模式
+  source_tradition: gang-of-four
+  source_category: behavioral
+  paper_role: main-text
+  implementation_status: detailed
+  scenario: Vendor Onboarding Workflow
+  scenario_zh: 供应商准入流程
+
+- id: strategy
+  name: Strategy
+  name_zh: 策略模式
+  source_tradition: gang-of-four
+  source_category: behavioral
+  paper_role: main-text
+  implementation_status: detailed
+  scenario: Risk-Aware Code Review
+  scenario_zh: 风险感知代码审查
+
+- id: decorator
+  name: Decorator
+  name_zh: 装饰器模式
+  source_tradition: gang-of-four
+  source_category: structural
+  paper_role: repository-supplement
+  implementation_status: detailed
+  scenario: Contract Review Enhancers
+  scenario_zh: 合同审查增强
+
+- id: template-method
+  name: Template Method
+  name_zh: 模板方法模式
+  source_tradition: gang-of-four
+  source_category: behavioral
+  paper_role: repository-supplement
+  implementation_status: detailed
+  scenario: Enterprise RFP Response
+  scenario_zh: 企业 RFP 响应
+
+- id: memento
+  name: Memento
+  name_zh: 备忘录模式
+  source_tradition: gang-of-four
+  source_category: behavioral
+  paper_role: repository-supplement
+  implementation_status: detailed
+  scenario: Configuration Migration
+  scenario_zh: 配置迁移回滚
+
+- id: mediator
+  name: Mediator
+  name_zh: 中介者模式
+  source_tradition: gang-of-four
+  source_category: behavioral
+  paper_role: repository-supplement
+  implementation_status: detailed
+  scenario: Deployment Coordinator
+  scenario_zh: 部署协调
+
+- id: pipes-and-filters
+  name: Pipes and Filters
+  name_zh: 管道-过滤器模式
+  source_tradition: pattern-oriented-software-architecture
+  source_category: architectural
+  paper_role: repository-supplement
+  implementation_status: detailed
+  scenario: Support Ticket Triage
+  scenario_zh: 客服工单分流
+
+- id: specification
+  name: Specification
+  name_zh: 规格模式
+  source_tradition: domain-driven-design
+  source_category: domain
+  paper_role: repository-supplement
+  implementation_status: detailed
+  scenario: Expense Approval Policy
+  scenario_zh: 费用审批规则
