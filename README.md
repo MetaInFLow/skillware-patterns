@@ -28,7 +28,7 @@ This is not a new design-pattern collection. The source patterns and their tradi
 | --- | --- | --- |
 | [Public arXiv paper](https://arxiv.org/abs/2607.18970) | Defines the Skillware ontology and argues for software-engineering continuity. | The public abstract record is the authoritative paper entry point. |
 | Private authoring/research archive | Preserves manuscript source, corpus analysis, frozen cases, counterevidence, and provenance. | Authoring revision `1fc1dfd` is an unlinked provenance identifier; the archive is not a public dependency. |
-| `MetaInFlow/skillware-patterns` (this repository) | Publishes the transfer protocol, sourced catalog, participant maps, runnable samples, misuse cases, and focused tests. | This self-contained executable supplement carries the local evidence required to inspect and run its claims. Its output cannot validate the ontology or establish ecosystem prevalence. |
+| [`MetaInFlow/skillware-patterns`](https://github.com/MetaInFLow/skillware-patterns) (this repository) | Publishes the transfer protocol, sourced catalog, participant maps, runnable samples, misuse cases, and focused tests. | This self-contained executable supplement carries the local evidence required to inspect and run its claims. Its output cannot validate the ontology or establish ecosystem prevalence. |
 
 The [paper map](docs/paper-map.md) keeps these responsibilities separate and binds this supplement to `v0.1-paper-v1`.
 
@@ -189,7 +189,7 @@ Use [CITATION.cff](CITATION.cff) for formal software and preferred-paper metadat
 
 Contributions should preserve established source provenance, the flat pattern layout, the seven-element admission protocol, controlled statuses, bilingual definitions, a standalone sample, a close misuse case, and focused tests. A new directory is not admitted solely because it carries a familiar pattern name.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete admission contract, validation requirements, and contribution license boundary. Participation is governed by the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). This repository remains in release preparation and is not yet public-release ready. CI, publication, and release creation remain pending.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete admission contract, validation requirements, and contribution license boundary. Participation is governed by the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). The [public repository](https://github.com/MetaInFLow/skillware-patterns) is bound to the [public arXiv paper](https://arxiv.org/abs/2607.18970) by the paper release [`v0.1-paper-v1`](https://github.com/MetaInFLow/skillware-patterns/tree/v0.1-paper-v1). Its [validation workflow](https://github.com/MetaInFLow/skillware-patterns/actions/workflows/validate.yml) is configured to run on every push and pull request.
 
 ## Licenses
 

@@ -8,6 +8,10 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
 ARXIV_URL = "https://arxiv.org/abs/2607.18970"
+REPOSITORY_URL = "https://github.com/MetaInFLow/skillware-patterns"
+RELEASE_TAG = "v0.1-paper-v1"
+RELEASE_URL = f"{REPOSITORY_URL}/tree/{RELEASE_TAG}"
+WORKFLOW_URL = f"{REPOSITORY_URL}/actions/workflows/validate.yml"
 PAPER_TITLE = (
     "Skillware: A Software Ontology and Engineering Lifecycle for "
     "Persistent Behavioral Artifacts"
@@ -24,6 +28,8 @@ CITATION_TOP_LEVEL_KEYS = {
     "type",
     "authors",
     "version",
+    "repository-code",
+    "date-released",
     "preferred-citation",
 }
 SOFTWARE_AUTHORS = [
@@ -427,6 +433,8 @@ def assert_citation_contract(citation) -> None:
         "message": "Cite the Skillware paper and this software artifact.",
         "type": "software",
         "version": "0.1.0",
+        "repository-code": REPOSITORY_URL,
+        "date-released": "2026-07-22",
     }
     for key, expected in expected_strings.items():
         value = citation[key]
@@ -591,26 +599,20 @@ class GovernanceDocsTest(unittest.TestCase):
         )
 
         assert_citation_contract(citation)
-        self.assertNotIn("repository-code", citation)
-        self.assertNotIn("date-released", citation)
 
-    def test_citation_contract_rejects_missing_message_and_illegal_key(self):
+    def test_citation_contract_rejects_missing_release_field_and_illegal_key(self):
         citation = yaml.safe_load(
             (ROOT / "CITATION.cff").read_text(encoding="utf-8")
         )
-        without_message = dict(citation)
-        without_message.pop("message")
-        with self.assertRaisesRegex(AssertionError, r"missing=\['message'\]"):
-            assert_citation_contract(without_message)
+        without_release_date = dict(citation)
+        without_release_date.pop("date-released")
+        with self.assertRaisesRegex(AssertionError, "missing=.*date-released"):
+            assert_citation_contract(without_release_date)
 
-        with_premature_release_metadata = dict(citation)
-        with_premature_release_metadata["repository-code"] = (
-            "https://github.com/MetaInFlow/skillware-patterns"
-        )
-        with self.assertRaisesRegex(
-            AssertionError, r"illegal=\['repository-code'\]"
-        ):
-            assert_citation_contract(with_premature_release_metadata)
+        with_illegal_key = dict(citation)
+        with_illegal_key["repository"] = REPOSITORY_URL
+        with self.assertRaisesRegex(AssertionError, "illegal=.*repository"):
+            assert_citation_contract(with_illegal_key)
 
     def test_contributing_requires_the_complete_admission_contract(self):
         text = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
@@ -986,8 +988,10 @@ class ReadmeContractTest(unittest.TestCase):
             self.assertIn(AUTHORING_REVISION, text)
             self.assertIn("source_category", text)
             self.assertRegex(text, r"(?is)flat|扁平")
-            self.assertEqual(set(external_markdown_links(text)), {ARXIV_URL})
-            self.assertNotIn("github.com/MetaInFLow/skillware", text)
+            self.assertEqual(
+                set(external_markdown_links(text)),
+                {ARXIV_URL, REPOSITORY_URL, RELEASE_URL, WORKFLOW_URL},
+            )
             self.assertNotIn("arxiv.org/submit", text)
             self.assertNotRegex(
                 text, rf"\[[^]]*{AUTHORING_REVISION}[^]]*\]\([^)]+\)"
@@ -999,8 +1003,8 @@ class ReadmeContractTest(unittest.TestCase):
         self.assertIn("self-contained executable supplement", self.english)
         self.assertIn("不是公开依赖", self.chinese)
         self.assertIn("自包含的可执行补充", self.chinese)
-        self.assertIn("not yet public-release ready", self.english)
-        self.assertIn("尚未达到公开发布就绪状态", self.chinese)
+        self.assertNotIn("not yet public-release ready", self.english)
+        self.assertNotIn("尚未达到公开发布就绪状态", self.chinese)
         self.assertNotIn("will be inserted after assignment", self.english)
         self.assertNotIn("分配后补入", self.chinese)
 
@@ -1028,6 +1032,10 @@ class ReadmeContractTest(unittest.TestCase):
             self.assertIn("Apache License 2.0", licenses)
             self.assertIn("Creative Commons Attribution 4.0 International", licenses)
             self.assertRegex(text, r"upstream license|上游许可证")
+            self.assertIn(f"]({REPOSITORY_URL})", contributing)
+            self.assertIn(f"]({ARXIV_URL})", contributing)
+            self.assertIn(f"[`{RELEASE_TAG}`]({RELEASE_URL})", contributing)
+            self.assertIn(f"]({WORKFLOW_URL})", contributing)
         for stale_phrase in (
             "next task",
             "upcoming publication-governance",
@@ -1037,9 +1045,13 @@ class ReadmeContractTest(unittest.TestCase):
         for stale_phrase in ("下一任务", "后续发布治理文件", "计划中的发布边界"):
             self.assertNotIn(stale_phrase, self.chinese)
         self.assertIn(
-            "CI, publication, and release creation remain pending.", self.english
+            "is configured to run on every push and pull request.", self.english
         )
-        self.assertIn("CI、公开发布与 release 创建仍处于待办状态。", self.chinese)
+        self.assertIn("已配置为在每次 push 和 pull request 时运行。", self.chinese)
+        self.assertNotIn("CI has passed", self.english)
+        self.assertNotIn("CI 已通过", self.chinese)
+        self.assertNotIn("remain pending", self.english)
+        self.assertNotIn("仍处于待办状态", self.chinese)
         self.assertNotRegex(self.chinese, r"Task\s*\d+|任务\s*\d+")
 
 

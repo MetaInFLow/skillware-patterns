@@ -10,6 +10,8 @@ authors:
     given-names: Neil
     email: neillan@metainflow.cn
 version: 0.1.0
+repository-code: https://github.com/MetaInFLow/skillware-patterns
+date-released: "2026-07-22"
 preferred-citation:
   type: article
   title: "Skillware: A Software Ontology and Engineering Lifecycle for Persistent Behavioral Artifacts"
