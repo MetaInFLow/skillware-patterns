@@ -39,7 +39,8 @@ unverified. The correspondence is therefore candidate, not confirmed.
 The root owns all five stages and allows only `apply-domain-hook` to vary.
 Healthcare and Finance supply static callables under the exact same hook
 contract. Focused tests prove explicit AbstractClass dispatch, exact order,
-once-only invocation, MRO bypass resistance, stop-on-failure behavior, malicious
-identity/domain/trace mutation and stage-claim rejection, input and result
-validation, deterministic output, and isolated copies. This local construction
+once-only invocation, inherited mixin `run` irrelevance, direct override
+admission, stop-on-failure behavior, ordinary hook-argument copy mutation and
+unknown stage-claim rejection, input and result validation, deterministic
+output, and copied boundaries. This local construction
 does not establish upstream or model behavior.

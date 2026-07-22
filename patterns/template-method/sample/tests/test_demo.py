@@ -201,7 +201,7 @@ class TemplateMethodDemoTest(unittest.TestCase):
         self.assertEqual(standard["quality"], rural["quality"])
         self.assertEqual(standard["requirement_ids"], rural["requirement_ids"])
 
-    def test_mutating_hook_cannot_change_caller_or_mandatory_stage_data(self):
+    def test_hook_argument_copy_preserves_caller_and_mandatory_stage_data(self):
         demo = self.require_demo()
         request = demo.default_request("healthcare")
         original = deepcopy(request)
@@ -302,12 +302,41 @@ class TemplateMethodDemoTest(unittest.TestCase):
         self.assertEqual(result["domain"], "healthcare")
         self.assertEqual(result["stages"], list(demo.REQUIRED_STAGES))
 
-    def test_hook_cannot_mutate_local_identity_domain_requirements_or_trace(self):
+    def test_public_admission_rejects_direct_override_when_mixin_swallows_check(self):
+        demo = self.require_demo()
+
+        class SwallowingInitSubclassMixin:
+            def __init_subclass__(cls, **kwargs):
+                pass
+
+        class DirectRunOverride(
+            SwallowingInitSubclassMixin,
+            demo.RfpResponseTemplate,
+        ):
+            domain = "healthcare"
+
+            def run(self, request):
+                return {"domain": "healthcare", "stages": ["quality-check"]}
+
+            @staticmethod
+            def apply_domain_hook(hook_request):
+                return demo.healthcare_domain_hook(hook_request)
+
+        with self.assertRaisesRegex(
+            demo.ValidationError,
+            "^ConcreteClass may override only apply_domain_hook; forbidden override: run$",
+        ):
+            demo.run_template(
+                DirectRunOverride,
+                demo.default_request("healthcare"),
+            )
+
+    def test_hook_argument_mutation_does_not_change_local_snapshots(self):
         demo = self.require_demo()
         request = demo.default_request("healthcare")
         original = deepcopy(request)
 
-        class HostileHealthcare(demo.RfpResponseTemplate):
+        class ArgumentMutatingHealthcare(demo.RfpResponseTemplate):
             domain = "healthcare"
 
             @staticmethod
@@ -317,17 +346,13 @@ class TemplateMethodDemoTest(unittest.TestCase):
                 hook_request["requirements"].clear()
                 hook_request["gaps"].extend(["forged-gap"])
                 hook_request["stages"] = ["quality-check", "draft-response"]
-                HostileHealthcare.domain = "finance"
                 return {
                     "domain": "healthcare",
                     "focus_areas": ["bounded-hook"],
                     "required_evidence": ["bounded-hook-evidence"],
                 }
 
-        try:
-            result = demo.run_template(HostileHealthcare, request)
-        finally:
-            HostileHealthcare.domain = "healthcare"
+        result = demo.run_template(ArgumentMutatingHealthcare, request)
 
         self.assertEqual(request, original)
         self.assertEqual(result["rfp_id"], "rfp-healthcare-001")
@@ -336,7 +361,7 @@ class TemplateMethodDemoTest(unittest.TestCase):
         self.assertEqual(result["gaps"], [])
         self.assertEqual(result["stages"], list(demo.REQUIRED_STAGES))
 
-    def test_hook_cannot_claim_skip_repeat_or_reordered_mandatory_stages(self):
+    def test_unknown_hook_return_stage_claims_are_rejected(self):
         demo = self.require_demo()
         claims = (
             ("stages", ["quality-check", "draft-response"]),
@@ -347,7 +372,7 @@ class TemplateMethodDemoTest(unittest.TestCase):
         for claim_name, claim_value in claims:
             with self.subTest(claim=claim_name):
 
-                class ClaimingHealthcare(demo.RfpResponseTemplate):
+                class StageClaimingHealthcare(demo.RfpResponseTemplate):
                     domain = "healthcare"
 
                     @staticmethod
@@ -358,12 +383,12 @@ class TemplateMethodDemoTest(unittest.TestCase):
 
                 with self.assertRaises(demo.HookContractError) as caught:
                     demo.run_template(
-                        ClaimingHealthcare,
+                        StageClaimingHealthcare,
                         demo.default_request("healthcare"),
                     )
                 self.assertIn(f"unexpected: {claim_name}", str(caught.exception))
 
-    def test_hook_has_no_instance_or_mandatory_step_capability(self):
+    def test_template_exposes_no_instance_or_mandatory_dispatch_methods(self):
         demo = self.require_demo()
 
         for name in (

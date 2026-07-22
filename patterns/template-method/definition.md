@@ -105,9 +105,9 @@ explicit pipeline or orchestration model instead.
 The repository sample is **constructive** evidence. It materializes both
 canonical roles, a five-stage skeleton, two ConcreteClasses sharing one exact
 static hook contract, once-only hook invocation, explicit AbstractClass
-dispatch, MRO bypass resistance, subclass override rejection, stop-on-failure
+dispatch, inherited `run` irrelevance, direct override rejection, stop-on-failure
 behavior, local immutable snapshots, strict request/hook/result validation,
-copy isolation, stable errors, exact fixtures, and deterministic reruns. The literal
+copy-at-boundary behavior, stable errors, exact fixtures, and deterministic reruns. The literal
 `run_rfp("healthcare")` API returns the healthcare domain and exact required
 stage list.
 
@@ -118,11 +118,12 @@ interpret the Behavioral Source identically or that an Agent Host will activate
 the intended artifacts. The domain output is lexical fixture content, not
 validated sector expertise. No production RFP system, external evidence source,
 authorization, concurrency, retry, redaction, or human approval integration is
-present. The in-process oracle does not sandbox arbitrary Python side effects:
-a trusted hook with module access could start an independent nested workflow or
-mutate unrelated globals. It receives no instance or current-execution
-capability, so those effects cannot change the local identity, domain, trace,
-or mandatory dispatch of the current public call.
+present. Hooks are cooperative, trusted extension code, not sandboxed or
+security-isolated. Deep copies and local snapshots demonstrate ordinary
+mutation behavior through the declared hook argument. They do not protect
+against closure-captured references, module-global mutation, monkeypatching,
+introspection, independent nested calls, or other arbitrary in-process Python
+behavior.
 
 ## False Positives
 
@@ -147,9 +148,11 @@ confirmed. See [`correspondence.md`](correspondence.md) and the
 From `sample/`, run `python3 scripts/run_demo.py` and `python3 -m unittest
 discover tests -v`. Verification covers the exact five-stage order, AbstractClass
 ownership, once-only hook invocation, two shared-contract ConcreteClasses,
-explicit unbound dispatch, BypassMixin resistance, static hook isolation,
-malicious mutation and stage-claim rejection, bounded substitution, hook failure, malformed results, deterministic fixtures,
-input immutability, output isolation, duplicate JSON members, invalid UTF-8,
+explicit unbound dispatch, inherited BypassMixin `run` irrelevance, static-hook
+signature validation, hook-argument copy mutation and unknown stage-claim
+rejection, direct override admission, bounded substitution, hook failure,
+malformed results, deterministic fixtures, input-copy behavior, copied output,
+duplicate JSON members, invalid UTF-8,
 lone surrogates, cycles, parser and value depth, wrong types, and stable CLI
 errors. The repository root harness exercises the isolated sample automatically.
 

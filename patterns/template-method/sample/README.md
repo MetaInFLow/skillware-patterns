@@ -18,10 +18,15 @@ library and performs no network or cross-pattern imports.
 
 The tests prove the literal `run_rfp("healthcare")` API, fixed order, exactly
 one hook invocation, failure stop, shared hook contract, bounded substitution,
-explicit AbstractClass dispatch, MRO bypass resistance, static hook isolation,
-malicious identity/domain/trace mutation resistance, mandatory-stage override
-and claim rejection, deterministic outputs, duplicate-member rejection,
+explicit AbstractClass dispatch, inherited mixin `run` irrelevance, direct
+override admission, static hook signature validation, ordinary hook-argument
+copy mutation, unknown stage-claim rejection, deterministic outputs,
+duplicate-member rejection,
 Unicode handling, and depth/type bounds. Focused tests and the oracle use only
 the Python standard library.
+
+Hooks are cooperative, trusted extension code. The sample does not claim
+sandboxing or protection from closures, module globals, monkeypatching,
+introspection, or other arbitrary in-process Python behavior.
 
 Domain findings are illustrative, not professional RFP or compliance advice.

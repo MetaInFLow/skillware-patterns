@@ -37,7 +37,7 @@ participants.
    `extract-requirements`, `analyze-gaps`, `apply-domain-hook`,
    `draft-response`, `quality-check`.
 3. Select one ConcreteClass from the validated domain. Give its hook an
-   isolated `rfp-domain-hook-v1` request. Invoke its single-argument static
+   copied `rfp-domain-hook-v1` request. Invoke its single-argument static
    hook callable exactly once, and validate and copy its result before drafting.
 4. Permit the ConcreteClass to supply only domain `focus_areas` and
    `required_evidence`. It must not skip, insert, repeat, or reorder any
@@ -46,17 +46,17 @@ participants.
    or quality checking. Never fabricate a partial success result.
 6. Validate the final result, including the exact stage sequence, domain and
    RFP identity, requirement order, hook result, draft coverage, and quality
-   fields. Return isolated deterministic data.
+   fields. Return validated copies in deterministic field and stage order.
 
 The executable public boundary dispatches the AbstractClass template
 implementation explicitly. It creates no ConcreteClass instance, stores no
 request or trace on `self`, and never resolves mandatory operations through a
 ConcreteClass or mixin. Request identity, domain, requirements, and trace remain
 local snapshots; inherited `run` or mandatory-stage names are irrelevant to
-`run_template` and `run_rfp`. The hook receives only its copied request. It may
-start an independent nested public workflow or cause arbitrary process side
-effects if trusted Python grants it module access, but it has no capability to
-change the current execution's snapshots or mandatory-stage count.
+`run_template` and `run_rfp`. For cooperative hooks that use only the declared
+argument/result contract, the copied request and local snapshots prevent
+ordinary argument mutation or returned stage claims from rewriting captured
+values or order. This is a contract boundary, not a security boundary.
 
 ## 中文执行约定
 
@@ -65,7 +65,8 @@ change the current execution's snapshots or mandatory-stage count.
 医疗与金融子 Skill 是 ConcreteClass，只能实现
 `apply-domain-hook` 静态可调用项，不得更改必经阶段。公开执行边界
 显式调用 AbstractClass 实现，不创建领域实例，请求身份、领域与轨迹都保留为
-局部快照。钩子失败时原样传播异常，
+局部快照。对于只使用声明参数与结果契约的协作式钩子，参数副本可防止
+通过该参数进行的普通修改改写已捕获数据。钩子失败时原样传播异常，
 且不得继续起草或质检。
 
 ## Demo mode and root harness
@@ -88,6 +89,7 @@ The domain content is illustrative and is not a legal, compliance, clinical,
 security, procurement, or financial assurance. Selecting a runtime-swappable
 whole RFP algorithm would be Strategy. Letting a domain profile reorder the
 checklist removes the Template Method invariant. This in-process oracle does
-not sandbox arbitrary Python side effects; its guarantee is narrower: the
-static hook has no instance or current-execution capability and cannot alter
-the local snapshots or stage dispatch used by the public API.
+not sandbox hooks. They are cooperative, trusted extension code. Deep copies
+and local snapshots cover ordinary mutation through the supplied hook argument;
+they do not protect against closure-captured references, module-global access,
+monkeypatching, introspection, or other arbitrary in-process Python behavior.

@@ -412,8 +412,25 @@ class RfpResponseTemplate(ABC):
         if (
             not isinstance(concrete_class, type)
             or not issubclass(concrete_class, RfpResponseTemplate)
-            or inspect.isabstract(concrete_class)
         ):
+            raise ValidationError(
+                "concrete_class must be a concrete RfpResponseTemplate "
+                "ConcreteClass"
+            )
+        if concrete_class is RfpResponseTemplate:
+            raise ValidationError(
+                "concrete_class must be a concrete RfpResponseTemplate "
+                "ConcreteClass"
+            )
+        forbidden = sorted(
+            name for name in FORBIDDEN_OVERRIDES if name in concrete_class.__dict__
+        )
+        if forbidden:
+            raise ValidationError(
+                "ConcreteClass may override only apply_domain_hook; "
+                f"forbidden override: {forbidden[0]}"
+            )
+        if inspect.isabstract(concrete_class):
             raise ValidationError(
                 "concrete_class must be a concrete RfpResponseTemplate "
                 "ConcreteClass"
