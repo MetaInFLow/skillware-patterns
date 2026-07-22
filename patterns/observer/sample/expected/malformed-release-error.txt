@@ -1,0 +1,1 @@
+ERROR: release fields must be exactly: release_id, version, commit, channel, published_at, notes; missing: version

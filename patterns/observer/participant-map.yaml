@@ -1,0 +1,64 @@
+pattern: Observer
+pattern_id: observer
+participants:
+  Subject:
+    role: Release event source and ordered subscription owner
+    behavior: Registers and unregisters Observer updates, then publishes one typed event to a stable registration-order snapshot.
+    paths:
+      - sample/SKILL.md
+      - sample/references/release-event-contract.md
+  Observer:
+    role: release-observer-v1 update contract
+    behavior: Accepts exactly one release.published.v1 event and returns a non-empty delivery receipt or raises an isolated failure.
+    path: sample/references/release-event-contract.md
+  ConcreteSubject:
+    role: Root Software Release Notification Skill and deterministic ReleaseSubject oracle
+    behavior: Applies explicit subscription operations, publishes only after release success, blocks re-entry, and records each delivery.
+    paths:
+      - sample/SKILL.md
+      - sample/scripts/run_demo.py
+      - sample/fixtures/valid/release.json
+  ConcreteObserver:
+    role: Registered audit, changelog, and team-notification consumer Skills
+    behavior: Independently consume the shared event contract without the ConcreteSubject branching on consumer-specific work.
+    implementations:
+      - id: audit
+        path: sample/child-skills/audit/SKILL.md
+        demo_executor: update_audit
+      - id: changelog
+        path: sample/child-skills/changelog/SKILL.md
+        demo_executor: update_changelog
+      - id: team-notification
+        path: sample/child-skills/team-notification/SKILL.md
+        demo_executor: update_team_notification
+execution_context:
+  Agent Host:
+    responsibility: Activates the root or an independently addressed consumer Skill.
+    evidence_status: not observable
+    note: The constructive sample supplies no Agent Host integration evidence.
+  Agent Runtime:
+    responsibility: Interprets the activated Skill behavioral source.
+    evidence_status: not observable
+    note: The deterministic publisher is an oracle, not evidence of model interpretation.
+implementation_paths:
+  - sample/scripts/run_demo.py
+  - sample/fixtures/valid/release.json
+  - sample/fixtures/valid/release-after-unregistration.json
+  - sample/fixtures/invalid/invalid-json.json
+  - sample/fixtures/invalid/wrong-event-type.json
+  - sample/fixtures/invalid/duplicate-registration.json
+  - sample/fixtures/invalid/unknown-observer-skill.json
+  - sample/fixtures/invalid/unregistered-observer.json
+  - sample/fixtures/invalid/malformed-release.json
+  - sample/expected/release-result.json
+  - sample/expected/release-after-unregistration-result.json
+  - sample/expected/release-with-failure-result.json
+  - sample/expected/invalid-json-error.txt
+  - sample/expected/wrong-event-type-error.txt
+  - sample/expected/duplicate-registration-error.txt
+  - sample/expected/unknown-observer-skill-error.txt
+  - sample/expected/unregistered-observer-error.txt
+  - sample/expected/malformed-release-error.txt
+  - sample/tests/test_demo.py
+misuse_path: misuse/SKILL.md
+evidence_path: evidence/ecc-frozen-case.md

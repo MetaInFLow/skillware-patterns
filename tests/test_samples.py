@@ -37,6 +37,7 @@ class MaterializedSampleTest(unittest.TestCase):
 
     def test_each_materialized_sample_is_standalone_and_executable(self):
         self.assertIn(PATTERNS / "composite", self.materialized)
+        self.assertIn(PATTERNS / "observer", self.materialized)
         for record in self.materialized:
             with self.subTest(pattern=record.name):
                 with TemporaryDirectory() as temp_dir:

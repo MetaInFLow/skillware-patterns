@@ -1,0 +1,1 @@
+ERROR: event_type must be 'release.published.v1'

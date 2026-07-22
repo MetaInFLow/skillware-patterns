@@ -1,0 +1,37 @@
+id: software-release-notification
+name: Software Release Notification
+name_zh: 软件发布通知
+pattern: observer
+entry_skill: SKILL.md
+event:
+  type: release.published.v1
+  fields: [type, release_id, version, commit, channel, published_at, notes]
+observer_contract: release-observer-v1
+contract_reference: references/release-event-contract.md
+subscription_operations: [register, unregister]
+observers:
+  - id: audit
+    skill: child-skills/audit/SKILL.md
+    demo_executor: update_audit
+  - id: changelog
+    skill: child-skills/changelog/SKILL.md
+    demo_executor: update_changelog
+  - id: team-notification
+    skill: child-skills/team-notification/SKILL.md
+    demo_executor: update_team_notification
+delivery:
+  order: registration-order
+  event_copy: per-observer
+  per_observer_accounting: true
+  failure_isolation: true
+  reentry: rejected
+  subscription_change_during_delivery: rejected
+  retries: none
+demo:
+  python: ">=3.10"
+  standard_library_only: true
+  network_required: false
+  interprets_skill_markdown: false
+  dependency_injection: observer_updates
+  default_workflow: fixtures/valid/release.json
+  command: python3 scripts/run_demo.py

@@ -303,6 +303,117 @@ class PatternRecordContractTest(unittest.TestCase):
             self.assertNotIn("path", role)
             self.assertNotIn("evidence_path", role)
 
+    def test_observer_has_publicly_verifiable_local_candidate_evidence(self):
+        record = PATTERNS / "observer"
+        evidence = record / "evidence/ecc-frozen-case.md"
+        correspondence = (record / "correspondence.md").read_text(encoding="utf-8")
+
+        self.assertTrue(evidence.is_file())
+        self.assertIn("[frozen evidence](evidence/ecc-frozen-case.md)", correspondence)
+        self.assertIn("**Status:** candidate correspondence", correspondence)
+        self.assertNotIn("**Status:** confirmed correspondence", correspondence)
+
+        evidence_text = evidence.read_text(encoding="utf-8")
+        for required in (
+            "2bc924faf2f8e893bfe0af86b1931283693c30ae",
+            "hooks/hooks.json",
+            "scripts/hooks/run-with-flags.js",
+            "tests/hooks/hooks.test.js",
+            "skills/continuous-learning-v2/SKILL.md",
+            "skills/continuous-learning-v2/hooks/observe.sh",
+            "skills/continuous-learning-v2/config.json",
+            "**Claim status:** candidate correspondence",
+            "GoF registration, unregistration, and deterministic delivery",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, evidence_text)
+        self.assertNotIn("**Claim status:** confirmed correspondence", evidence_text)
+
+    def test_observer_ecc_evidence_urls_are_structurally_pinned(self):
+        evidence = (PATTERNS / "observer/evidence/ecc-frozen-case.md").read_text(
+            encoding="utf-8"
+        )
+        urls = re.findall(r"https://github\.com/[^)\s]+", evidence)
+        expected_paths = {
+            "hooks/hooks.json",
+            "scripts/hooks/run-with-flags.js",
+            "tests/hooks/hooks.test.js",
+            "skills/continuous-learning-v2/SKILL.md",
+            "skills/continuous-learning-v2/hooks/observe.sh",
+            "skills/continuous-learning-v2/config.json",
+        }
+        pinned_paths = set()
+
+        for url in urls:
+            parsed = urlparse(url)
+            parts = parsed.path.strip("/").split("/")
+            if len(parts) < 5 or parts[2] not in {"blob", "tree"}:
+                continue
+            owner, repository, _, revision = parts[:4]
+            upstream_path = "/".join(parts[4:])
+            with self.subTest(url=url):
+                self.assertEqual(parsed.scheme, "https")
+                self.assertEqual(parsed.netloc, "github.com")
+                self.assertEqual((owner, repository), ("affaan-m", "ECC"))
+                self.assertRegex(revision, r"^[0-9a-f]{40}$")
+                self.assertEqual(
+                    revision, "2bc924faf2f8e893bfe0af86b1931283693c30ae"
+                )
+                self.assertIn(upstream_path, expected_paths)
+            pinned_paths.add(upstream_path)
+
+        self.assertEqual(pinned_paths, expected_paths)
+
+    def test_observer_separates_gof_participants_from_execution_context(self):
+        participant_map = yaml.safe_load(
+            (PATTERNS / "observer/participant-map.yaml").read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(
+            set(participant_map["participants"]),
+            {"Subject", "Observer", "ConcreteSubject", "ConcreteObserver"},
+        )
+        observer_ids = {
+            item["id"]
+            for item in participant_map["participants"]["ConcreteObserver"][
+                "implementations"
+            ]
+        }
+        self.assertEqual(observer_ids, {"audit", "changelog", "team-notification"})
+
+        context = participant_map["execution_context"]
+        self.assertEqual(set(context), {"Agent Host", "Agent Runtime"})
+        for role in context.values():
+            self.assertEqual(role["evidence_status"], "not observable")
+            self.assertNotIn("path", role)
+            self.assertNotIn("evidence_path", role)
+
+    def test_observer_contract_declares_complete_notification_policy(self):
+        contract = yaml.safe_load(
+            (PATTERNS / "observer/sample/skillware.yaml").read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(contract["event"]["type"], "release.published.v1")
+        self.assertEqual(contract["observer_contract"], "release-observer-v1")
+        self.assertEqual(contract["subscription_operations"], ["register", "unregister"])
+        self.assertEqual(
+            [item["id"] for item in contract["observers"]],
+            ["audit", "changelog", "team-notification"],
+        )
+        self.assertEqual(contract["delivery"]["order"], "registration-order")
+        self.assertTrue(contract["delivery"]["per_observer_accounting"])
+        self.assertTrue(contract["delivery"]["failure_isolation"])
+        self.assertEqual(contract["delivery"]["reentry"], "rejected")
+
+    def test_observer_public_record_has_no_private_research_links(self):
+        record = PATTERNS / "observer"
+        for path in record.rglob("*"):
+            if path.is_file() and path.suffix in {".md", ".yaml", ".py", ".json"}:
+                with self.subTest(path=path.relative_to(record)):
+                    text = path.read_text(encoding="utf-8")
+                    self.assertNotIn("skillware-github", text)
+                    self.assertNotIn("github.com/MetaInFLow/skillware", text)
+
 
 if __name__ == "__main__":
     unittest.main()

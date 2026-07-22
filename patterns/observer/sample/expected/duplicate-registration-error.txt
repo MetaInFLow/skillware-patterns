@@ -1,0 +1,1 @@
+ERROR: observer 'audit' is already registered

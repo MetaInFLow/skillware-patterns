@@ -1,0 +1,9 @@
+id: observer
+name: Observer
+name_zh: 观察者模式
+source_tradition: gang-of-four
+source_category: behavioral
+paper_role: main-text
+implementation_status: detailed
+scenario: Software Release Notification
+scenario_zh: 软件发布通知

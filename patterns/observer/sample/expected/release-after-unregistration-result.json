@@ -1,0 +1,35 @@
+{
+  "event": {
+    "type": "release.published.v1",
+    "release_id": "release-2026-07-22-001",
+    "version": "1.2.0",
+    "commit": "8f3c2a1",
+    "channel": "stable",
+    "published_at": "2026-07-22T08:00:00Z",
+    "notes": [
+      "Add deterministic observer delivery.",
+      "Harden release validation."
+    ]
+  },
+  "deliveries": [
+    {
+      "observer_id": "audit",
+      "skill": "child-skills/audit/SKILL.md",
+      "status": "delivered",
+      "receipt": "audit:release-2026-07-22-001",
+      "error": null
+    },
+    {
+      "observer_id": "team-notification",
+      "skill": "child-skills/team-notification/SKILL.md",
+      "status": "delivered",
+      "receipt": "team-notification:stable:1.2.0",
+      "error": null
+    }
+  ],
+  "summary": {
+    "attempted": 2,
+    "delivered": 2,
+    "failed": 0
+  }
+}
