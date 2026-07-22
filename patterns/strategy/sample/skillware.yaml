@@ -1,0 +1,40 @@
+id: risk-aware-code-review
+name: Risk-Aware Code Review
+name_zh: 风险感知代码审查
+pattern: strategy
+entry_skill: SKILL.md
+strategy_contract: risk-aware-code-review-v1
+contract_reference: references/review-strategy-contract.md
+operation: review
+request_schema: risk-aware-code-review-request-v1
+request_fields: [schema, review_id, security_sensitive, files]
+result_schema: risk-aware-code-review-result-v1
+result_fields: [schema, review_id, strategy, reviewed_files, findings, summary]
+strategies:
+  - id: fast-scan
+    skill: child-skills/fast-scan/SKILL.md
+    demo_strategy_class: FastScanStrategy
+    implements: risk-aware-code-review-v1
+    procedure: high-signal-rules
+  - id: deep-review
+    skill: child-skills/deep-review/SKILL.md
+    demo_strategy_class: DeepReviewStrategy
+    implements: risk-aware-code-review-v1
+    procedure: high-signal-and-context-rules
+selection:
+  security_sensitive: deep-review
+  file_count_at_least: 4
+  threshold_strategy: deep-review
+  otherwise: fast-scan
+addressing:
+  automatic: risk-selection
+  explicit: [fast-scan, deep-review]
+result_conformance: validate-after-every-strategy
+demo:
+  python: ">=3.10"
+  standard_library_only: true
+  network_required: false
+  model_required: false
+  interprets_skill_markdown: false
+  default_request: fixtures/valid/low-risk-review.json
+  command: python3 scripts/run_demo.py

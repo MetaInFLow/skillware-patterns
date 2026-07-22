@@ -1,0 +1,23 @@
+{
+  "schema": "risk-aware-code-review-request-v1",
+  "review_id": "CR-SIZE-004",
+  "security_sensitive": false,
+  "files": [
+    {
+      "path": "src/api.py",
+      "additions": ["def route():", "    return 'ok'"]
+    },
+    {
+      "path": "src/config.py",
+      "additions": ["TIMEOUT = 30"]
+    },
+    {
+      "path": "src/permissions.py",
+      "additions": ["skip_auth = True"]
+    },
+    {
+      "path": "tests/test_api.py",
+      "additions": ["assert route() == 'ok'"]
+    }
+  ]
+}

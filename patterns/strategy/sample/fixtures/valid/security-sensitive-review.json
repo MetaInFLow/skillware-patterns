@@ -1,0 +1,20 @@
+{
+  "schema": "risk-aware-code-review-request-v1",
+  "review_id": "CR-SEC-007",
+  "security_sensitive": true,
+  "files": [
+    {
+      "path": "src/auth.py",
+      "additions": [
+        "def parse_policy(text):",
+        "    return eval(text)"
+      ]
+    },
+    {
+      "path": "src/report.py",
+      "additions": [
+        "query = \"SELECT * FROM users WHERE id = \" + user_id"
+      ]
+    }
+  ]
+}

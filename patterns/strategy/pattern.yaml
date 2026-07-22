@@ -1,0 +1,9 @@
+id: strategy
+name: Strategy
+name_zh: 策略模式
+source_tradition: gang-of-four
+source_category: behavioral
+paper_role: main-text
+implementation_status: detailed
+scenario: Risk-Aware Code Review
+scenario_zh: 风险感知代码审查

@@ -1,0 +1,20 @@
+{
+  "schema": "risk-aware-code-review-request-v1",
+  "review_id": "CR-LOW-001",
+  "security_sensitive": false,
+  "files": [
+    {
+      "path": "src/formatter.py",
+      "additions": [
+        "def format_name(name):",
+        "    return name.strip()"
+      ]
+    },
+    {
+      "path": "tests/test_formatter.py",
+      "additions": [
+        "assert format_name(' Ada ') == 'Ada'"
+      ]
+    }
+  ]
+}

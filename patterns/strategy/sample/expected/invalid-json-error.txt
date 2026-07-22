@@ -1,0 +1,1 @@
+ERROR: request file must contain valid JSON

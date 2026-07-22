@@ -555,6 +555,144 @@ class PatternRecordContractTest(unittest.TestCase):
                     self.assertNotIn("skillware-github", text)
                     self.assertNotIn("github.com/MetaInFLow/skillware", text)
 
+    def test_strategy_separates_gof_participants_from_execution_context(self):
+        participant_map = yaml.safe_load(
+            (PATTERNS / "strategy/participant-map.yaml").read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(
+            set(participant_map["participants"]),
+            {"Context", "Strategy", "ConcreteStrategy"},
+        )
+        concrete_ids = {
+            item["id"]
+            for item in participant_map["participants"]["ConcreteStrategy"][
+                "implementations"
+            ]
+        }
+        self.assertEqual(concrete_ids, {"fast-scan", "deep-review"})
+
+        context = participant_map["execution_context"]
+        self.assertEqual(set(context), {"Agent Host", "Agent Runtime"})
+        for role in context.values():
+            self.assertEqual(role["evidence_status"], "not observable")
+            self.assertNotIn("path", role)
+            self.assertNotIn("evidence_path", role)
+
+    def test_strategy_contract_declares_interchangeability_and_selection(self):
+        contract = yaml.safe_load(
+            (PATTERNS / "strategy/sample/skillware.yaml").read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(contract["strategy_contract"], "risk-aware-code-review-v1")
+        self.assertEqual(
+            contract["request_fields"],
+            ["schema", "review_id", "security_sensitive", "files"],
+        )
+        self.assertEqual(
+            contract["result_fields"],
+            [
+                "schema",
+                "review_id",
+                "strategy",
+                "reviewed_files",
+                "findings",
+                "summary",
+            ],
+        )
+        self.assertEqual(
+            [item["id"] for item in contract["strategies"]],
+            ["fast-scan", "deep-review"],
+        )
+        self.assertTrue(
+            all(
+                item["implements"] == "risk-aware-code-review-v1"
+                for item in contract["strategies"]
+            )
+        )
+        self.assertEqual(
+            contract["selection"],
+            {
+                "security_sensitive": "deep-review",
+                "file_count_at_least": 4,
+                "threshold_strategy": "deep-review",
+                "otherwise": "fast-scan",
+            },
+        )
+
+    def test_strategy_has_publicly_verifiable_local_candidate_evidence(self):
+        correspondence = (PATTERNS / "strategy/correspondence.md").read_text(
+            encoding="utf-8"
+        )
+        evidence = PATTERNS / "strategy/evidence/ui-ux-pro-max-frozen-case.md"
+
+        self.assertTrue(evidence.is_file())
+        self.assertIn(
+            "[frozen evidence](evidence/ui-ux-pro-max-frozen-case.md)",
+            correspondence,
+        )
+        self.assertIn("**Status:** candidate correspondence", correspondence)
+        self.assertNotIn("**Status:** confirmed correspondence", correspondence)
+
+        evidence_text = evidence.read_text(encoding="utf-8")
+        for required in (
+            "8a81ed60272d21d4b8808f7308d49a0b1b000555",
+            ".claude/skills/ui-ux-pro-max/SKILL.md",
+            ".claude/skills/ui-ux-pro-max/scripts/search.py",
+            ".claude/skills/ui-ux-pro-max/scripts/core.py",
+            ".claude/skills/ui-ux-pro-max/scripts/design_system.py",
+            "**Claim status:** candidate correspondence",
+            "does not establish the complete GoF Strategy participant relation",
+            "incompatible output shapes",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, evidence_text)
+        self.assertNotIn("**Claim status:** confirmed correspondence", evidence_text)
+
+    def test_strategy_evidence_urls_are_structurally_pinned(self):
+        evidence = (
+            PATTERNS / "strategy/evidence/ui-ux-pro-max-frozen-case.md"
+        ).read_text(encoding="utf-8")
+        urls = re.findall(r"https://github\.com/[^)\s]+", evidence)
+        expected_paths = {
+            ".claude/skills/ui-ux-pro-max/SKILL.md",
+            ".claude/skills/ui-ux-pro-max/scripts/search.py",
+            ".claude/skills/ui-ux-pro-max/scripts/core.py",
+            ".claude/skills/ui-ux-pro-max/scripts/design_system.py",
+        }
+        pinned_paths = set()
+
+        for url in urls:
+            parsed = urlparse(url)
+            parts = parsed.path.strip("/").split("/")
+            if len(parts) < 5 or parts[2] not in {"blob", "tree"}:
+                continue
+            owner, repository, _, revision = parts[:4]
+            upstream_path = "/".join(parts[4:])
+            with self.subTest(url=url):
+                self.assertEqual(parsed.scheme, "https")
+                self.assertEqual(parsed.netloc, "github.com")
+                self.assertEqual(
+                    (owner, repository),
+                    ("nextlevelbuilder", "ui-ux-pro-max-skill"),
+                )
+                self.assertEqual(
+                    revision, "8a81ed60272d21d4b8808f7308d49a0b1b000555"
+                )
+                self.assertIn(upstream_path, expected_paths)
+            pinned_paths.add(upstream_path)
+
+        self.assertEqual(pinned_paths, expected_paths)
+
+    def test_strategy_public_record_has_no_private_research_links(self):
+        record = PATTERNS / "strategy"
+        for path in record.rglob("*"):
+            if path.is_file() and path.suffix in {".md", ".yaml", ".py", ".json"}:
+                with self.subTest(path=path.relative_to(record)):
+                    text = path.read_text(encoding="utf-8")
+                    self.assertNotIn("skillware-github", text)
+                    self.assertNotIn("github.com/MetaInFLow/skillware", text)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,6 @@
+{
+  "schema": "risk-aware-code-review-request-v0",
+  "review_id": "CR-BAD-002",
+  "security_sensitive": false,
+  "files": [{"path": "src/app.py", "additions": []}]
+}

@@ -1,0 +1,27 @@
+{
+  "schema": "risk-aware-code-review-result-v1",
+  "review_id": "CR-SIZE-004",
+  "strategy": "deep-review",
+  "reviewed_files": [
+    "src/api.py",
+    "src/config.py",
+    "src/permissions.py",
+    "tests/test_api.py"
+  ],
+  "findings": [
+    {
+      "rule_id": "authorization-bypass",
+      "severity": "high",
+      "path": "src/permissions.py",
+      "line": 1,
+      "message": "Authorization is explicitly bypassed."
+    }
+  ],
+  "summary": {
+    "files_reviewed": 4,
+    "findings": 1,
+    "high": 1,
+    "medium": 0,
+    "low": 0
+  }
+}

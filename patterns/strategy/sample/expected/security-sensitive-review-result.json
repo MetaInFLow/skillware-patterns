@@ -1,0 +1,32 @@
+{
+  "schema": "risk-aware-code-review-result-v1",
+  "review_id": "CR-SEC-007",
+  "strategy": "deep-review",
+  "reviewed_files": [
+    "src/auth.py",
+    "src/report.py"
+  ],
+  "findings": [
+    {
+      "rule_id": "dynamic-execution",
+      "severity": "high",
+      "path": "src/auth.py",
+      "line": 2,
+      "message": "Dynamic evaluation can execute untrusted input."
+    },
+    {
+      "rule_id": "sql-concatenation",
+      "severity": "high",
+      "path": "src/report.py",
+      "line": 1,
+      "message": "SQL text is constructed by concatenation."
+    }
+  ],
+  "summary": {
+    "files_reviewed": 2,
+    "findings": 2,
+    "high": 2,
+    "medium": 0,
+    "low": 0
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "schema": "risk-aware-code-review-request-v1",
+  "review_id": "CR-BAD-001",
+  "security_sensitive": false
+}
