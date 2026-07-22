@@ -30,9 +30,10 @@ without learning the subsystem's internal selection and coordination details.
   contract and the coordination and fallback policy.
 - **Subsystem:** the diagnosis, impact-assessment, and communication child
   Skills. Each has an independently inspectable `SKILL.md`.
-- **Agent Host and Agent Runtime:** supporting runtime roles, not Facade
-  participants by default. The Agent Host activates the Skillware Unit; the
-  Agent Runtime interprets its activated behavioral source.
+- **Agent Host and Agent Runtime:** execution context, not GoF Facade
+  participants. In an actual deployment the Agent Host activates the Skillware
+  Unit and the Agent Runtime interprets its behavioral source, but neither role
+  is observable in this deterministic constructive sample.
 
 ## Collaboration
 

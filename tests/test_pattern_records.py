@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 import yaml
@@ -115,7 +116,66 @@ class PatternRecordContractTest(unittest.TestCase):
                 with self.subTest(pattern=record.name, path=relative_path):
                     resolved = (record / relative_path).resolve()
                     resolved.relative_to(record.resolve())
-                    self.assertTrue(resolved.exists())
+                    self.assertTrue(resolved.is_file())
+
+    def test_facade_has_publicly_verifiable_local_evidence(self):
+        record = PATTERNS / "facade"
+        evidence = record / "evidence/superpowers-frozen-case.md"
+        correspondence = (record / "correspondence.md").read_text(encoding="utf-8")
+
+        self.assertTrue(evidence.is_file())
+        self.assertIn(
+            "[frozen evidence](evidence/superpowers-frozen-case.md)",
+            correspondence,
+        )
+        local_links = [
+            target
+            for target in re.findall(r"\[[^]]+\]\(([^)]+)\)", correspondence)
+            if "://" not in target
+        ]
+        for target in local_links:
+            with self.subTest(target=target):
+                self.assertTrue((record / target).is_file())
+
+        evidence_text = evidence.read_text(encoding="utf-8")
+        for required in (
+            "896224c4b1879920ab573417e68fd51d2ccc9072",
+            "skills/using-superpowers/SKILL.md",
+            "hooks/session-start",
+            "confirmed correspondence",
+            "Counterevidence and limits",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, evidence_text)
+
+    def test_facade_public_record_has_no_private_research_links(self):
+        record = PATTERNS / "facade"
+        for path in record.rglob("*"):
+            if path.is_file() and path.suffix in {".md", ".yaml", ".py", ".json"}:
+                with self.subTest(path=path.relative_to(record)):
+                    text = path.read_text(encoding="utf-8")
+                    self.assertNotIn("github.com/MetaInFLow/skillware", text)
+
+    def test_facade_separates_gof_participants_from_unobserved_runtime_context(self):
+        participant_map = yaml.safe_load(
+            (PATTERNS / "facade/participant-map.yaml").read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(
+            set(participant_map["participants"]), {"Client", "Facade", "Subsystem"}
+        )
+        context = participant_map["execution_context"]
+        self.assertEqual(set(context), {"Agent Host", "Agent Runtime"})
+        for role in context.values():
+            self.assertEqual(role["evidence_status"], "not observable")
+            self.assertNotIn("path", role)
+            self.assertNotIn("evidence_path", role)
+
+    def test_facade_chinese_definition_uses_human_triage_term(self):
+        text = (PATTERNS / "facade/definition.zh-CN.md").read_text(encoding="utf-8")
+
+        self.assertIn("人工分诊回退", text)
+        self.assertNotIn("人工作业回退", text)
 
 
 if __name__ == "__main__":

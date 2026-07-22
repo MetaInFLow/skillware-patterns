@@ -23,14 +23,15 @@ Skillware 发明了新模式，也不主张历史优先权。
 - **Facade：**`sample/SKILL.md`，定义唯一请求/结果契约、协调规则和回退规则。
 - **Subsystem：**诊断、影响评估和沟通三个子 Skill；每个都有可独立检查的
   `SKILL.md`。
-- **Agent Host 与 Agent Runtime：**它们是支撑运行时角色，默认不属于 Facade
-  参与者。Agent Host 激活 Skillware Unit，Agent Runtime 解释已激活的行为源。
+- **Agent Host 与 Agent Runtime：**它们是执行上下文，不是 GoF Facade 参与者。
+  在实际部署中，Agent Host 激活 Skillware Unit，Agent Runtime 解释行为源；但
+  这个确定性构造样例不能观察或证明这两个角色。
 
 ## 协作（Collaboration）
 
 Client 向 Facade 提交 `service` 和 `signal`。当信号为 `5xx spike` 时，Facade
 先取得诊断，把诊断结果连同事故上下文交给影响评估，再把返回的评估交给沟通
-起草，并且只组装四个公开结果字段。遇到未知信号时，它执行声明的人工作业回退，
+起草，并且只组装四个公开结果字段。遇到未知信号时，它执行声明的人工分诊回退，
 同时保留相同结果契约。内部路由细节不会返回给 Client。
 
 ## 后果（Consequences）

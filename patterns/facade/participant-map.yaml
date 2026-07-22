@@ -16,15 +16,15 @@ participants:
       - sample/child-skills/diagnose/SKILL.md
       - sample/child-skills/assess-impact/SKILL.md
       - sample/child-skills/draft-communication/SKILL.md
-runtime_roles:
+execution_context:
   Agent Host:
     responsibility: Activates the Skillware Unit and exposes Skill loading.
-    evidence_path: sample/skillware.yaml
-    participant_by_default: false
+    evidence_status: not observable
+    note: The constructive sample provides no Agent Host integration evidence.
   Agent Runtime:
     responsibility: Interprets the activated behavioral source and invocation policy.
-    evidence_path: sample/references/response-contract.md
-    participant_by_default: false
+    evidence_status: not observable
+    note: The deterministic demo is an oracle, not evidence of model interpretation.
 implementation_paths:
   - sample/scripts/run_demo.py
   - sample/fixtures/valid/incident.json

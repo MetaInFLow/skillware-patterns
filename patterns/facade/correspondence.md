@@ -9,10 +9,8 @@
   [`skills/using-superpowers/SKILL.md`](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/skills/using-superpowers/SKILL.md)
 - **Bootstrap evidence:**
   [`hooks/session-start`](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/hooks/session-start)
-- **Frozen research case:**
-  [`research/cases/superpowers.md`](https://github.com/MetaInFLow/skillware/blob/1fc1dfd/research/cases/superpowers.md)
-- **Frozen pattern analysis:**
-  [`research/patterns/facade.md`](https://github.com/MetaInFLow/skillware/blob/1fc1dfd/research/patterns/facade.md)
+- **Vendored observation record:**
+  [frozen evidence](evidence/superpowers-frozen-case.md)
 
 Task-level agent execution is the Client. The `using-superpowers` Skill is the
 Facade because it supplies one relevance and activation policy over the named
@@ -20,9 +18,11 @@ specialist workflow Skills, which form the subsystem. The SessionStart hook
 bootstraps this behavioral source. The Agent Host activates it and the Agent
 Runtime interprets it; neither role is the Client by default.
 
-The confirmation is limited to the participant relation observable at that
-revision. It does not establish equal activation reliability or behavioral
-equivalence across supported Hosts.
+The local frozen evidence record preserves the participant observations,
+counterevidence, and claim boundary needed to audit this correspondence without
+access to a separate research repository. The confirmation is limited to the
+participant relation observable at that revision. It does not establish equal
+activation reliability or behavioral equivalence across supported Hosts.
 
 ## Constructive sample
 
