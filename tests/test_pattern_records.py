@@ -619,6 +619,18 @@ class PatternRecordContractTest(unittest.TestCase):
                 "otherwise": "fast-scan",
             },
         )
+        self.assertEqual(
+            contract["compatibility_api"],
+            {
+                "operation": "review",
+                "request_fields": ["files", "security_sensitive"],
+                "deep_when": {
+                    "security_sensitive": True,
+                    "file_count_greater_than": 5,
+                },
+                "result_fields": ["strategy", "findings", "confidence"],
+            },
+        )
 
     def test_strategy_has_publicly_verifiable_local_candidate_evidence(self):
         correspondence = (PATTERNS / "strategy/correspondence.md").read_text(

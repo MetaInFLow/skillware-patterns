@@ -23,15 +23,18 @@ Agent Host and Agent Runtime are execution context, not Strategy participants.
 ## Agent mode
 
 1. Validate the exact request schema, types, bounds, path safety, and unique
-   file identities before selecting a procedure.
+   file identities before selecting a procedure. Treat JSON object-member order
+   as irrelevant; reject duplicate members at any depth and lone surrogates.
 2. Select Deep Review when `security_sensitive` is true. Otherwise select Deep
    Review for four or more files and Fast Scan for one to three files.
 3. Invoke exactly one selected child Skill through the common `review`
    operation. Do not merge procedures or change the request shape.
 4. Permit explicit `fast-scan` or `deep-review` addressing only when a caller
    intentionally requests audit, replay, or contract testing.
-5. Validate the returned schema, identity, addressed strategy, reviewed-file
-   order, finding records, and derived summary before returning it.
+5. Validate only the shared result contract: schema, identity, string strategy,
+   reviewed files, finding structure, unique finding identities, and non-negative
+   integer summary counts. Canonicalize mapping fields and findings before
+   returning. Do not require an injected strategy to use built-in lexical rules.
 
 ## ConcreteStrategy Skills
 
@@ -42,18 +45,29 @@ Both accept the same request and return the same result fields. Fast Scan uses
 only high-signal checks; Deep Review adds contextual checks. They vary the
 procedure, not the Context or public interface.
 
+## Plan compatibility API
+
+The demo module also exposes the exact compact plan API:
+`review({"files": int, "security_sensitive": bool})`. It selects Deep Review
+for a security-sensitive request or when `files > 5`, and returns exactly
+`strategy`, `findings`, and `confidence`. This compatibility surface is
+separate from the richer JSON fixture and CLI contract above.
+
 ## Demo mode
 
 `scripts/run_demo.py` implements an injectable `RiskAwareCodeReview` Context
 and two separately addressable strategy objects using only the Python standard
 library. The deterministic rules demonstrate delegation and conformance; they
 are not a production security scanner and do not interpret these Skill files.
+Built-in rule-set tests are separate from shared Context conformance tests.
 
 ## Output contract
 
 Return exactly `schema`, `review_id`, `strategy`, `reviewed_files`, `findings`,
 and `summary` as specified by the contract reference. Reject a strategy result
-that exposes any other interface.
+that exposes any other interface, duplicate finding identity, invalid count, or
+lone surrogate. Input key order is irrelevant; emitted key and finding order is
+canonical.
 
 ## Example
 

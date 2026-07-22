@@ -1,0 +1,12 @@
+{
+  "schema": "risk-aware-code-review-request-v1",
+  "review_id": "CR-BAD-NESTED-DUPLICATE",
+  "security_sensitive": false,
+  "files": [
+    {
+      "path": "src/app.py",
+      "path": "src/other.py",
+      "additions": []
+    }
+  ]
+}

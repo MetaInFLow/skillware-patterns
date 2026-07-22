@@ -45,7 +45,10 @@ comparative benefit.
 - **Focused verification:** [`sample/tests/test_demo.py`](sample/tests/test_demo.py)
 
 The Context selects or directly addresses one injected ConcreteStrategy, then
-validates the same result contract. Tests isolate selection from delegation and
-show that Fast Scan and Deep Review can be substituted without changing the
-Context or output fields. This construction is independent of the upstream case
-and does not establish model interpretation or production review quality.
+validates the same result contract without requiring a built-in rule set. Tests
+isolate selection from delegation, verify built-in rules separately, and show
+that Fast Scan, Deep Review, or a custom conforming implementation can be
+substituted without changing the Context or output fields. The boundary rejects
+duplicate finding identities and canonicalizes mapping and finding order. This
+construction is independent of the upstream case and does not establish model
+interpretation or production review quality.

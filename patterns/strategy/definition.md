@@ -33,8 +33,9 @@ independently of its Context.
 - **Strategy:** the `risk-aware-code-review-v1` `review` contract shared by all
   procedures.
 - **ConcreteStrategy:** the Fast Scan and Deep Review child Skills and
-  corresponding Python objects. Each owns a distinct rule set behind the same
-  operation and request/result contract.
+  corresponding built-in Python objects. Each built-in owns a distinct rule
+  set behind the same operation and request/result contract. An injected
+  replacement may use another algorithm that satisfies that shared contract.
 - **Agent Host and Agent Runtime:** execution context, not GoF Strategy
   participants. Their activation and interpretation behavior is not observable
   in this constructive sample.
@@ -48,7 +49,16 @@ audit, replay, or conformance testing. The Context passes an independent copy
 of the same request to exactly one ConcreteStrategy. Fast Scan applies three
 high-signal checks. Deep Review applies those checks plus three contextual
 checks. The Context validates the selected identity, reviewed-file order,
-finding records, and derived summary before returning the result.
+finding structure and unique identity, and strictly typed derived summary before
+returning the result. JSON member order has no semantic effect; the boundary
+canonicalizes output fields and findings by request file, line, and rule ID.
+The Context does not inspect an injected procedure or require built-in rules.
+
+The demo module also retains a compact plan-compatibility `review` API. It
+accepts only integer file count and security sensitivity, chooses Deep Review
+for security sensitivity or more than five files, and returns exactly strategy,
+findings, and confidence. That compact surface is separate from the richer
+file-content CLI contract and the two objects are not mutually substitutable.
 
 ## Consequences
 
@@ -98,10 +108,12 @@ defined.
 The repository sample is **constructive** evidence. It materializes all three
 GoF roles, one exact request/result contract, two distinct strategies, explicit
 risk selection, direct addressing, dependency injection, boundary validation,
-and deterministic fixtures. Focused tests prove selection separately from
-delegation, substitution through the same Context, strategy result rejection,
-exact outputs, stable errors, input immutability, and standard-library execution
-without network or model dependencies.
+canonical output, unique finding identities, and deterministic fixtures. Focused
+tests prove selection separately from delegation, substitution through the same
+Context, built-in rule ownership separately from shared conformance, strict
+summary integer types, semantic-free mapping order, duplicate JSON member and
+lone-surrogate rejection, exact outputs, stable errors, input immutability, and
+standard-library execution without network or model dependencies.
 
 ## Counter-Evidence
 
@@ -138,9 +150,11 @@ runtime study." See [`correspondence.md`](correspondence.md) and the
 From `sample/`, run `python3 scripts/run_demo.py` and `python3 -m unittest
 discover tests -v`. Verification covers low-risk, security-sensitive, and
 file-threshold selection; explicit addressing; injected alternatives; distinct
-rule behavior; exact shared result fields; malformed injected results; schema,
-type, bound, UTF-8, JSON, and path validation; deterministic reruns; and input
-immutability. The repository harness copies and runs the sample standalone.
+rule behavior; the verbatim compact compatibility API; exact shared result
+fields; canonical order and unique finding identities; malformed injected
+results; schema, type, bound, UTF-8, surrogate, duplicate-member JSON, and path
+validation; deterministic reruns; and input immutability. The repository
+harness copies and runs the sample standalone.
 
 ## Limitations
 
@@ -149,4 +163,5 @@ production review accuracy, or cross-Host behavioral equivalence. Extending the
 request, rule set, threshold, severity policy, or result requires a versioned
 contract change and new conformance fixtures. Strategy interchangeability does
 not imply equal cost or equal findings; it requires substitutability through
-the declared interface.
+the declared interface. The compact compatibility API and richer CLI are two
+explicitly separate public contracts and must not be treated as interchangeable.

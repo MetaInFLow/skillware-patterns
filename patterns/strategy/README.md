@@ -10,6 +10,12 @@ four files and Fast Scan otherwise. Both procedures accept the same request and
 return the same result fields, can be injected or directly addressed, and are
 validated at the delegation boundary.
 
+The demo module separately preserves the compact plan-level
+`review({"files": int, "security_sensitive": bool})` API, whose Deep Review
+threshold is strictly greater than five files and whose exact result fields are
+`strategy`, `findings`, and `confidence`. It is not interchangeable with the
+richer file-content CLI contract.
+
 - [English definition](definition.md)
 - [中文定义](definition.zh-CN.md)
 - [Participant map](participant-map.yaml)

@@ -6,6 +6,13 @@ entry_skill: SKILL.md
 strategy_contract: risk-aware-code-review-v1
 contract_reference: references/review-strategy-contract.md
 operation: review
+compatibility_api:
+  operation: review
+  request_fields: [files, security_sensitive]
+  deep_when:
+    security_sensitive: true
+    file_count_greater_than: 5
+  result_fields: [strategy, findings, confidence]
 request_schema: risk-aware-code-review-request-v1
 request_fields: [schema, review_id, security_sensitive, files]
 result_schema: risk-aware-code-review-result-v1
@@ -30,6 +37,10 @@ addressing:
   automatic: risk-selection
   explicit: [fast-scan, deep-review]
 result_conformance: validate-after-every-strategy
+result_canonicalization:
+  mapping_key_order: semantic-free
+  finding_order: [request-file-order, line, rule_id]
+  duplicate_finding_identity: reject
 demo:
   python: ">=3.10"
   standard_library_only: true

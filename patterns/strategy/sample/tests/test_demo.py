@@ -29,6 +29,39 @@ class StrategyDemoTest(unittest.TestCase):
     def load_json(self, relative_path):
         return json.loads((SAMPLE / relative_path).read_text(encoding="utf-8"))
 
+    def test_plan_compatibility_review_api_is_verbatim_and_exact(self):
+        demo = self.require_demo()
+
+        self.assertEqual(
+            demo.review({"files": 5, "security_sensitive": False}),
+            {"strategy": "fast-scan", "findings": [], "confidence": "medium"},
+        )
+        self.assertEqual(
+            demo.review({"files": 6, "security_sensitive": False}),
+            {"strategy": "deep-review", "findings": [], "confidence": "high"},
+        )
+        self.assertEqual(
+            demo.review({"files": 1, "security_sensitive": True}),
+            {"strategy": "deep-review", "findings": [], "confidence": "high"},
+        )
+        self.assertEqual(
+            tuple(demo.review({"security_sensitive": False, "files": 0})),
+            ("strategy", "findings", "confidence"),
+        )
+
+    def test_plan_compatibility_review_validates_exact_types(self):
+        demo = self.require_demo()
+        cases = (
+            ({"files": True, "security_sensitive": False}, "files must be a non-negative integer"),
+            ({"files": -1, "security_sensitive": False}, "files must be a non-negative integer"),
+            ({"files": 1, "security_sensitive": 0}, "security_sensitive must be a boolean"),
+            ({"files": 1}, "compatibility request fields must be exactly: files, security_sensitive; missing: security_sensitive"),
+        )
+        for request, error in cases:
+            with self.subTest(error=error):
+                with self.assertRaisesRegex(demo.ValidationError, f"^{error}$"):
+                    demo.review(request)
+
     def test_risk_selector_is_explicit_and_deterministic(self):
         demo = self.require_demo()
         low_risk = self.load_json("fixtures/valid/low-risk-review.json")
@@ -126,6 +159,169 @@ class StrategyDemoTest(unittest.TestCase):
         )
         self.assertEqual(demo.validate_review_result(fast, request), fast)
         self.assertEqual(demo.validate_review_result(deep, request), deep)
+
+    def test_builtin_strategies_own_their_declared_rule_sets(self):
+        demo = self.require_demo()
+        request = {
+            "schema": demo.REQUEST_SCHEMA,
+            "review_id": "CR-RULES-001",
+            "security_sensitive": False,
+            "files": [
+                {
+                    "path": "src/security.py",
+                    "additions": [
+                        "value = eval(text)",
+                        "password = 'secret-value'",
+                        "client.get(url, verify=False)",
+                        'query = "SELECT * FROM users WHERE id = " + user_id',
+                        "skip_auth = True",
+                        "policy = {'Action': '*'}",
+                    ],
+                }
+            ],
+        }
+
+        fast = demo.FastScanStrategy().review(request)
+        deep = demo.DeepReviewStrategy().review(request)
+
+        self.assertEqual(
+            [item["rule_id"] for item in fast["findings"]],
+            ["dynamic-execution", "hardcoded-secret", "insecure-tls"],
+        )
+        self.assertEqual(
+            [item["rule_id"] for item in deep["findings"]],
+            [
+                "dynamic-execution",
+                "hardcoded-secret",
+                "insecure-tls",
+                "sql-concatenation",
+                "authorization-bypass",
+                "wildcard-permission",
+            ],
+        )
+
+    def test_mapping_key_order_is_semantically_irrelevant(self):
+        demo = self.require_demo()
+        original = self.load_json("fixtures/valid/low-risk-review.json")
+        reordered = {
+            "files": [
+                {"additions": item["additions"], "path": item["path"]}
+                for item in original["files"]
+            ],
+            "security_sensitive": original["security_sensitive"],
+            "review_id": original["review_id"],
+            "schema": original["schema"],
+        }
+
+        result = demo.RiskAwareCodeReview().review(reordered)
+
+        self.assertEqual(
+            result, self.load_json("expected/low-risk-review-result.json")
+        )
+        self.assertEqual(tuple(result), demo.RESULT_FIELDS)
+
+    def test_shared_boundary_canonicalizes_custom_result_and_finding_order(self):
+        demo = self.require_demo()
+        request = self.load_json("fixtures/valid/low-risk-review.json")
+
+        class CustomStrategy:
+            strategy_id = "fast-scan"
+
+            def review(self, candidate):
+                return {
+                    "summary": {
+                        "low": 0,
+                        "medium": 1,
+                        "high": 1,
+                        "findings": 2,
+                        "files_reviewed": 2,
+                    },
+                    "findings": [
+                        {
+                            "message": "Custom test risk.",
+                            "line": 1,
+                            "path": "tests/test_formatter.py",
+                            "severity": "medium",
+                            "rule_id": "custom-test-risk",
+                        },
+                        {
+                            "message": "Custom source risk.",
+                            "line": 2,
+                            "path": "src/formatter.py",
+                            "severity": "high",
+                            "rule_id": "custom-source-risk",
+                        },
+                    ],
+                    "reviewed_files": [
+                        "src/formatter.py",
+                        "tests/test_formatter.py",
+                    ],
+                    "strategy": "fast-scan",
+                    "review_id": "CR-LOW-001",
+                    "schema": demo.RESULT_SCHEMA,
+                }
+
+        result = demo.RiskAwareCodeReview(
+            {
+                "fast-scan": CustomStrategy(),
+                "deep-review": demo.DeepReviewStrategy(),
+            }
+        ).review(request)
+
+        self.assertEqual(tuple(result), demo.RESULT_FIELDS)
+        self.assertEqual(
+            [tuple(item) for item in result["findings"]],
+            [demo.FINDING_FIELDS, demo.FINDING_FIELDS],
+        )
+        self.assertEqual(
+            [item["rule_id"] for item in result["findings"]],
+            ["custom-source-risk", "custom-test-risk"],
+        )
+        self.assertEqual(tuple(result["summary"]), demo.SUMMARY_FIELDS)
+
+    def test_shared_boundary_rejects_duplicate_finding_identity(self):
+        demo = self.require_demo()
+        request = self.load_json("fixtures/valid/low-risk-review.json")
+        result = demo.FastScanStrategy().review(request)
+        duplicate = {
+            "rule_id": "custom-risk",
+            "severity": "low",
+            "path": "src/formatter.py",
+            "line": 1,
+            "message": "First.",
+        }
+        result["findings"] = [duplicate, {**duplicate, "message": "Second."}]
+        result["summary"] = {
+            "files_reviewed": 2,
+            "findings": 2,
+            "high": 0,
+            "medium": 0,
+            "low": 2,
+        }
+
+        with self.assertRaisesRegex(
+            demo.StrategyContractError,
+            r"^duplicate finding identity: custom-risk, src/formatter.py, 1$",
+        ):
+            demo.validate_review_result(result, request)
+
+    def test_summary_counts_are_non_negative_integers_not_bool_or_float(self):
+        demo = self.require_demo()
+        request = self.load_json("fixtures/valid/low-risk-review.json")
+        cases = (
+            ("files_reviewed", True),
+            ("findings", 0.0),
+            ("high", -1),
+        )
+        for field, value in cases:
+            result = demo.FastScanStrategy().review(request)
+            result["summary"][field] = value
+            with self.subTest(field=field, value=value):
+                with self.assertRaisesRegex(
+                    demo.StrategyContractError,
+                    rf"^summary\.{field} must be a non-negative integer$",
+                ):
+                    demo.validate_review_result(result, request)
 
     def test_invalid_injected_result_is_rejected_at_the_strategy_boundary(self):
         demo = self.require_demo()
@@ -290,6 +486,16 @@ class StrategyDemoTest(unittest.TestCase):
             ),
         )
 
+    def test_non_string_explicit_strategy_is_rejected_stably(self):
+        demo = self.require_demo()
+        request = self.load_json("fixtures/valid/low-risk-review.json")
+
+        with self.assertRaisesRegex(
+            demo.ValidationError,
+            r"^strategy_id must be a string$",
+        ):
+            demo.RiskAwareCodeReview().review(request, strategy_id=[])
+
     def test_non_utf8_request_matches_stable_cli_error(self):
         self.require_demo()
         with TemporaryDirectory() as temp_dir:
@@ -311,6 +517,57 @@ class StrategyDemoTest(unittest.TestCase):
                 encoding="utf-8"
             ),
         )
+
+    def test_lone_unicode_surrogate_matches_stable_cli_error(self):
+        self.require_demo()
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(DEMO_PATH),
+                "fixtures/invalid/lone-surrogate.json",
+            ],
+            cwd=SAMPLE,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(completed.returncode, 2)
+        self.assertEqual(completed.stdout, "")
+        self.assertEqual(
+            completed.stderr,
+            (SAMPLE / "expected/lone-surrogate-error.txt").read_text(
+                encoding="utf-8"
+            ),
+        )
+
+    def test_duplicate_json_members_at_root_and_nested_depth_are_rejected(self):
+        self.require_demo()
+        cases = (
+            ("duplicate-root-member", "duplicate-root-member-error"),
+            ("duplicate-nested-member", "duplicate-nested-member-error"),
+        )
+        for fixture_stem, error_stem in cases:
+            with self.subTest(fixture=fixture_stem):
+                completed = subprocess.run(
+                    [
+                        sys.executable,
+                        str(DEMO_PATH),
+                        f"fixtures/invalid/{fixture_stem}.json",
+                    ],
+                    cwd=SAMPLE,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(completed.returncode, 2)
+                self.assertEqual(completed.stdout, "")
+                self.assertEqual(
+                    completed.stderr,
+                    (SAMPLE / f"expected/{error_stem}.txt").read_text(
+                        encoding="utf-8"
+                    ),
+                )
 
     def test_default_cli_matches_expected_output(self):
         self.require_demo()

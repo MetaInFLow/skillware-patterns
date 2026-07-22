@@ -3,7 +3,7 @@ pattern_id: strategy
 participants:
   Context:
     role: Risk-Aware Code Review root Skill and RiskAwareCodeReview demo class
-    behavior: Validates one request, applies the explicit risk policy or a directly addressed strategy, and delegates review through the common Strategy contract.
+    behavior: Validates a request, applies the policy or a directly addressed strategy, and delegates through the contract for that public surface without inspecting built-in procedure rules.
     paths:
       - sample/SKILL.md
       - sample/scripts/run_demo.py
@@ -14,7 +14,7 @@ participants:
     path: sample/references/review-strategy-contract.md
   ConcreteStrategy:
     role: Fast Scan and Deep Review child Skills and demo classes
-    behavior: Each accepts the same validated request and returns the same result contract while applying a distinct deterministic rule set.
+    behavior: The two built-in implementations accept the same validated rich request and return the same rich result contract while applying separately tested deterministic rule sets; injected replacements need only satisfy the shared Strategy contract.
     implementations:
       - id: fast-scan
         path: sample/child-skills/fast-scan/SKILL.md
@@ -45,6 +45,9 @@ implementation_paths:
   - sample/fixtures/invalid/unsafe-path.json
   - sample/fixtures/invalid/invalid-line.json
   - sample/fixtures/invalid/invalid-json.json
+  - sample/fixtures/invalid/lone-surrogate.json
+  - sample/fixtures/invalid/duplicate-root-member.json
+  - sample/fixtures/invalid/duplicate-nested-member.json
   - sample/expected/low-risk-review-result.json
   - sample/expected/security-sensitive-review-result.json
   - sample/expected/file-threshold-review-result.json
@@ -57,6 +60,9 @@ implementation_paths:
   - sample/expected/invalid-json-error.txt
   - sample/expected/unknown-strategy-error.txt
   - sample/expected/non-utf8-request-error.txt
+  - sample/expected/lone-surrogate-error.txt
+  - sample/expected/duplicate-root-member-error.txt
+  - sample/expected/duplicate-nested-member-error.txt
   - sample/tests/test_demo.py
 misuse_path: misuse/SKILL.md
 evidence_path: evidence/ui-ux-pro-max-frozen-case.md

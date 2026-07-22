@@ -13,6 +13,9 @@ REQUEST_SCHEMA = "risk-aware-code-review-request-v1"
 RESULT_SCHEMA = "risk-aware-code-review-result-v1"
 STRATEGY_CONTRACT = "risk-aware-code-review-v1"
 DEEP_REVIEW_FILE_THRESHOLD = 4
+COMPATIBILITY_DEEP_REVIEW_FILE_THRESHOLD = 5
+COMPATIBILITY_REQUEST_FIELDS = ("files", "security_sensitive")
+COMPATIBILITY_RESULT_FIELDS = ("strategy", "findings", "confidence")
 REQUEST_FIELDS = ("schema", "review_id", "security_sensitive", "files")
 FILE_FIELDS = ("path", "additions")
 RESULT_FIELDS = (
@@ -63,6 +66,24 @@ def require_non_empty_string(value, label, maximum):
         raise ValidationError(f"{label} must contain at most {maximum} characters")
 
 
+def contains_lone_surrogate(value):
+    if isinstance(value, str):
+        return any(0xD800 <= ord(character) <= 0xDFFF for character in value)
+    if isinstance(value, dict):
+        return any(
+            contains_lone_surrogate(key) or contains_lone_surrogate(item)
+            for key, item in value.items()
+        )
+    if isinstance(value, (list, tuple)):
+        return any(contains_lone_surrogate(item) for item in value)
+    return False
+
+
+def validate_no_lone_surrogates(value, label, error_type=ValidationError):
+    if contains_lone_surrogate(value):
+        raise error_type(f"{label} must not contain lone Unicode surrogates")
+
+
 def validate_safe_path(value):
     require_non_empty_string(value, "file.path", 240)
     path = PurePosixPath(value)
@@ -76,11 +97,8 @@ def validate_safe_path(value):
 
 
 def validate_request(request):
+    validate_no_lone_surrogates(request, "request")
     validate_exact_fields(request, REQUEST_FIELDS, "request")
-    if tuple(request) != REQUEST_FIELDS:
-        raise ValidationError(
-            "request field order must be: " + ", ".join(REQUEST_FIELDS)
-        )
     if request["schema"] != REQUEST_SCHEMA:
         raise ValidationError(f"request.schema must be '{REQUEST_SCHEMA}'")
     require_non_empty_string(request["review_id"], "request.review_id", 64)
@@ -93,8 +111,6 @@ def validate_request(request):
     seen_paths = set()
     for file_record in files:
         validate_exact_fields(file_record, FILE_FIELDS, "file")
-        if tuple(file_record) != FILE_FIELDS:
-            raise ValidationError("file field order must be: " + ", ".join(FILE_FIELDS))
         path = file_record["path"]
         validate_safe_path(path)
         if path in seen_paths:
@@ -116,6 +132,29 @@ def validate_request(request):
                     f"file.additions line {line_number} must contain at most 500 characters"
                 )
     return request
+
+
+def review(request):
+    """Exact compact API retained for compatibility with the implementation plan."""
+    validate_exact_fields(
+        request,
+        COMPATIBILITY_REQUEST_FIELDS,
+        "compatibility request",
+    )
+    files = request["files"]
+    if not isinstance(files, int) or isinstance(files, bool) or files < 0:
+        raise ValidationError("files must be a non-negative integer")
+    if not isinstance(request["security_sensitive"], bool):
+        raise ValidationError("security_sensitive must be a boolean")
+    deep = (
+        request["security_sensitive"]
+        or files > COMPATIBILITY_DEEP_REVIEW_FILE_THRESHOLD
+    )
+    return {
+        "strategy": "deep-review" if deep else "fast-scan",
+        "findings": [],
+        "confidence": "high" if deep else "medium",
+    }
 
 
 def finding(rule_id, severity, path, line, message):
@@ -239,20 +278,23 @@ def select_strategy(request):
 
 def validate_review_result(result, request):
     validate_request(request)
+    validate_no_lone_surrogates(
+        result,
+        "strategy result",
+        error_type=StrategyContractError,
+    )
     validate_exact_fields(
         result,
         RESULT_FIELDS,
         "strategy result",
         error_type=StrategyContractError,
     )
-    if tuple(result) != RESULT_FIELDS:
-        raise StrategyContractError(
-            "strategy result field order must be: " + ", ".join(RESULT_FIELDS)
-        )
     if result["schema"] != RESULT_SCHEMA:
         raise StrategyContractError(f"strategy result schema must be '{RESULT_SCHEMA}'")
     if result["review_id"] != request["review_id"]:
         raise StrategyContractError("strategy result review_id must match request.review_id")
+    if not isinstance(result["strategy"], str):
+        raise StrategyContractError("strategy result strategy must be a string")
     if result["strategy"] not in STRATEGY_IDS:
         raise StrategyContractError(
             "strategy result strategy must be one of: " + ", ".join(STRATEGY_IDS)
@@ -268,6 +310,8 @@ def validate_review_result(result, request):
     additions_by_path = {
         item["path"]: item["additions"] for item in request["files"]
     }
+    canonical_findings = []
+    finding_identities = set()
     for item in findings:
         validate_exact_fields(
             item,
@@ -275,17 +319,17 @@ def validate_review_result(result, request):
             "finding",
             error_type=StrategyContractError,
         )
-        if tuple(item) != FINDING_FIELDS:
-            raise StrategyContractError(
-                "finding field order must be: " + ", ".join(FINDING_FIELDS)
-            )
-        if not isinstance(item["rule_id"], str) or not item["rule_id"]:
+        if not isinstance(item["rule_id"], str) or not item["rule_id"].strip():
             raise StrategyContractError("finding.rule_id must be a non-empty string")
-        if item["severity"] not in {"high", "medium", "low"}:
+        if not isinstance(item["severity"], str) or item["severity"] not in {
+            "high",
+            "medium",
+            "low",
+        }:
             raise StrategyContractError(
                 "finding.severity must be one of: high, medium, low"
             )
-        if item["path"] not in additions_by_path:
+        if not isinstance(item["path"], str) or item["path"] not in additions_by_path:
             raise StrategyContractError("finding.path must name a requested file")
         if (
             not isinstance(item["line"], int)
@@ -295,6 +339,24 @@ def validate_review_result(result, request):
             raise StrategyContractError("finding.line must name an added line")
         if not isinstance(item["message"], str) or not item["message"].strip():
             raise StrategyContractError("finding.message must be a non-empty string")
+        identity = (item["rule_id"], item["path"], item["line"])
+        if identity in finding_identities:
+            raise StrategyContractError(
+                "duplicate finding identity: " + ", ".join(map(str, identity))
+            )
+        finding_identities.add(identity)
+        canonical_findings.append(
+            {field: deepcopy(item[field]) for field in FINDING_FIELDS}
+        )
+
+    path_order = {path: index for index, path in enumerate(expected_paths)}
+    canonical_findings.sort(
+        key=lambda item: (
+            path_order[item["path"]],
+            item["line"],
+            item["rule_id"],
+        )
+    )
 
     validate_exact_fields(
         result["summary"],
@@ -302,10 +364,12 @@ def validate_review_result(result, request):
         "summary",
         error_type=StrategyContractError,
     )
-    if tuple(result["summary"]) != SUMMARY_FIELDS:
-        raise StrategyContractError(
-            "summary field order must be: " + ", ".join(SUMMARY_FIELDS)
-        )
+    for field in SUMMARY_FIELDS:
+        count = result["summary"][field]
+        if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+            raise StrategyContractError(
+                f"summary.{field} must be a non-negative integer"
+            )
     expected_summary = {
         "files_reviewed": len(expected_paths),
         "findings": len(findings),
@@ -315,7 +379,16 @@ def validate_review_result(result, request):
     }
     if result["summary"] != expected_summary:
         raise StrategyContractError("strategy result summary does not match findings")
-    return result
+    return {
+        "schema": result["schema"],
+        "review_id": result["review_id"],
+        "strategy": result["strategy"],
+        "reviewed_files": deepcopy(result["reviewed_files"]),
+        "findings": canonical_findings,
+        "summary": {
+            field: result["summary"][field] for field in SUMMARY_FIELDS
+        },
+    }
 
 
 class RiskAwareCodeReview:
@@ -345,6 +418,8 @@ class RiskAwareCodeReview:
 
     def review(self, request, strategy_id=None):
         validate_request(request)
+        if strategy_id is not None and not isinstance(strategy_id, str):
+            raise ValidationError("strategy_id must be a string")
         selected = select_strategy(request) if strategy_id is None else strategy_id
         if selected not in self._strategies:
             raise ValidationError(
@@ -368,10 +443,21 @@ def load_request(path):
     except OSError as exc:
         raise ValidationError(f"unable to read request file: {exc}") from exc
     try:
-        request = json.loads(text)
+        request = json.loads(text, object_pairs_hook=reject_duplicate_object_members)
     except json.JSONDecodeError as exc:
         raise ValidationError("request file must contain valid JSON") from exc
     return validate_request(request)
+
+
+def reject_duplicate_object_members(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValidationError(
+                f"request file contains duplicate object member: {key}"
+            )
+        result[key] = value
+    return result
 
 
 def parse_args(argv=None):
