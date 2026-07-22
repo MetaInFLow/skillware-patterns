@@ -1,0 +1,52 @@
+name: Support Ticket Triage
+name_zh: 客服工单分流
+pipeline_contract: support-ticket-pipeline-v1
+record_contract: support-ticket.v1
+participants:
+  data_source:
+    path: fixtures/valid/urgent-access.json
+  filters:
+    - id: normalize
+      path: child-skills/normalize/SKILL.md
+    - id: redact
+      path: child-skills/redact/SKILL.md
+    - id: classify
+      path: child-skills/classify/SKILL.md
+    - id: prioritize
+      path: child-skills/prioritize/SKILL.md
+    - id: draft
+      path: child-skills/draft/SKILL.md
+  pipe:
+    path: references/support-ticket-record-contract.md
+  data_sink:
+    path: expected/urgent-access-result.json
+filter_order:
+  - normalize
+  - redact
+  - classify
+  - prioritize
+  - draft
+record_fields:
+  - schema
+  - text
+  - category
+  - priority
+  - draft
+invocation_policy: exactly-once-in-runner-order
+pipe_validation: before-and-after-every-filter
+mutation_policy: deep-copy-at-every-pipe-transfer
+failure_policy: stop-with-stage-attribution
+filter_substitution: same-record-contract
+duplicate_filters: reject
+missing_filters: reject
+unknown_filters: reject
+input_limit_bytes: 65536
+maximum_json_depth: 32
+oracle_scope: local-sequential-in-process
+outside_oracle:
+  - buffering
+  - backpressure
+  - concurrency
+  - network-transport
+oracle_path: scripts/run_demo.py
+contract_path: references/support-ticket-record-contract.md

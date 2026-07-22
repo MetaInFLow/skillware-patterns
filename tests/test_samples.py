@@ -43,6 +43,7 @@ class MaterializedSampleTest(unittest.TestCase):
         self.assertIn(PATTERNS / "template-method", self.materialized)
         self.assertIn(PATTERNS / "memento", self.materialized)
         self.assertIn(PATTERNS / "mediator", self.materialized)
+        self.assertIn(PATTERNS / "pipes-and-filters", self.materialized)
         for record in self.materialized:
             with self.subTest(pattern=record.name):
                 with TemporaryDirectory() as temp_dir:

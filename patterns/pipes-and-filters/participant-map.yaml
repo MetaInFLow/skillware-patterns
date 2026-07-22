@@ -1,0 +1,58 @@
+pattern: Pipes and Filters
+pattern_id: pipes-and-filters
+source_tradition: Pattern-Oriented Software Architecture
+participants:
+  Data Source:
+    role: Support ticket request
+    behavior: Admits one text field and emits the initial support-ticket.v1 record.
+    paths:
+      - sample/fixtures/valid/urgent-access.json
+      - sample/scripts/run_demo.py
+      - sample/references/support-ticket-record-contract.md
+  Filter:
+    role: Independent record-to-record transformation
+    behavior: Each addressable Filter accepts and returns support-ticket.v1 without hidden state.
+    implementations:
+      - id: normalize
+        path: sample/child-skills/normalize/SKILL.md
+      - id: redact
+        path: sample/child-skills/redact/SKILL.md
+      - id: classify
+        path: sample/child-skills/classify/SKILL.md
+      - id: prioritize
+        path: sample/child-skills/prioritize/SKILL.md
+      - id: draft
+        path: sample/child-skills/draft/SKILL.md
+    paths:
+      - sample/scripts/run_demo.py
+      - sample/references/support-ticket-record-contract.md
+  Pipe:
+    role: Versioned record contract and copy boundary
+    behavior: Validates support-ticket.v1 before and after every Filter and transfers a deep copy.
+    paths:
+      - sample/references/support-ticket-record-contract.md
+      - sample/scripts/run_demo.py
+      - sample/skillware.yaml
+  Data Sink:
+    role: Completed triage result
+    behavior: Requires classification and a draft, then emits a detached record and canonical trace.
+    paths:
+      - sample/expected/urgent-access-result.json
+      - sample/scripts/run_demo.py
+execution_context:
+  Agent Host:
+    responsibility: Activates the support-ticket-triage Skillware Unit.
+    evidence_status: not observable
+    note: The constructive sample supplies no Agent Host integration evidence.
+  Agent Runtime:
+    responsibility: Interprets activated Behavioral Source and invokes the declared filters.
+    evidence_status: not observable
+    note: The deterministic Python oracle is not evidence of model interpretation.
+implementation_paths:
+  - sample/SKILL.md
+  - sample/skillware.yaml
+  - sample/scripts/run_demo.py
+  - sample/references/support-ticket-record-contract.md
+  - sample/tests/test_demo.py
+misuse_path: misuse/SKILL.md
+evidence_path: evidence/openmontage-frozen-case.md

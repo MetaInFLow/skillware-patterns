@@ -1134,6 +1134,113 @@ class PatternRecordContractTest(unittest.TestCase):
                     self.assertNotIn("skillware-github", text)
                     self.assertNotIn("github.com/MetaInFLow/skillware", text)
 
+    def test_pipes_and_filters_roles_contract_and_posa_boundary(self):
+        record = PATTERNS / "pipes-and-filters"
+        participant_map = yaml.safe_load(
+            (record / "participant-map.yaml").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            set(participant_map["participants"]),
+            {"Data Source", "Filter", "Pipe", "Data Sink"},
+        )
+        filter_ids = {
+            item["id"]
+            for item in participant_map["participants"]["Filter"]["implementations"]
+        }
+        self.assertEqual(
+            filter_ids,
+            {"normalize", "redact", "classify", "prioritize", "draft"},
+        )
+        context = participant_map["execution_context"]
+        self.assertEqual(set(context), {"Agent Host", "Agent Runtime"})
+        for role in context.values():
+            self.assertEqual(role["evidence_status"], "not observable")
+            self.assertNotIn("path", role)
+            self.assertNotIn("evidence_path", role)
+
+        contract = yaml.safe_load(
+            (record / "sample/skillware.yaml").read_text(encoding="utf-8")
+        )
+        self.assertEqual(contract["pipeline_contract"], "support-ticket-pipeline-v1")
+        self.assertEqual(contract["record_contract"], "support-ticket.v1")
+        self.assertEqual(
+            contract["filter_order"],
+            ["normalize", "redact", "classify", "prioritize", "draft"],
+        )
+        self.assertEqual(contract["invocation_policy"], "exactly-once-in-runner-order")
+        self.assertEqual(contract["pipe_validation"], "before-and-after-every-filter")
+        self.assertEqual(contract["mutation_policy"], "deep-copy-at-every-pipe-transfer")
+        self.assertEqual(contract["failure_policy"], "stop-with-stage-attribution")
+        self.assertEqual(contract["filter_substitution"], "same-record-contract")
+
+        english = (record / "definition.md").read_text(encoding="utf-8")
+        chinese = (record / "definition.zh-CN.md").read_text(encoding="utf-8")
+        for text in (english, chinese):
+            self.assertIn("Pattern-Oriented Software Architecture", text)
+            self.assertIn("not a Gang of Four pattern", text)
+            self.assertIn("Data Source", text)
+            self.assertIn("Filter", text)
+            self.assertIn("Pipe", text)
+            self.assertIn("Data Sink", text)
+        self.assertIn("buffering, backpressure, concurrency, and network transport", english)
+        self.assertIn("缓冲、背压、并发和网络传输", chinese)
+
+    def test_pipes_and_filters_openmontage_evidence_is_exact_pinned_candidate(self):
+        record = PATTERNS / "pipes-and-filters"
+        correspondence = (record / "correspondence.md").read_text(encoding="utf-8")
+        evidence = (record / "evidence/openmontage-frozen-case.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("[frozen evidence](evidence/openmontage-frozen-case.md)", correspondence)
+        self.assertIn("**Status:** candidate correspondence", correspondence)
+        self.assertNotIn("**Status:** confirmed correspondence", correspondence)
+        self.assertIn("**Claim status:** candidate correspondence", evidence)
+        self.assertNotIn("**Claim status:** confirmed correspondence", evidence)
+
+        expected_paths = {
+            "pipeline_defs/animated-explainer.yaml",
+            "lib/pipeline_loader.py",
+            "skills/pipelines/explainer/research-director.md",
+            "skills/pipelines/explainer/proposal-director.md",
+            "skills/pipelines/explainer/script-director.md",
+            "skills/pipelines/explainer/scene-director.md",
+            "skills/pipelines/explainer/asset-director.md",
+            "skills/pipelines/explainer/edit-director.md",
+            "skills/pipelines/explainer/compose-director.md",
+            "skills/pipelines/explainer/publish-director.md",
+        }
+        pinned_paths = set()
+        for url in re.findall(r"https://github\.com/[^)\s]+", evidence):
+            parsed = urlparse(url)
+            parts = parsed.path.strip("/").split("/")
+            if len(parts) < 5 or parts[2] != "blob":
+                continue
+            with self.subTest(url=url):
+                self.assertEqual(parsed.scheme, "https")
+                self.assertEqual(parsed.netloc, "github.com")
+                self.assertEqual(parts[:2], ["calesthio", "OpenMontage"])
+                self.assertEqual(parts[3], "db91727598d08d40919d7d68a47864a5467bd448")
+                upstream_path = "/".join(parts[4:])
+                self.assertIn(upstream_path, expected_paths)
+                pinned_paths.add(upstream_path)
+        self.assertEqual(pinned_paths, expected_paths)
+
+        for required in (
+            "common versioned record envelope remains unverified",
+            "filter isolation remains unverified",
+            "runtime behavior remains unverified",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, evidence)
+
+        for path in record.rglob("*"):
+            if path.is_file() and path.suffix in {".md", ".yaml", ".py", ".json"}:
+                with self.subTest(path=path.relative_to(record)):
+                    text = path.read_text(encoding="utf-8")
+                    self.assertNotIn("skillware-github", text)
+                    self.assertNotIn("github.com/MetaInFLow/skillware", text)
+
 
 if __name__ == "__main__":
     unittest.main()

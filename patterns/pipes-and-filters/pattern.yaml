@@ -1,0 +1,9 @@
+id: pipes-and-filters
+name: Pipes and Filters
+name_zh: 管道-过滤器模式
+source_tradition: pattern-oriented-software-architecture
+source_category: architectural
+paper_role: repository-supplement
+implementation_status: detailed
+scenario: Support Ticket Triage
+scenario_zh: 客服工单分流

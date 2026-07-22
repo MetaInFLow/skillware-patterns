@@ -1,0 +1,16 @@
+{
+  "record": {
+    "schema": "support-ticket.v1",
+    "text": "urgent email [redacted-email]: cannot login",
+    "category": "access",
+    "priority": "high",
+    "draft": "We received your access ticket. Priority: high."
+  },
+  "trace": [
+    "normalize",
+    "redact",
+    "classify",
+    "prioritize",
+    "draft"
+  ]
+}
