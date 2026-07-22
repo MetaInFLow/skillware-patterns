@@ -28,9 +28,11 @@ contract bounds individual strings and nesting depth but does not cap the
 finding array, preserving substitution under additional wrapper composition.
 
 The demo uses only the Python standard library and makes no network or model
-calls. Fixtures pin exact success output and stable errors for malformed or
-duplicate-member JSON, exact fields, types, bounds, invalid UTF-8, and lone Unicode
-surrogates, non-string programmatic keys, excessive depth, cyclic values,
-per-string bounds, and duplicate finding identities. Python is a deterministic
-oracle, not a legal, privacy, citation, or compliance review system and not
-evidence of Agent Runtime interpretation.
+calls. JSON fixtures pin exact success output and stable errors for malformed
+JSON, duplicate members, exact fields and types, blank text, lone Unicode
+surrogates, and excessive depth. Focused programmatic tests cover invalid
+UTF-8, non-string mapping keys, cyclic values, parser recursion, per-string
+bounds, more than 100 findings and wrappers, duplicate finding identity and
+idempotency, and alias isolation. Python is a deterministic oracle, not a
+legal, privacy, citation, or compliance review system and not evidence of Agent
+Runtime interpretation.
