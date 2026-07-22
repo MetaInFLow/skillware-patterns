@@ -1,0 +1,6 @@
+{
+  "schema": "enterprise-rfp-v1",
+  "rfp_id": "rfp-invalid-003",
+  "domain": "healthcare",
+  "requirements": "all"
+}

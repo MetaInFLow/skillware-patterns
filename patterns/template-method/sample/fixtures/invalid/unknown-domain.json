@@ -1,0 +1,8 @@
+{
+  "schema": "enterprise-rfp-v1",
+  "rfp_id": "rfp-invalid-002",
+  "domain": "aviation",
+  "requirements": [
+    {"id": "safety", "text": "Supply safety evidence.", "mandatory": true}
+  ]
+}

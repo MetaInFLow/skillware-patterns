@@ -1,0 +1,46 @@
+{
+  "rfp_id": "rfp-finance-001",
+  "domain": "finance",
+  "requirement_ids": [
+    "integrity",
+    "auditability"
+  ],
+  "gaps": [],
+  "domain_result": {
+    "domain": "finance",
+    "focus_areas": [
+      "transaction-integrity",
+      "regulatory-auditability"
+    ],
+    "required_evidence": [
+      "control-testing-report",
+      "audit-trail-sample"
+    ]
+  },
+  "draft": {
+    "summary": "Drafted response for rfp-finance-001.",
+    "requirement_ids": [
+      "integrity",
+      "auditability"
+    ],
+    "domain_focus": [
+      "transaction-integrity",
+      "regulatory-auditability"
+    ]
+  },
+  "quality": {
+    "passed": true,
+    "checks": [
+      "all-requirements-covered",
+      "domain-hook-validated",
+      "mandatory-order-preserved"
+    ]
+  },
+  "stages": [
+    "extract-requirements",
+    "analyze-gaps",
+    "apply-domain-hook",
+    "draft-response",
+    "quality-check"
+  ]
+}

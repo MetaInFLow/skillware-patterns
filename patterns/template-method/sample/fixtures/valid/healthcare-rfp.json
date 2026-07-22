@@ -1,0 +1,17 @@
+{
+  "schema": "enterprise-rfp-v1",
+  "rfp_id": "rfp-healthcare-001",
+  "domain": "healthcare",
+  "requirements": [
+    {
+      "id": "security",
+      "text": "Protect patient data and provide control evidence.",
+      "mandatory": true
+    },
+    {
+      "id": "continuity",
+      "text": "Maintain clinical workflow continuity during rollout.",
+      "mandatory": true
+    }
+  ]
+}

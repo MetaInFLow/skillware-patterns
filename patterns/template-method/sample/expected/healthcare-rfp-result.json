@@ -1,0 +1,46 @@
+{
+  "rfp_id": "rfp-healthcare-001",
+  "domain": "healthcare",
+  "requirement_ids": [
+    "security",
+    "continuity"
+  ],
+  "gaps": [],
+  "domain_result": {
+    "domain": "healthcare",
+    "focus_areas": [
+      "patient-data-protection",
+      "clinical-workflow-continuity"
+    ],
+    "required_evidence": [
+      "security-control-mapping",
+      "clinical-adoption-plan"
+    ]
+  },
+  "draft": {
+    "summary": "Drafted response for rfp-healthcare-001.",
+    "requirement_ids": [
+      "security",
+      "continuity"
+    ],
+    "domain_focus": [
+      "patient-data-protection",
+      "clinical-workflow-continuity"
+    ]
+  },
+  "quality": {
+    "passed": true,
+    "checks": [
+      "all-requirements-covered",
+      "domain-hook-validated",
+      "mandatory-order-preserved"
+    ]
+  },
+  "stages": [
+    "extract-requirements",
+    "analyze-gaps",
+    "apply-domain-hook",
+    "draft-response",
+    "quality-check"
+  ]
+}

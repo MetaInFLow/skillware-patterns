@@ -1,0 +1,59 @@
+pattern: Template Method
+pattern_id: template-method
+participants:
+  AbstractClass:
+    role: Enterprise RFP Response root Skill and RfpResponseTemplate oracle class
+    behavior: Owns the complete invariant run-rfp skeleton, implements all mandatory operations, invokes the one overridable operation exactly once, and validates the final result.
+    paths:
+      - sample/SKILL.md
+      - sample/scripts/run_demo.py
+      - sample/references/rfp-domain-hook-contract.md
+  ConcreteClass:
+    role: Healthcare and Finance domain child Skills and oracle subclasses
+    behavior: Each implements only the bounded apply-domain-hook operation through the same contract and cannot replace or reorder the AbstractClass skeleton.
+    implementations:
+      - id: healthcare
+        path: sample/child-skills/healthcare/SKILL.md
+        demo_class: HealthcareRfpResponse
+      - id: finance
+        path: sample/child-skills/finance/SKILL.md
+        demo_class: FinanceRfpResponse
+execution_context:
+  Agent Host:
+    responsibility: Activates the root or a separately addressed domain Skill Artifact.
+    evidence_status: not observable
+    note: The constructive sample supplies no Agent Host integration evidence.
+  Agent Runtime:
+    responsibility: Interprets activated Behavioral Source and carries out the workflow.
+    evidence_status: not observable
+    note: The deterministic Python oracle is not evidence of model interpretation.
+implementation_paths:
+  - sample/scripts/run_demo.py
+  - sample/skillware.yaml
+  - sample/references/rfp-domain-hook-contract.md
+  - sample/fixtures/valid/healthcare-rfp.json
+  - sample/fixtures/valid/finance-rfp.json
+  - sample/fixtures/invalid/malformed-request.json
+  - sample/fixtures/invalid/unknown-domain.json
+  - sample/fixtures/invalid/wrong-requirements-type.json
+  - sample/fixtures/invalid/duplicate-requirement-id.json
+  - sample/fixtures/invalid/invalid-json.json
+  - sample/fixtures/invalid/lone-surrogate.json
+  - sample/fixtures/invalid/duplicate-root-member.json
+  - sample/fixtures/invalid/duplicate-nested-member.json
+  - sample/fixtures/invalid/excessive-depth.json
+  - sample/expected/healthcare-rfp-result.json
+  - sample/expected/finance-rfp-result.json
+  - sample/expected/malformed-request-error.txt
+  - sample/expected/unknown-domain-error.txt
+  - sample/expected/wrong-requirements-type-error.txt
+  - sample/expected/duplicate-requirement-id-error.txt
+  - sample/expected/invalid-json-error.txt
+  - sample/expected/lone-surrogate-error.txt
+  - sample/expected/duplicate-root-member-error.txt
+  - sample/expected/duplicate-nested-member-error.txt
+  - sample/expected/excessive-depth-error.txt
+  - sample/expected/non-utf8-request-error.txt
+  - sample/tests/test_demo.py
+misuse_path: misuse/SKILL.md
+evidence_path: evidence/superpowers-frozen-case.md

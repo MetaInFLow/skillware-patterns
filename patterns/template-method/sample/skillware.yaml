@@ -1,0 +1,38 @@
+name: Enterprise RFP Response
+name_zh: 企业 RFP 响应
+request_schema: enterprise-rfp-v1
+domain_hook_contract: rfp-domain-hook-v1
+abstract_class:
+  role: AbstractClass
+  id: enterprise-rfp-response
+  path: SKILL.md
+  template_method:
+    operation: run-rfp
+    order:
+      - extract-requirements
+      - analyze-gaps
+      - apply-domain-hook
+      - draft-response
+      - quality-check
+  invariant_operations:
+    - extract-requirements
+    - analyze-gaps
+    - draft-response
+    - quality-check
+  overridable_operations:
+    - apply-domain-hook
+concrete_classes:
+  - role: ConcreteClass
+    id: healthcare
+    path: child-skills/healthcare/SKILL.md
+    implements: rfp-domain-hook-v1
+  - role: ConcreteClass
+    id: finance
+    path: child-skills/finance/SKILL.md
+    implements: rfp-domain-hook-v1
+hook_invocation_count: exactly-once
+hook_failure_policy: propagate-unchanged-and-stop
+mutation_policy: copy-at-boundaries
+maximum_nesting_depth: 64
+contract_path: references/rfp-domain-hook-contract.md
+oracle_path: scripts/run_demo.py

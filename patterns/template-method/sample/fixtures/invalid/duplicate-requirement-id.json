@@ -1,0 +1,9 @@
+{
+  "schema": "enterprise-rfp-v1",
+  "rfp_id": "rfp-invalid-004",
+  "domain": "healthcare",
+  "requirements": [
+    {"id": "same", "text": "First requirement.", "mandatory": true},
+    {"id": "same", "text": "Second requirement.", "mandatory": false}
+  ]
+}

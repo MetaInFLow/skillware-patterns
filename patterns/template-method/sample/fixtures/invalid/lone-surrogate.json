@@ -1,0 +1,1 @@
+{"schema":"enterprise-rfp-v1","rfp_id":"rfp-invalid-005","domain":"healthcare","requirements":[{"id":"bad","text":"bad \ud800 value","mandatory":true}]}

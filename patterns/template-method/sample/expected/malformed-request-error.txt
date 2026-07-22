@@ -1,0 +1,1 @@
+ERROR: request fields must be exactly: schema, rfp_id, domain, requirements; missing: requirements

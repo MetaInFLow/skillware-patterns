@@ -1,0 +1,17 @@
+{
+  "schema": "enterprise-rfp-v1",
+  "rfp_id": "rfp-finance-001",
+  "domain": "finance",
+  "requirements": [
+    {
+      "id": "integrity",
+      "text": "Preserve transaction integrity across integrations.",
+      "mandatory": true
+    },
+    {
+      "id": "auditability",
+      "text": "Provide an exportable control audit trail.",
+      "mandatory": true
+    }
+  ]
+}

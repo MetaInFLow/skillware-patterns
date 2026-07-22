@@ -1,0 +1,9 @@
+id: template-method
+name: Template Method
+name_zh: 模板方法模式
+source_tradition: gang-of-four
+source_category: behavioral
+paper_role: repository-supplement
+implementation_status: detailed
+scenario: Enterprise RFP Response
+scenario_zh: 企业 RFP 响应
