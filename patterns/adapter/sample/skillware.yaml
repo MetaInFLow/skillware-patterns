@@ -1,0 +1,30 @@
+id: multi-tracker-issue-publisher
+name: Multi-Tracker Issue Publisher
+name_zh: 多问题追踪器发布
+pattern: adapter
+entry_skill: SKILL.md
+adaptee:
+  canonical_fields:
+    - id
+    - title
+    - description
+    - severity
+targets:
+  - id: github
+    adapter_operation: adapt_github
+  - id: jira
+    adapter_operation: adapt_jira
+  - id: linear
+    adapter_operation: adapt_linear
+severity_values:
+  - low
+  - medium
+  - high
+  - critical
+contract_reference: references/tracker-contracts.md
+demo:
+  python: ">=3.10"
+  standard_library_only: true
+  network_required: false
+  default_fixture: fixtures/valid/github.json
+  command: python3 scripts/run_demo.py

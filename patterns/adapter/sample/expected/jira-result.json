@@ -1,0 +1,11 @@
+{
+  "target": "jira",
+  "payload": {
+    "external_id": "ISSUE-104",
+    "summary": "Checkout retries exhaust",
+    "description": "Payment requests fail after retry budget is exhausted.",
+    "priority": {
+      "name": "Highest"
+    }
+  }
+}

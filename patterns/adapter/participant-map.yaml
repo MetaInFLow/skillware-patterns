@@ -1,0 +1,51 @@
+pattern: Adapter
+pattern_id: adapter
+participants:
+  Client:
+    role: Task caller
+    behavior: Supplies one canonical issue and selects a target tracker.
+    path: sample/README.md
+  Target:
+    role: Tracker publishing contract
+    behavior: Defines the payload expected by GitHub, Jira, or Linear.
+    path: sample/references/tracker-contracts.md
+  Adaptee:
+    role: Canonical issue-publishing Skill
+    behavior: Defines stable issue identity and semantics independently of any tracker.
+    path: sample/SKILL.md
+  Adapter:
+    role: Thin target bindings
+    behavior: Translates canonical fields and severity meaning into each Target contract.
+    implementations:
+      - id: github
+        operation: adapt_github
+        path: sample/scripts/run_demo.py
+      - id: jira
+        operation: adapt_jira
+        path: sample/scripts/run_demo.py
+      - id: linear
+        operation: adapt_linear
+        path: sample/scripts/run_demo.py
+execution_context:
+  Agent Host:
+    responsibility: Activates the Skillware Unit and may carry an Adapter binding.
+    evidence_status: not observable
+    note: A Host is not automatically a GoF participant; this sample has no Host integration evidence.
+  Agent Runtime:
+    responsibility: Interprets the activated behavioral source and binding instructions.
+    evidence_status: not observable
+    note: The deterministic demo is an oracle, not evidence of model interpretation.
+implementation_paths:
+  - sample/fixtures/valid/github.json
+  - sample/fixtures/valid/jira.json
+  - sample/fixtures/valid/linear.json
+  - sample/fixtures/invalid/unknown-target.json
+  - sample/fixtures/invalid/malformed-issue.json
+  - sample/expected/github-result.json
+  - sample/expected/jira-result.json
+  - sample/expected/linear-result.json
+  - sample/expected/unknown-target-error.txt
+  - sample/expected/malformed-issue-error.txt
+  - sample/tests/test_demo.py
+misuse_path: misuse/SKILL.md
+evidence_path: evidence/gstack-frozen-case.md

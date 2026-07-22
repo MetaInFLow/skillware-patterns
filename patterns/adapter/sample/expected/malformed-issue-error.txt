@@ -1,0 +1,1 @@
+error: issue requires non-empty string fields: id, title, description, severity

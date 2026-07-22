@@ -1,0 +1,11 @@
+{
+  "target": "github",
+  "payload": {
+    "external_id": "ISSUE-104",
+    "title": "Checkout retries exhaust",
+    "body": "Payment requests fail after retry budget is exhausted.",
+    "labels": [
+      "severity:critical"
+    ]
+  }
+}

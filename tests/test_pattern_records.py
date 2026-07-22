@@ -177,6 +177,73 @@ class PatternRecordContractTest(unittest.TestCase):
         self.assertIn("人工分诊回退", text)
         self.assertNotIn("人工作业回退", text)
 
+    def test_adapter_has_publicly_verifiable_local_evidence(self):
+        record = PATTERNS / "adapter"
+        evidence = record / "evidence/gstack-frozen-case.md"
+        correspondence = (record / "correspondence.md").read_text(encoding="utf-8")
+
+        self.assertTrue(evidence.is_file())
+        self.assertIn(
+            "[frozen evidence](evidence/gstack-frozen-case.md)",
+            correspondence,
+        )
+        local_links = [
+            target
+            for target in re.findall(r"\[[^]]+\]\(([^)]+)\)", correspondence)
+            if "://" not in target
+        ]
+        for target in local_links:
+            with self.subTest(target=target):
+                self.assertTrue((record / target).is_file())
+
+        evidence_text = evidence.read_text(encoding="utf-8")
+        for required in (
+            "11de390be1be6849eb9a15f91ff4922dd16c589a",
+            "scripts/gen-skill-docs.ts",
+            "hosts/claude.ts",
+            "hosts/codex.ts",
+            "test/codex-e2e.test.ts",
+            "strong correspondence",
+            "Runtime-parity limitation",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, evidence_text)
+
+    def test_adapter_public_record_has_no_private_research_links(self):
+        record = PATTERNS / "adapter"
+        for path in record.rglob("*"):
+            if path.is_file() and path.suffix in {".md", ".yaml", ".py", ".json"}:
+                with self.subTest(path=path.relative_to(record)):
+                    text = path.read_text(encoding="utf-8")
+                    self.assertNotIn("skillware-github", text)
+                    self.assertNotIn("github.com/MetaInFLow/skillware", text)
+
+    def test_adapter_separates_gof_participants_from_execution_context(self):
+        participant_map = yaml.safe_load(
+            (PATTERNS / "adapter/participant-map.yaml").read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(
+            set(participant_map["participants"]),
+            {"Client", "Target", "Adaptee", "Adapter"},
+        )
+        self.assertEqual(
+            participant_map["participants"]["Adaptee"]["path"],
+            "sample/SKILL.md",
+        )
+        adapter_ids = {
+            item["id"]
+            for item in participant_map["participants"]["Adapter"]["implementations"]
+        }
+        self.assertEqual(adapter_ids, {"github", "jira", "linear"})
+
+        context = participant_map["execution_context"]
+        self.assertEqual(set(context), {"Agent Host", "Agent Runtime"})
+        for role in context.values():
+            self.assertEqual(role["evidence_status"], "not observable")
+            self.assertNotIn("path", role)
+            self.assertNotIn("evidence_path", role)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,9 @@
+id: adapter
+name: Adapter
+name_zh: 适配器模式
+source_tradition: gang-of-four
+source_category: structural
+paper_role: main-text
+implementation_status: detailed
+scenario: Multi-Tracker Issue Publisher
+scenario_zh: 多问题追踪器发布
