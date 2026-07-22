@@ -2,6 +2,7 @@
 
 A pattern transfer preserves an established source pattern's problem structure rather than its implementation syntax. Admission requires all seven elements below to be explicit, observable, and coherent for one declared Skillware Unit and revision.
 
+```text
 Source intent
 Design forces
 Participant correspondence
@@ -9,6 +10,7 @@ Consequences
 Implementation evidence
 Focused verification
 Misuse discriminator
+```
 
 ## Admission review
 
