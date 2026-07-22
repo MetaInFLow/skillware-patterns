@@ -1,0 +1,63 @@
+pattern: Decorator
+pattern_id: decorator
+participants:
+  Component:
+    role: contract-review-v1 shared Skill interface
+    behavior: Defines the exact text request and summary/findings result contract implemented by the base and every wrapper.
+    path: sample/references/contract-review-component.md
+  ConcreteComponent:
+    role: Base Contract Review child Skill and base_review demo callable
+    behavior: Implements the shared operation without privacy or citation enhancements and can be used directly or wrapped.
+    paths:
+      - sample/child-skills/base-contract-review/SKILL.md
+      - sample/scripts/run_demo.py
+  Decorator:
+    role: Contract-preserving wrapper protocol in the root Skill and Component contract
+    behavior: Holds another Component, invokes it exactly once through the shared operation, validates and copies its result, and preserves interface and failure semantics.
+    paths:
+      - sample/SKILL.md
+      - sample/references/contract-review-component.md
+  ConcreteDecorator:
+    role: Privacy Check and Citation Check child Skills and wrapper callables
+    behavior: Each implements the Component contract, delegates once, and appends only its own bounded finding after all inner findings.
+    implementations:
+      - id: privacy-check
+        path: sample/child-skills/privacy-check/SKILL.md
+        demo_callable: with_privacy_check
+      - id: citation-check
+        path: sample/child-skills/citation-check/SKILL.md
+        demo_callable: with_citation_check
+execution_context:
+  Agent Host:
+    responsibility: Activates the root Skill, base Skill, or composed wrapper Skills.
+    evidence_status: not observable
+    note: The constructive sample supplies no Agent Host integration evidence.
+  Agent Runtime:
+    responsibility: Interprets an activated Skill and coordinates Component invocation.
+    evidence_status: not observable
+    note: The deterministic Python oracle does not establish model interpretation.
+implementation_paths:
+  - sample/scripts/run_demo.py
+  - sample/skillware.yaml
+  - sample/references/contract-review-component.md
+  - sample/fixtures/valid/enhanced-contract.json
+  - sample/fixtures/valid/clean-contract.json
+  - sample/fixtures/invalid/malformed-request.json
+  - sample/fixtures/invalid/wrong-text-type.json
+  - sample/fixtures/invalid/blank-text.json
+  - sample/fixtures/invalid/invalid-json.json
+  - sample/fixtures/invalid/lone-surrogate.json
+  - sample/fixtures/invalid/duplicate-root-member.json
+  - sample/fixtures/invalid/duplicate-nested-member.json
+  - sample/expected/enhanced-contract-result.json
+  - sample/expected/clean-contract-result.json
+  - sample/expected/malformed-request-error.txt
+  - sample/expected/wrong-text-type-error.txt
+  - sample/expected/blank-text-error.txt
+  - sample/expected/invalid-json-error.txt
+  - sample/expected/lone-surrogate-error.txt
+  - sample/expected/duplicate-root-member-error.txt
+  - sample/expected/duplicate-nested-member-error.txt
+  - sample/expected/non-utf8-request-error.txt
+  - sample/tests/test_demo.py
+misuse_path: misuse/SKILL.md

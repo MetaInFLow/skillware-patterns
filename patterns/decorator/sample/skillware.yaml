@@ -1,0 +1,28 @@
+name: Contract Review Enhancers
+name_zh: 合同审查增强
+component_contract: contract-review-v1
+operation: review
+request_fields: [text]
+result_fields: [summary, findings]
+finding_fields: [type, message]
+base_component:
+  id: base-contract-review
+  implements: contract-review-v1
+  path: child-skills/base-contract-review/SKILL.md
+decorators:
+  - id: privacy-check
+    implements: contract-review-v1
+    path: child-skills/privacy-check/SKILL.md
+    adds: email-privacy-finding
+  - id: citation-check
+    implements: contract-review-v1
+    path: child-skills/citation-check/SKILL.md
+    adds: missing-citation-finding
+default_composition:
+  wrapped_component: base-contract-review
+  inside_to_outside: [privacy-check, citation-check]
+  finding_order: [privacy, citation]
+mutation_policy: copy-at-every-boundary
+failure_policy: propagate-unchanged
+contract_path: references/contract-review-component.md
+oracle_path: scripts/run_demo.py

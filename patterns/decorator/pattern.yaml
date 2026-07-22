@@ -1,0 +1,9 @@
+id: decorator
+name: Decorator
+name_zh: 装饰模式
+source_tradition: gang-of-four
+source_category: structural
+paper_role: repository-supplement
+implementation_status: detailed
+scenario: Contract Review Enhancers
+scenario_zh: 合同审查增强

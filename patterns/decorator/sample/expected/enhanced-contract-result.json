@@ -1,0 +1,13 @@
+{
+  "summary": "Base contract review completed.",
+  "findings": [
+    {
+      "type": "privacy",
+      "message": "Email address detected."
+    },
+    {
+      "type": "citation",
+      "message": "Missing citation marker detected."
+    }
+  ]
+}

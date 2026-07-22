@@ -705,6 +705,85 @@ class PatternRecordContractTest(unittest.TestCase):
                     self.assertNotIn("skillware-github", text)
                     self.assertNotIn("github.com/MetaInFLow/skillware", text)
 
+    def test_decorator_separates_gof_participants_from_execution_context(self):
+        participant_map = yaml.safe_load(
+            (PATTERNS / "decorator/participant-map.yaml").read_text(
+                encoding="utf-8"
+            )
+        )
+
+        self.assertEqual(
+            set(participant_map["participants"]),
+            {"Component", "ConcreteComponent", "Decorator", "ConcreteDecorator"},
+        )
+        decorator_ids = {
+            item["id"]
+            for item in participant_map["participants"]["ConcreteDecorator"][
+                "implementations"
+            ]
+        }
+        self.assertEqual(decorator_ids, {"privacy-check", "citation-check"})
+
+        context = participant_map["execution_context"]
+        self.assertEqual(set(context), {"Agent Host", "Agent Runtime"})
+        for role in context.values():
+            self.assertEqual(role["evidence_status"], "not observable")
+            self.assertNotIn("path", role)
+            self.assertNotIn("evidence_path", role)
+
+    def test_decorator_contract_declares_preservation_and_order(self):
+        contract = yaml.safe_load(
+            (PATTERNS / "decorator/sample/skillware.yaml").read_text(
+                encoding="utf-8"
+            )
+        )
+
+        self.assertEqual(contract["component_contract"], "contract-review-v1")
+        self.assertEqual(contract["operation"], "review")
+        self.assertEqual(contract["request_fields"], ["text"])
+        self.assertEqual(contract["result_fields"], ["summary", "findings"])
+        self.assertEqual(contract["finding_fields"], ["type", "message"])
+        self.assertEqual(contract["base_component"]["id"], "base-contract-review")
+        self.assertEqual(
+            [item["id"] for item in contract["decorators"]],
+            ["privacy-check", "citation-check"],
+        )
+        self.assertTrue(
+            all(
+                item["implements"] == "contract-review-v1"
+                for item in contract["decorators"]
+            )
+        )
+        self.assertEqual(
+            contract["default_composition"],
+            {
+                "wrapped_component": "base-contract-review",
+                "inside_to_outside": ["privacy-check", "citation-check"],
+                "finding_order": ["privacy", "citation"],
+            },
+        )
+        self.assertEqual(contract["mutation_policy"], "copy-at-every-boundary")
+        self.assertEqual(contract["failure_policy"], "propagate-unchanged")
+
+    def test_decorator_explicitly_has_no_assessed_ecosystem_correspondence(self):
+        correspondence = (PATTERNS / "decorator/correspondence.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("**Status:** no assessed correspondence", correspondence)
+        self.assertIn("No public pinned ecosystem case is assessed", correspondence)
+        self.assertNotIn("**Status:** candidate correspondence", correspondence)
+        self.assertNotIn("**Status:** confirmed correspondence", correspondence)
+
+    def test_decorator_public_record_has_no_private_research_links(self):
+        record = PATTERNS / "decorator"
+        for path in record.rglob("*"):
+            if path.is_file() and path.suffix in {".md", ".yaml", ".py", ".json"}:
+                with self.subTest(path=path.relative_to(record)):
+                    text = path.read_text(encoding="utf-8")
+                    self.assertNotIn("skillware-github", text)
+                    self.assertNotIn("github.com/MetaInFLow/skillware", text)
+
 
 if __name__ == "__main__":
     unittest.main()

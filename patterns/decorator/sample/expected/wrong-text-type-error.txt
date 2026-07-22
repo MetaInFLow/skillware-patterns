@@ -1,0 +1,1 @@
+ERROR: request.text must be a string
