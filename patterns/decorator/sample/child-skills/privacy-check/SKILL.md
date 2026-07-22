@@ -19,8 +19,9 @@ exactly `{summary, findings}`.
 Validate and copy the request. Invoke the wrapped Component exactly once with a
 separate copy. Propagate its failure unchanged. Validate and copy its complete
 result. If the original validated text contains an email address, append
-`{"type": "privacy", "message": "Email address detected."}`. Otherwise
-append nothing.
+`{"type": "privacy", "message": "Email address detected."}` unless that
+exact `(type, message)` identity is already present. Otherwise append nothing.
+Repeated Privacy Check wrappers are therefore idempotent.
 
 Preserve the wrapped summary and existing finding order. Do not copy the base
 review procedure, add output fields, or mutate data owned by the caller or

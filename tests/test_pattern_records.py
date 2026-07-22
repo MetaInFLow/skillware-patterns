@@ -722,7 +722,10 @@ class PatternRecordContractTest(unittest.TestCase):
                 "implementations"
             ]
         }
-        self.assertEqual(decorator_ids, {"privacy-check", "citation-check"})
+        self.assertEqual(
+            decorator_ids,
+            {"privacy-check", "citation-check", "compliance-check"},
+        )
 
         context = participant_map["execution_context"]
         self.assertEqual(set(context), {"Agent Host", "Agent Runtime"})
@@ -746,7 +749,7 @@ class PatternRecordContractTest(unittest.TestCase):
         self.assertEqual(contract["base_component"]["id"], "base-contract-review")
         self.assertEqual(
             [item["id"] for item in contract["decorators"]],
-            ["privacy-check", "citation-check"],
+            ["privacy-check", "citation-check", "compliance-check"],
         )
         self.assertTrue(
             all(
@@ -764,16 +767,92 @@ class PatternRecordContractTest(unittest.TestCase):
         )
         self.assertEqual(contract["mutation_policy"], "copy-at-every-boundary")
         self.assertEqual(contract["failure_policy"], "propagate-unchanged")
+        self.assertEqual(contract["finding_identity"], ["type", "message"])
+        self.assertEqual(
+            contract["duplicate_identity_policy"],
+            "reject-component-duplicates-suppress-wrapper-duplicate",
+        )
+        self.assertEqual(contract["finding_count_limit"], "none")
+        self.assertEqual(contract["maximum_nesting_depth"], 64)
 
-    def test_decorator_explicitly_has_no_assessed_ecosystem_correspondence(self):
+    def test_decorator_has_publicly_verifiable_local_candidate_evidence(self):
         correspondence = (PATTERNS / "decorator/correspondence.md").read_text(
             encoding="utf-8"
         )
+        evidence = PATTERNS / "decorator/evidence/caveman-frozen-case.md"
 
-        self.assertIn("**Status:** no assessed correspondence", correspondence)
-        self.assertIn("No public pinned ecosystem case is assessed", correspondence)
-        self.assertNotIn("**Status:** candidate correspondence", correspondence)
+        self.assertTrue(evidence.is_file())
+        self.assertIn(
+            "[frozen evidence](evidence/caveman-frozen-case.md)",
+            correspondence,
+        )
+        self.assertIn("**Status:** candidate correspondence", correspondence)
         self.assertNotIn("**Status:** confirmed correspondence", correspondence)
+
+        evidence_text = evidence.read_text(encoding="utf-8")
+        for required in (
+            "25d22f864ad68cc447a4cb93aefde918aa4aec9f",
+            "src/hooks/caveman-activate.js",
+            "skills/caveman/SKILL.md",
+            "**Claim status:** candidate correspondence",
+            "preserving the Host interaction surface",
+            "does not establish complete GoF Component/Decorator contract equivalence",
+            "runtime behavior remains unverified",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, evidence_text)
+        self.assertNotIn("**Claim status:** confirmed correspondence", evidence_text)
+
+    def test_decorator_caveman_evidence_urls_are_structurally_pinned(self):
+        evidence = (
+            PATTERNS / "decorator/evidence/caveman-frozen-case.md"
+        ).read_text(encoding="utf-8")
+        urls = re.findall(r"https://github\.com/[^)\s]+", evidence)
+        expected_paths = {
+            "src/hooks/caveman-activate.js",
+            "skills/caveman/SKILL.md",
+        }
+        pinned_paths = set()
+
+        for url in urls:
+            parsed = urlparse(url)
+            parts = parsed.path.strip("/").split("/")
+            if len(parts) < 5 or parts[2] not in {"blob", "tree"}:
+                continue
+            owner, repository, _, revision = parts[:4]
+            upstream_path = "/".join(parts[4:])
+            with self.subTest(url=url):
+                self.assertEqual(parsed.scheme, "https")
+                self.assertEqual(parsed.netloc, "github.com")
+                self.assertEqual((owner, repository), ("JuliusBrussee", "caveman"))
+                self.assertEqual(
+                    revision, "25d22f864ad68cc447a4cb93aefde918aa4aec9f"
+                )
+                self.assertIn(upstream_path, expected_paths)
+            pinned_paths.add(upstream_path)
+
+        self.assertEqual(pinned_paths, expected_paths)
+
+    def test_decorator_definitions_preserve_source_ontology_and_limits(self):
+        english = (PATTERNS / "decorator/definition.md").read_text(
+            encoding="utf-8"
+        )
+        chinese = (PATTERNS / "decorator/definition.zh-CN.md").read_text(
+            encoding="utf-8"
+        )
+
+        for text in (english, chinese):
+            self.assertIn("Design Patterns", text)
+            self.assertIn("1994", text)
+            self.assertIn("Gang of Four", text)
+            self.assertIn("Behavioral Source", text)
+            self.assertIn("Skill Artifact", text)
+        self.assertIn(
+            "Behavioral Source defines and informs the root and child Skill Artifacts",
+            english,
+        )
+        self.assertNotIn("Skills are the behavioral source", english)
+        self.assertIn("装饰器之间发现冲突的解决策略不在本契约范围内", chinese)
 
     def test_decorator_public_record_has_no_private_research_links(self):
         record = PATTERNS / "decorator"

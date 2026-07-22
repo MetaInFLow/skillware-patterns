@@ -21,7 +21,8 @@ separate copy. Propagate its failure unchanged. Validate and copy its complete
 result. If the original validated text contains the literal marker
 `[missing]`, append
 `{"type": "citation", "message": "Missing citation marker detected."}`.
-Otherwise append nothing.
+unless that exact `(type, message)` identity is already present. Otherwise
+append nothing. Repeated Citation Check wrappers are therefore idempotent.
 
 Preserve the wrapped summary and existing finding order. Do not copy the base
 review procedure, add output fields, or mutate data owned by the caller or

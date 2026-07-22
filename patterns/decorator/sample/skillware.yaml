@@ -18,11 +18,19 @@ decorators:
     implements: contract-review-v1
     path: child-skills/citation-check/SKILL.md
     adds: missing-citation-finding
+  - id: compliance-check
+    implements: contract-review-v1
+    path: child-skills/compliance-check/SKILL.md
+    adds: compliance-exception-finding
 default_composition:
   wrapped_component: base-contract-review
   inside_to_outside: [privacy-check, citation-check]
   finding_order: [privacy, citation]
 mutation_policy: copy-at-every-boundary
 failure_policy: propagate-unchanged
+finding_identity: [type, message]
+duplicate_identity_policy: reject-component-duplicates-suppress-wrapper-duplicate
+finding_count_limit: none
+maximum_nesting_depth: 64
 contract_path: references/contract-review-component.md
 oracle_path: scripts/run_demo.py

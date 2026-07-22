@@ -3,15 +3,17 @@
 This record transfers the canonical Gang of Four Decorator pattern to Skillware
 through Contract Review Enhancers / 合同审查增强. `contract-review-v1` is the
 Component, Base Contract Review is the ConcreteComponent, the shared wrapper
-protocol is the Decorator, and Privacy Check and Citation Check are
-ConcreteDecorators.
+protocol is the Decorator, and Privacy Check, Citation Check, and optional
+Compliance Check are ConcreteDecorators.
 
 The default composition is
 `with_citation_check(with_privacy_check(base_review))`. It accepts exactly
 `text` and returns exactly `summary` and `findings`; base findings precede
-privacy, which precedes citation. Reversing nesting reverses only the two
-enhancement findings. Every wrapper delegates once, preserves the wrapped
-summary and failure, and copies input and results at participant boundaries.
+privacy, which precedes citation. Compliance is available but excluded from
+that exact plan default. Reversing nesting reverses only the enabled
+enhancements. Every wrapper delegates once, preserves the wrapped summary and
+failure, copies values at participant boundaries, and suppresses an already
+present identical `(type, message)` finding.
 
 - [English definition](definition.md)
 - [中文定义](definition.zh-CN.md)
@@ -20,8 +22,10 @@ summary and failure, and copies input and results at participant boundaries.
 - [Runnable sample](sample/)
 - [Misuse discriminator](misuse/explanation.md)
 
-The local sample is **constructive** evidence. No public pinned ecosystem case
-is assessed for this record, so it makes no candidate or confirmed
-correspondence claim. The construction does not establish ecosystem frequency,
-legal review quality, cross-Host equivalence, Agent Runtime interpretation, or
-comparative benefit.
+The local sample is **constructive** evidence. Caveman is a **candidate
+correspondence** at one fixed public revision: its activation hook adds
+behavior around session start while preserving its process/stdout Host
+interaction surface, but the inspected paths do not establish complete GoF
+Component contract equivalence or runtime behavior. Neither claim establishes
+ecosystem frequency, legal review quality, cross-Host equivalence, Agent
+Runtime interpretation, or comparative benefit.

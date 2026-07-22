@@ -18,7 +18,7 @@ participants:
       - sample/SKILL.md
       - sample/references/contract-review-component.md
   ConcreteDecorator:
-    role: Privacy Check and Citation Check child Skills and wrapper callables
+    role: Privacy, Citation, and optional Compliance Check child Skills and wrapper callables
     behavior: Each implements the Component contract, delegates once, and appends only its own bounded finding after all inner findings.
     implementations:
       - id: privacy-check
@@ -27,6 +27,9 @@ participants:
       - id: citation-check
         path: sample/child-skills/citation-check/SKILL.md
         demo_callable: with_citation_check
+      - id: compliance-check
+        path: sample/child-skills/compliance-check/SKILL.md
+        demo_callable: with_compliance_check
 execution_context:
   Agent Host:
     responsibility: Activates the root Skill, base Skill, or composed wrapper Skills.
@@ -49,6 +52,7 @@ implementation_paths:
   - sample/fixtures/invalid/lone-surrogate.json
   - sample/fixtures/invalid/duplicate-root-member.json
   - sample/fixtures/invalid/duplicate-nested-member.json
+  - sample/fixtures/invalid/excessive-depth.json
   - sample/expected/enhanced-contract-result.json
   - sample/expected/clean-contract-result.json
   - sample/expected/malformed-request-error.txt
@@ -58,6 +62,8 @@ implementation_paths:
   - sample/expected/lone-surrogate-error.txt
   - sample/expected/duplicate-root-member-error.txt
   - sample/expected/duplicate-nested-member-error.txt
+  - sample/expected/excessive-depth-error.txt
   - sample/expected/non-utf8-request-error.txt
   - sample/tests/test_demo.py
 misuse_path: misuse/SKILL.md
+evidence_path: evidence/caveman-frozen-case.md

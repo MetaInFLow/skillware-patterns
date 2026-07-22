@@ -13,11 +13,11 @@ COMPONENT_CONTRACT = "contract-review-v1"
 REQUEST_FIELDS = ("text",)
 RESULT_FIELDS = ("summary", "findings")
 FINDING_FIELDS = ("type", "message")
-DECORATOR_IDS = ("privacy", "citation")
+DECORATOR_IDS = ("privacy-check", "citation-check", "compliance-check")
 MAX_TEXT_CHARACTERS = 10_000
 MAX_SUMMARY_CHARACTERS = 500
-MAX_FINDINGS = 100
 MAX_FINDING_FIELD_CHARACTERS = 200
+MAX_NESTING_DEPTH = 64
 BASE_SUMMARY = "Base contract review completed."
 EMAIL_PATTERN = re.compile(
     r"(?<![A-Za-z0-9.!#$%&'*+/=?^_`{|}~-])"
@@ -43,6 +43,8 @@ class DuplicateMemberError(ValueError):
 def validate_exact_fields(value, fields, label, error_type=ValidationError):
     if not isinstance(value, dict):
         raise error_type(f"{label} must be a JSON object")
+    if any(not isinstance(key, str) for key in value):
+        raise error_type(f"{label} field names must be strings")
     expected = set(fields)
     actual = set(value)
     missing = [field for field in fields if field not in actual]
@@ -60,22 +62,44 @@ def validate_exact_fields(value, fields, label, error_type=ValidationError):
     )
 
 
-def contains_lone_surrogate(value):
-    if isinstance(value, str):
-        return any(0xD800 <= ord(character) <= 0xDFFF for character in value)
-    if isinstance(value, dict):
-        return any(
-            contains_lone_surrogate(key) or contains_lone_surrogate(item)
-            for key, item in value.items()
-        )
-    if isinstance(value, (list, tuple)):
-        return any(contains_lone_surrogate(item) for item in value)
-    return False
+def validate_structure(value, label, error_type=ValidationError):
+    active_container_ids = set()
+    stack = [("enter", value, 0)]
 
+    while stack:
+        action, current, depth = stack.pop()
+        if action == "exit":
+            active_container_ids.remove(id(current))
+            continue
+        if isinstance(current, str):
+            if any(
+                0xD800 <= ord(character) <= 0xDFFF for character in current
+            ):
+                raise error_type(
+                    f"{label} must not contain lone Unicode surrogates"
+                )
+            continue
+        if not isinstance(current, (dict, list, tuple)):
+            continue
+        if depth > MAX_NESTING_DEPTH:
+            raise error_type(
+                f"{label} exceeds maximum nesting depth of {MAX_NESTING_DEPTH}"
+            )
 
-def validate_no_lone_surrogates(value, label, error_type=ValidationError):
-    if contains_lone_surrogate(value):
-        raise error_type(f"{label} must not contain lone Unicode surrogates")
+        identity = id(current)
+        if identity in active_container_ids:
+            raise error_type(f"{label} must not contain cyclic references")
+        active_container_ids.add(identity)
+        stack.append(("exit", current, depth))
+
+        if isinstance(current, dict):
+            children = []
+            for key, item in current.items():
+                children.extend((key, item))
+        else:
+            children = list(current)
+        for child in reversed(children):
+            stack.append(("enter", child, depth + 1))
 
 
 def require_bounded_string(
@@ -94,7 +118,7 @@ def require_bounded_string(
 
 
 def validate_request(request):
-    validate_no_lone_surrogates(request, "request")
+    validate_structure(request, "request")
     validate_exact_fields(request, REQUEST_FIELDS, "request")
     require_bounded_string(
         request["text"],
@@ -107,7 +131,7 @@ def validate_request(request):
 
 def validate_result(result, label="result"):
     error_type = ComponentContractError
-    validate_no_lone_surrogates(result, label, error_type)
+    validate_structure(result, label, error_type)
     validate_exact_fields(result, RESULT_FIELDS, label, error_type)
     require_bounded_string(
         result["summary"],
@@ -118,12 +142,9 @@ def validate_result(result, label="result"):
     findings = result["findings"]
     if not isinstance(findings, list):
         raise error_type(f"{label}.findings must be a JSON array")
-    if len(findings) > MAX_FINDINGS:
-        raise error_type(
-            f"{label}.findings must contain at most {MAX_FINDINGS} items"
-        )
 
     canonical_findings = []
+    identities = set()
     for item in findings:
         item_label = "component finding" if label == "component result" else "finding"
         validate_exact_fields(item, FINDING_FIELDS, item_label, error_type)
@@ -134,9 +155,15 @@ def validate_result(result, label="result"):
                 MAX_FINDING_FIELD_CHARACTERS,
                 error_type,
             )
-        canonical_findings.append(
-            {field: deepcopy(item[field]) for field in FINDING_FIELDS}
-        )
+        canonical = {field: deepcopy(item[field]) for field in FINDING_FIELDS}
+        identity = (canonical["type"], canonical["message"])
+        if identity in identities:
+            raise error_type(
+                f"{label} findings must have unique (type, message) identity: "
+                f"{identity[0]} | {identity[1]}"
+            )
+        identities.add(identity)
+        canonical_findings.append(canonical)
 
     return {
         "summary": deepcopy(result["summary"]),
@@ -158,10 +185,13 @@ def _decorate(component, finding_type, finding_message, predicate):
         request = validate_request(contract)
         component_result = component(deepcopy(request))
         result = validate_result(component_result, label="component result")
-        if predicate(request["text"]):
-            result["findings"].append(
-                {"type": finding_type, "message": finding_message}
-            )
+        added_finding = {"type": finding_type, "message": finding_message}
+        added_identity = (finding_type, finding_message)
+        existing_identities = {
+            (item["type"], item["message"]) for item in result["findings"]
+        }
+        if predicate(request["text"]) and added_identity not in existing_identities:
+            result["findings"].append(added_finding)
         return validate_result(result)
 
     wrapped.__name__ = f"with_{finding_type}_check_component"
@@ -188,13 +218,30 @@ def with_citation_check(component):
     )
 
 
+def with_compliance_check(component):
+    """Wrap a Component and add one optional compliance finding."""
+    return _decorate(
+        component,
+        "compliance",
+        "Compliance exception marker detected.",
+        lambda text: "[noncompliant]" in text,
+    )
+
+
 DECORATORS = {
+    "privacy-check": with_privacy_check,
+    "citation-check": with_citation_check,
+    "compliance-check": with_compliance_check,
     "privacy": with_privacy_check,
     "citation": with_citation_check,
+    "compliance": with_compliance_check,
 }
 
 
-def compose_review(decorator_ids=("privacy", "citation"), component=base_review):
+def compose_review(
+    decorator_ids=("privacy-check", "citation-check"),
+    component=base_review,
+):
     if (
         not isinstance(decorator_ids, (list, tuple))
         or isinstance(decorator_ids, str)
@@ -204,16 +251,10 @@ def compose_review(decorator_ids=("privacy", "citation"), component=base_review)
     if not callable(component):
         raise ComponentContractError("wrapped component must be callable")
 
-    seen = set()
     composed = component
     for decorator_id in decorator_ids:
         if decorator_id not in DECORATORS:
             raise ValidationError(f"unknown decorator id: {decorator_id}")
-        if decorator_id in seen:
-            raise ValidationError(
-                f"decorator ids must be unique: {decorator_id}"
-            )
-        seen.add(decorator_id)
         composed = DECORATORS[decorator_id](composed)
     return composed
 
@@ -242,7 +283,9 @@ def load_request(path):
         raise ValidationError(
             f"request contains duplicate JSON object member: {exc.args[0]}"
         ) from exc
-    except (json.JSONDecodeError, RecursionError) as exc:
+    except RecursionError as exc:
+        raise ValidationError("request exceeds parser nesting capacity") from exc
+    except json.JSONDecodeError as exc:
         raise ValidationError("request must be valid JSON") from exc
     return validate_request(request)
 
@@ -257,7 +300,7 @@ def parse_args(argv):
     parser.add_argument("request", nargs="?", type=Path, default=DEFAULT_REQUEST)
     parser.add_argument(
         "--decorators",
-        default="privacy,citation",
+        default="privacy-check,citation-check",
         help="comma-separated inside-to-outside decorator ids",
     )
     return parser.parse_args(argv)

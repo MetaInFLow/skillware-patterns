@@ -6,6 +6,8 @@ import subprocess
 import sys
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
+import yaml
 
 
 SAMPLE = Path(__file__).resolve().parents[1]
@@ -104,7 +106,7 @@ class DecoratorDemoTest(unittest.TestCase):
             ),
         )
 
-        wrapped = demo.compose_review(("privacy", "citation"))
+        wrapped = demo.compose_review(("privacy-check", "citation-check"))
         for text, expected_types in cases:
             with self.subTest(text=text):
                 result = wrapped({"text": text})
@@ -293,11 +295,145 @@ class DecoratorDemoTest(unittest.TestCase):
             ["second", "first"],
         )
 
-    def test_compose_review_rejects_unknown_or_duplicate_decorators(self):
+    def test_manifest_default_composition_uses_executable_canonical_ids(self):
+        demo = self.require_demo()
+        manifest = yaml.safe_load(
+            (SAMPLE / "skillware.yaml").read_text(encoding="utf-8")
+        )
+        decorator_ids = manifest["default_composition"]["inside_to_outside"]
+
+        self.assertEqual(manifest["component_contract"], demo.COMPONENT_CONTRACT)
+        self.assertEqual(
+            tuple(item["id"] for item in manifest["decorators"]),
+            demo.DECORATOR_IDS,
+        )
+
+        result = demo.compose_review(decorator_ids)(
+            {"text": "Email a@example.com cites [missing]."}
+        )
+
+        self.assertEqual(
+            [item["type"] for item in result["findings"]],
+            manifest["default_composition"]["finding_order"],
+        )
+        self.assertTrue(
+            set(decorator_ids).issubset(demo.DECORATORS),
+            "manifest decorator ids must be executable without translation",
+        )
+
+    def test_result_contract_has_no_finite_findings_count_cap(self):
+        demo = self.require_demo()
+        findings = [
+            {"type": f"base-{index}", "message": f"Finding {index}."}
+            for index in range(125)
+        ]
+
+        def large_component(_request):
+            return {"summary": "Large valid result.", "findings": findings}
+
+        wrapped = demo.with_privacy_check(large_component)
+        result = wrapped({"text": "Contact legal@example.com."})
+
+        self.assertEqual(len(result["findings"]), 126)
+        self.assertEqual(result["findings"][:125], findings)
+        self.assertEqual(result["findings"][-1]["type"], "privacy")
+
+    def test_many_composed_wrappers_remain_substitutable_and_idempotent(self):
+        demo = self.require_demo()
+        decorator_ids = (
+            ["privacy-check", "citation-check", "compliance-check"] * 40
+        )
+        component = demo.compose_review(decorator_ids)
+
+        result = component(
+            {
+                "text": (
+                    "Email a@example.com cites [missing] and marks "
+                    "[noncompliant]."
+                )
+            }
+        )
+
+        self.assertEqual(tuple(result), demo.RESULT_FIELDS)
+        self.assertEqual(
+            [item["type"] for item in result["findings"]],
+            ["privacy", "citation", "compliance"],
+        )
+
+    def test_repeated_or_preexisting_identical_finding_is_not_duplicated(self):
+        demo = self.require_demo()
+        request = {"text": "Contact legal@example.com."}
+        repeated = demo.with_privacy_check(
+            demo.with_privacy_check(demo.with_privacy_check(demo.base_review))
+        )
+
+        self.assertEqual(
+            [item["type"] for item in repeated(request)["findings"]],
+            ["privacy"],
+        )
+
+        def preexisting(_request):
+            return {
+                "summary": "Existing result.",
+                "findings": [
+                    {
+                        "type": "privacy",
+                        "message": "Email address detected.",
+                    }
+                ],
+            }
+
+        result = demo.with_privacy_check(preexisting)(request)
+        self.assertEqual(len(result["findings"]), 1)
+
+    def test_duplicate_finding_identity_is_rejected(self):
+        demo = self.require_demo()
+        finding = {"type": "privacy", "message": "Email address detected."}
+
+        with self.assertRaises(demo.ComponentContractError) as caught:
+            demo.validate_result(
+                {
+                    "summary": "Invalid duplicates.",
+                    "findings": [finding, deepcopy(finding)],
+                }
+            )
+
+        self.assertEqual(
+            str(caught.exception),
+            (
+                "result findings must have unique (type, message) identity: "
+                "privacy | Email address detected."
+            ),
+        )
+
+    def test_optional_compliance_decorator_preserves_the_component_contract(self):
+        demo = self.require_demo()
+        component = demo.compose_review(
+            ("privacy-check", "citation-check", "compliance-check")
+        )
+
+        result = component(
+            {
+                "text": (
+                    "Email a@example.com cites [missing] and marks "
+                    "[noncompliant]."
+                )
+            }
+        )
+
+        self.assertEqual(tuple(result), demo.RESULT_FIELDS)
+        self.assertEqual(
+            [item["type"] for item in result["findings"]],
+            ["privacy", "citation", "compliance"],
+        )
+
+    def test_compose_review_rejects_unknown_or_malformed_decorator_ids(self):
         demo = self.require_demo()
         cases = (
-            (("privacy", "unknown"), "unknown decorator id: unknown"),
-            (("privacy", "privacy"), "decorator ids must be unique: privacy"),
+            (
+                ("privacy-check", "unknown"),
+                "unknown decorator id: unknown",
+            ),
             ("privacy", "decorator ids must be an array of strings"),
         )
 
@@ -322,8 +458,105 @@ class DecoratorDemoTest(unittest.TestCase):
         for fixture_path, expected_path in cases:
             with self.subTest(fixture=fixture_path):
                 request = demo.load_request(SAMPLE / fixture_path)
-                result = demo.compose_review(("privacy", "citation"))(request)
+                result = demo.compose_review(
+                    ("privacy-check", "citation-check")
+                )(request)
                 self.assertEqual(result, self.load_json(expected_path))
+
+    def test_exact_field_validation_rejects_non_string_mapping_keys(self):
+        demo = self.require_demo()
+
+        with self.assertRaises(demo.ValidationError) as request_error:
+            demo.base_review({1: "not a JSON member name"})
+        self.assertEqual(
+            str(request_error.exception),
+            "request field names must be strings",
+        )
+
+        with self.assertRaises(demo.ComponentContractError) as result_error:
+            demo.validate_result(
+                {"summary": "ok", "findings": [{1: "invalid"}]}
+            )
+        self.assertEqual(
+            str(result_error.exception),
+            "finding field names must be strings",
+        )
+
+    def test_surrogate_validation_is_cycle_safe_for_programmatic_values(self):
+        demo = self.require_demo()
+        cyclic_request = {"text": "valid"}
+        cyclic_request["cycle"] = cyclic_request
+        cyclic_result = {"summary": "valid", "findings": []}
+        cyclic_result["findings"].append(cyclic_result)
+
+        with self.assertRaises(demo.ValidationError) as request_error:
+            demo.base_review(cyclic_request)
+        self.assertEqual(
+            str(request_error.exception),
+            "request must not contain cyclic references",
+        )
+
+        with self.assertRaises(demo.ComponentContractError) as result_error:
+            demo.validate_result(cyclic_result)
+        self.assertEqual(
+            str(result_error.exception),
+            "result must not contain cyclic references",
+        )
+
+    def test_result_string_bounds_are_enforced(self):
+        demo = self.require_demo()
+        cases = (
+            (
+                {
+                    "summary": "x" * (demo.MAX_SUMMARY_CHARACTERS + 1),
+                    "findings": [],
+                },
+                (
+                    "result.summary must contain at most "
+                    f"{demo.MAX_SUMMARY_CHARACTERS} characters"
+                ),
+            ),
+            (
+                {
+                    "summary": "ok",
+                    "findings": [
+                        {
+                            "type": "x" * (
+                                demo.MAX_FINDING_FIELD_CHARACTERS + 1
+                            ),
+                            "message": "ok",
+                        }
+                    ],
+                },
+                (
+                    "finding.type must contain at most "
+                    f"{demo.MAX_FINDING_FIELD_CHARACTERS} characters"
+                ),
+            ),
+            (
+                {
+                    "summary": "ok",
+                    "findings": [
+                        {
+                            "type": "bounded",
+                            "message": "x" * (
+                                demo.MAX_FINDING_FIELD_CHARACTERS + 1
+                            ),
+                        }
+                    ],
+                },
+                (
+                    "finding.message must contain at most "
+                    f"{demo.MAX_FINDING_FIELD_CHARACTERS} characters"
+                ),
+            ),
+        )
+
+        for result, error in cases:
+            with self.subTest(error=error):
+                with self.assertRaises(demo.ComponentContractError) as caught:
+                    demo.validate_result(result)
+                self.assertEqual(str(caught.exception), error)
 
     def test_invalid_fixtures_have_exact_stable_errors(self):
         cases = (
@@ -334,6 +567,7 @@ class DecoratorDemoTest(unittest.TestCase):
             ("lone-surrogate",),
             ("duplicate-root-member",),
             ("duplicate-nested-member",),
+            ("excessive-depth",),
         )
 
         for (name,) in cases:
@@ -361,6 +595,21 @@ class DecoratorDemoTest(unittest.TestCase):
         self.assertEqual(completed.returncode, 2)
         self.assertEqual(completed.stdout, "")
         self.assertEqual(completed.stderr, expected)
+
+    def test_parser_recursion_error_has_stable_validation_message(self):
+        demo = self.require_demo()
+        with TemporaryDirectory() as temp_dir:
+            request = Path(temp_dir) / "parser-depth.json"
+            request.write_text('{"text":"valid"}', encoding="utf-8")
+
+            with patch.object(demo.json, "loads", side_effect=RecursionError):
+                with self.assertRaises(demo.ValidationError) as caught:
+                    demo.load_request(request)
+
+        self.assertEqual(
+            str(caught.exception),
+            "request exceeds parser nesting capacity",
+        )
 
     def test_cli_default_runs_root_composition_and_is_deterministic(self):
         expected = (SAMPLE / "expected/enhanced-contract-result.json").read_text(
@@ -396,6 +645,7 @@ class DecoratorDemoTest(unittest.TestCase):
             "child-skills/base-contract-review/SKILL.md",
             "child-skills/privacy-check/SKILL.md",
             "child-skills/citation-check/SKILL.md",
+            "child-skills/compliance-check/SKILL.md",
         )
         for relative_path in required:
             with self.subTest(path=relative_path):
