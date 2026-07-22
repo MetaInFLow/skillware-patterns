@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 from copy import deepcopy
+from datetime import datetime
 import json
 from pathlib import Path
 import re
@@ -33,10 +34,14 @@ CHANGELOG_SKILL = "child-skills/changelog/SKILL.md"
 TEAM_NOTIFICATION_SKILL = "child-skills/team-notification/SKILL.md"
 VERSION_PATTERN = re.compile(
     r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
-    r"(?:-[0-9A-Za-z.-]+)?$"
+    r"(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"
+    r"(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?"
+    r"(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$"
 )
 COMMIT_PATTERN = re.compile(r"^[0-9a-f]{7,40}$")
-PUBLISHED_AT_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+PUBLISHED_AT_PATTERN = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$"
+)
 
 
 class ValidationError(ValueError):
@@ -83,7 +88,12 @@ def validate_release(release):
         raise ValidationError("release.commit must contain 7 to 40 lowercase hex characters")
     if release["channel"] not in {"stable", "beta", "canary"}:
         raise ValidationError("release.channel must be one of: stable, beta, canary")
-    if not PUBLISHED_AT_PATTERN.fullmatch(release["published_at"]):
+    published_at = release["published_at"]
+    try:
+        timestamp = datetime.fromisoformat(published_at[:-1] + "+00:00")
+    except ValueError:
+        timestamp = None
+    if not PUBLISHED_AT_PATTERN.fullmatch(published_at) or timestamp is None:
         raise ValidationError("release.published_at must be an RFC 3339 UTC timestamp")
     if not isinstance(release["notes"], list) or not release["notes"] or any(
         not isinstance(note, str) or not note.strip() for note in release["notes"]
@@ -249,9 +259,13 @@ def run_release_workflow(workflow, observer_updates=None):
 
 
 def publish_release(version, observers):
+    require_non_empty_string(version, "version")
+    normalized_version = version[1:] if version.startswith("v") else version
+    if not VERSION_PATTERN.fullmatch(normalized_version):
+        raise ValidationError("version must be a semantic version with optional lowercase v prefix")
     release = {
-        "release_id": f"release-{version}",
-        "version": version,
+        "release_id": f"release-{normalized_version}",
+        "version": normalized_version,
         "commit": "0000000",
         "channel": "stable",
         "published_at": "2000-01-01T00:00:00Z",
@@ -262,7 +276,14 @@ def publish_release(version, observers):
         observer_id = getattr(observer, "observer_id", None) or getattr(
             observer, "__name__", ""
         )
-        subject.register(observer_id, f"injected:{observer_id}", observer)
+
+        def update(event, callback=observer, callback_id=observer_id):
+            receipt = callback(event)
+            if receipt is None:
+                return f"callback:{callback_id}:completed"
+            return receipt
+
+        subject.register(observer_id, f"injected:{observer_id}", update)
     result = subject.publish(release)
     return {
         delivery["observer_id"]: delivery["status"]

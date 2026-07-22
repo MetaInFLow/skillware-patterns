@@ -59,6 +59,104 @@ class ObserverDemoTest(unittest.TestCase):
             ["audit", "team-notification"],
         )
 
+    def test_plan_api_normalizes_v_prefix_and_accepts_none_callbacks(self):
+        demo = self.require_demo()
+        observed = []
+
+        def audit(event):
+            observed.append(("audit", event["type"], event["version"]))
+
+        def changelog(event):
+            observed.append(("changelog", event["type"], event["version"]))
+
+        deliveries = demo.publish_release("v1.2.0", [audit, changelog])
+
+        self.assertEqual(deliveries, {"audit": "delivered", "changelog": "delivered"})
+        self.assertEqual(
+            observed,
+            [
+                ("audit", "release.published.v1", "1.2.0"),
+                ("changelog", "release.published.v1", "1.2.0"),
+            ],
+        )
+
+    def test_plan_api_isolates_callback_failure(self):
+        demo = self.require_demo()
+        calls = []
+
+        def audit(event):
+            calls.append("audit")
+
+        def broken_notifier(event):
+            calls.append("broken_notifier")
+            raise RuntimeError("notification unavailable")
+
+        def changelog(event):
+            calls.append("changelog")
+
+        deliveries = demo.publish_release(
+            "v1.2.0", [audit, broken_notifier, changelog]
+        )
+
+        self.assertEqual(
+            deliveries,
+            {
+                "audit": "delivered",
+                "broken_notifier": "failed",
+                "changelog": "delivered",
+            },
+        )
+        self.assertEqual(calls, ["audit", "broken_notifier", "changelog"])
+
+    def test_semver_accepts_prerelease_and_build_metadata(self):
+        demo = self.require_demo()
+        workflow = self.load_json("fixtures/valid/release-build-metadata.json")
+
+        result = demo.run_release_workflow(workflow)
+
+        self.assertEqual(
+            result,
+            self.load_json("expected/release-build-metadata-result.json"),
+        )
+
+    def test_semver_rejects_invalid_prerelease_identifiers(self):
+        demo = self.require_demo()
+        release = self.load_json("fixtures/valid/release.json")["release"]
+
+        for version in ("1.2.0-01", "1.2.0-alpha..1"):
+            with self.subTest(version=version):
+                invalid = deepcopy(release)
+                invalid["version"] = version
+                with self.assertRaisesRegex(
+                    demo.ValidationError,
+                    "release.version must be a semantic version",
+                ):
+                    demo.validate_release(invalid)
+
+    def test_rfc3339_utc_timestamp_rejects_impossible_date_and_time(self):
+        demo = self.require_demo()
+        release = self.load_json("fixtures/valid/release.json")["release"]
+
+        for published_at in (
+            "2026-02-30T08:00:00Z",
+            "2026-07-22T25:00:00Z",
+        ):
+            with self.subTest(published_at=published_at):
+                invalid = deepcopy(release)
+                invalid["published_at"] = published_at
+                with self.assertRaisesRegex(
+                    demo.ValidationError,
+                    "release.published_at must be an RFC 3339 UTC timestamp",
+                ):
+                    demo.validate_release(invalid)
+
+    def test_rfc3339_utc_timestamp_accepts_fractional_seconds(self):
+        demo = self.require_demo()
+        release = self.load_json("fixtures/valid/release.json")["release"]
+        release["published_at"] = "2026-07-22T08:00:00.123Z"
+
+        self.assertIs(demo.validate_release(release), release)
+
     def test_observer_failure_is_isolated_and_accounted(self):
         demo = self.require_demo()
         workflow = self.load_json("fixtures/valid/release.json")
@@ -119,6 +217,78 @@ class ObserverDemoTest(unittest.TestCase):
             "publication re-entry is not allowed",
         )
 
+        second = subject.publish(release)
+        self.assertEqual(
+            [delivery["status"] for delivery in second["deliveries"]],
+            ["delivered", "failed", "delivered"],
+        )
+        self.assertEqual(
+            calls,
+            ["audit", "reentrant", "changelog"] * 2,
+        )
+
+    def test_registration_during_delivery_is_isolated_and_state_recovers(self):
+        demo = self.require_demo()
+        release = self.load_json("fixtures/valid/release.json")["release"]
+        subject = demo.ReleaseSubject()
+        calls = []
+
+        def register_late(event):
+            calls.append("registrar")
+            subject.register("late", "injected:late", lambda item: "late")
+
+        subject.register("registrar", "injected:registrar", register_late)
+        subject.register("audit", "injected:audit", lambda event: calls.append("audit") or "ok")
+
+        first = subject.publish(release)
+        second = subject.publish(release)
+
+        self.assertEqual(subject.registered_observer_ids, ("registrar", "audit"))
+        self.assertEqual(
+            [delivery["status"] for delivery in first["deliveries"]],
+            ["failed", "delivered"],
+        )
+        self.assertEqual(
+            first["deliveries"][0]["error"],
+            "subscription changes are not allowed during publication",
+        )
+        self.assertEqual(
+            [delivery["status"] for delivery in second["deliveries"]],
+            ["failed", "delivered"],
+        )
+        self.assertEqual(calls, ["registrar", "audit", "registrar", "audit"])
+
+    def test_unregistration_during_delivery_is_isolated_and_state_recovers(self):
+        demo = self.require_demo()
+        release = self.load_json("fixtures/valid/release.json")["release"]
+        subject = demo.ReleaseSubject()
+        calls = []
+
+        def unregister_audit(event):
+            calls.append("unsubscriber")
+            subject.unregister("audit")
+
+        subject.register("unsubscriber", "injected:unsubscriber", unregister_audit)
+        subject.register("audit", "injected:audit", lambda event: calls.append("audit") or "ok")
+
+        first = subject.publish(release)
+        second = subject.publish(release)
+
+        self.assertEqual(subject.registered_observer_ids, ("unsubscriber", "audit"))
+        self.assertEqual(
+            [delivery["status"] for delivery in first["deliveries"]],
+            ["failed", "delivered"],
+        )
+        self.assertEqual(
+            first["deliveries"][0]["error"],
+            "subscription changes are not allowed during publication",
+        )
+        self.assertEqual(
+            [delivery["status"] for delivery in second["deliveries"]],
+            ["failed", "delivered"],
+        )
+        self.assertEqual(calls, ["unsubscriber", "audit", "unsubscriber", "audit"])
+
     def test_each_observer_receives_an_isolated_event_copy(self):
         demo = self.require_demo()
         release = self.load_json("fixtures/valid/release.json")["release"]
@@ -177,6 +347,10 @@ class ObserverDemoTest(unittest.TestCase):
             ("fixtures/invalid/unknown-observer-skill.json", "expected/unknown-observer-skill-error.txt"),
             ("fixtures/invalid/unregistered-observer.json", "expected/unregistered-observer-error.txt"),
             ("fixtures/invalid/malformed-release.json", "expected/malformed-release-error.txt"),
+            ("fixtures/invalid/invalid-prerelease-zero.json", "expected/invalid-semver-error.txt"),
+            ("fixtures/invalid/invalid-prerelease-empty.json", "expected/invalid-semver-error.txt"),
+            ("fixtures/invalid/impossible-published-date.json", "expected/invalid-published-at-error.txt"),
+            ("fixtures/invalid/impossible-published-time.json", "expected/invalid-published-at-error.txt"),
         )
 
         for fixture_path, expected_path in cases:

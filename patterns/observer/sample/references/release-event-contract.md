@@ -13,10 +13,10 @@ The event has exactly these fields in this order:
 | --- | --- | --- |
 | `type` | string | Exactly `release.published.v1`. |
 | `release_id` | string | Stable non-empty release identifier. |
-| `version` | string | Semantic version. |
+| `version` | string | Canonical Semantic Version 2.0.0 without a `v` prefix. |
 | `commit` | string | Seven to forty lowercase hexadecimal characters. |
 | `channel` | string | `stable`, `beta`, or `canary`. |
-| `published_at` | string | RFC 3339 UTC timestamp supplied by the request. |
+| `published_at` | string | Calendar-valid RFC 3339 UTC timestamp ending in `Z`; fractional seconds are allowed. |
 | `notes` | list of strings | One or more non-empty release notes in declared order. |
 
 Each Observer receives a deep copy. One consumer therefore cannot alter the
@@ -48,6 +48,20 @@ observer_id, skill, status, receipt, error
 The summary counts attempted, delivered, and failed updates. This sample does
 not retry, roll back, or claim transactional completion. Those policies require
 separate idempotency, persistence, and recovery contracts.
+
+## Plan compatibility API
+
+`publish_release(version, observers)` is the minimal plan-facing API. It accepts
+a canonical semantic version or exactly one lowercase `v` prefix, removes that
+prefix before constructing `release_id` and the event, and returns an
+insertion-ordered `{observer_name: status}` mapping. Uppercase or repeated
+prefixes are invalid.
+
+Plan callbacks may return `None`: returning without raising means delivered.
+The adapter converts `None` to an internal synthetic receipt before calling the
+strict `ReleaseSubject`, so the richer workflow contract still requires every
+delivered Subject update to have a non-empty receipt. Exceptions remain failed
+and do not stop later callbacks.
 
 ## Agent and demo modes
 

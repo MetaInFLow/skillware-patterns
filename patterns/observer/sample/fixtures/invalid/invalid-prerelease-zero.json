@@ -1,0 +1,13 @@
+{
+  "event_type": "release.published.v1",
+  "observer_contract": "release-observer-v1",
+  "release": {
+    "release_id": "release-2026-07-22-invalid",
+    "version": "1.2.0-01",
+    "commit": "8f3c2a1",
+    "channel": "stable",
+    "published_at": "2026-07-22T08:00:00Z",
+    "notes": ["Invalid numeric prerelease identifier fixture."]
+  },
+  "subscription_operations": []
+}

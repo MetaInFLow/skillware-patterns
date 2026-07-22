@@ -44,21 +44,29 @@ implementation_paths:
   - sample/scripts/run_demo.py
   - sample/fixtures/valid/release.json
   - sample/fixtures/valid/release-after-unregistration.json
+  - sample/fixtures/valid/release-build-metadata.json
   - sample/fixtures/invalid/invalid-json.json
   - sample/fixtures/invalid/wrong-event-type.json
   - sample/fixtures/invalid/duplicate-registration.json
   - sample/fixtures/invalid/unknown-observer-skill.json
   - sample/fixtures/invalid/unregistered-observer.json
   - sample/fixtures/invalid/malformed-release.json
+  - sample/fixtures/invalid/invalid-prerelease-zero.json
+  - sample/fixtures/invalid/invalid-prerelease-empty.json
+  - sample/fixtures/invalid/impossible-published-date.json
+  - sample/fixtures/invalid/impossible-published-time.json
   - sample/expected/release-result.json
   - sample/expected/release-after-unregistration-result.json
   - sample/expected/release-with-failure-result.json
+  - sample/expected/release-build-metadata-result.json
   - sample/expected/invalid-json-error.txt
   - sample/expected/wrong-event-type-error.txt
   - sample/expected/duplicate-registration-error.txt
   - sample/expected/unknown-observer-skill-error.txt
   - sample/expected/unregistered-observer-error.txt
   - sample/expected/malformed-release-error.txt
+  - sample/expected/invalid-semver-error.txt
+  - sample/expected/invalid-published-at-error.txt
   - sample/tests/test_demo.py
 misuse_path: misuse/SKILL.md
 evidence_path: evidence/ecc-frozen-case.md

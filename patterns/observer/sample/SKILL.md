@@ -55,6 +55,12 @@ other update functions to prove ordering, failure isolation, event-copy
 isolation, and re-entry rejection. Python models the collaboration; it does not
 interpret the behavioral source in the Skill files.
 
+For the minimal plan API, `publish_release(version, observers)` accepts one
+optional lowercase `v` prefix and emits the canonical version without it.
+Callbacks that return `None` are adapted to internal receipts and count as
+delivered unless they raise. The full workflow continues to require explicit
+non-empty receipts from registered updates.
+
 ## Output contract
 
 Return exactly `event`, `deliveries`, and `summary`. Deliveries remain in
