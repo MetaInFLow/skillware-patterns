@@ -2,9 +2,17 @@ from pathlib import Path
 import re
 import unittest
 
+import yaml
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
+ARXIV_URL = "https://arxiv.org/abs/2607.18970"
+PAPER_TITLE = (
+    "Skillware: A Software Ontology and Engineering Lifecycle for "
+    "Persistent Behavioral Artifacts"
+)
+AUTHORING_REVISION = "1fc1dfd"
 
 REQUIRED_DOCS = (
     "skillware-definition.md",
@@ -125,10 +133,26 @@ FACADE_COMMANDS = (
     "python3 -m unittest discover -s patterns/facade/sample/tests -v",
 )
 
-RESEARCH_COMMIT = "1fc1dfd"
-RESEARCH_BASE = (
-    f"https://github.com/MetaInFLow/skillware/blob/{RESEARCH_COMMIT}"
+SETUP_COMMANDS = (
+    "python3 -m venv .venv",
+    "source .venv/bin/activate",
+    "python -m pip install -e .",
 )
+
+PATTERN_CLAIMS = {
+    "Facade": ("confirmed correspondence", "constructive"),
+    "Adapter": ("confirmed correspondence", "constructive"),
+    "Composite": ("candidate correspondence", "constructive"),
+    "Observer": ("candidate correspondence", "constructive"),
+    "State": ("candidate correspondence", "constructive"),
+    "Strategy": ("candidate correspondence", "constructive"),
+    "Decorator": ("candidate correspondence", "constructive"),
+    "Template Method": ("candidate correspondence", "constructive"),
+    "Memento": ("candidate correspondence", "constructive"),
+    "Mediator": ("candidate correspondence", "constructive"),
+    "Pipes and Filters": ("candidate correspondence", "constructive"),
+    "Specification": ("not observable", "constructive"),
+}
 
 TABLE5_TRACEABILITY = {
     "Facade": (
@@ -137,7 +161,7 @@ TABLE5_TRACEABILITY = {
         "constructive",
         "[definition](../patterns/facade/definition.md)",
         "[sample](../patterns/facade/sample/)",
-        f"[pinned research record]({RESEARCH_BASE}/research/patterns/facade.md)",
+        "[local correspondence](../patterns/facade/correspondence.md)",
         "Superpowers participant mapping is verified in the frozen case; "
         "gstack root routing is also named.",
     ),
@@ -147,7 +171,7 @@ TABLE5_TRACEABILITY = {
         "constructive",
         "[definition](../patterns/adapter/definition.md)",
         "[sample](../patterns/adapter/sample/)",
-        f"[pinned research record]({RESEARCH_BASE}/research/patterns/adapter.md)",
+        "[local correspondence](../patterns/adapter/correspondence.md)",
         "Strong correspondence in the paper; runtime parity requires tests.",
     ),
     "Composite": (
@@ -156,7 +180,7 @@ TABLE5_TRACEABILITY = {
         "constructive",
         "[definition](../patterns/composite/definition.md)",
         "[sample](../patterns/composite/sample/)",
-        f"[pinned research record]({RESEARCH_BASE}/research/patterns/composite.md)",
+        "[local correspondence](../patterns/composite/correspondence.md)",
         "Candidate correspondence plus a constructive repository fixture.",
     ),
     "Observer": (
@@ -165,7 +189,7 @@ TABLE5_TRACEABILITY = {
         "constructive",
         "[definition](../patterns/observer/definition.md)",
         "[sample](../patterns/observer/sample/)",
-        f"[pinned research record]({RESEARCH_BASE}/research/patterns/observer.md)",
+        "[local correspondence](../patterns/observer/correspondence.md)",
         "Candidate pending complete registration and delivery evidence.",
     ),
     "State": (
@@ -174,7 +198,7 @@ TABLE5_TRACEABILITY = {
         "constructive",
         "[definition](../patterns/state/definition.md)",
         "[sample](../patterns/state/sample/)",
-        f"[pinned research record]({RESEARCH_BASE}/research/patterns/state.md)",
+        "[local correspondence](../patterns/state/correspondence.md)",
         "Candidate checkpoint behavior; full GoF participant delegation unverified.",
     ),
     "Strategy": (
@@ -183,7 +207,7 @@ TABLE5_TRACEABILITY = {
         "constructive",
         "[definition](../patterns/strategy/definition.md)",
         "[sample](../patterns/strategy/sample/)",
-        f"[pinned research record]({RESEARCH_BASE}/research/patterns/strategy.md)",
+        "[local correspondence](../patterns/strategy/correspondence.md)",
         "Open-source correspondence is motivation only; comparative benefit "
         "requires runtime study.",
     ),
@@ -208,26 +232,37 @@ def readme_section(text: str, heading: str) -> str:
     return text.split(f"## {heading}", 1)[1].split("\n## ", 1)[0]
 
 
-def markdown_table_patterns(section: str) -> set[str]:
-    expected = set(MAIN_TEXT_PATTERNS + SUPPLEMENT_PATTERNS)
-    found = set()
+def markdown_pattern_rows(
+    section: str, expected_names: tuple[str, ...]
+) -> list[tuple[str, tuple[str, ...]]]:
+    expected = set(expected_names)
+    found = []
     for line in section.splitlines():
         if not line.startswith("|"):
             continue
-        first_cell = line.strip().strip("|").split("|", 1)[0].strip()
+        cells = tuple(cell.strip() for cell in line.strip().strip("|").split("|"))
+        first_cell = cells[0]
         match = re.search(r"\[([^]]+)\]", first_cell)
         name = match.group(1) if match else first_cell
         if name in expected:
-            found.add(name)
+            found.append((name, cells))
     return found
+
+
+def markdown_links(text: str) -> list[str]:
+    return re.findall(r"\[[^]]+\]\(([^)]+)\)", text)
 
 
 def local_markdown_links(text: str) -> list[str]:
     return [
         target
-        for target in re.findall(r"\[[^]]+\]\(([^)]+)\)", text)
+        for target in markdown_links(text)
         if not re.match(r"(?:https?://|mailto:|#)", target)
     ]
+
+
+def external_markdown_links(text: str) -> list[str]:
+    return [target for target in markdown_links(text) if target.startswith("http")]
 
 
 class MethodologyDocsTest(unittest.TestCase):
@@ -323,17 +358,18 @@ class MethodologyDocsTest(unittest.TestCase):
             with self.subTest(term=term):
                 self.assertRegex(text, rf"(?im)^\| {re.escape(term)} \|")
 
-    def test_paper_map_has_pinned_source_and_release_binding(self):
+    def test_paper_map_has_public_paper_and_unlinked_authoring_provenance(self):
         text = read_doc("paper-map.md")
 
         self.assertIn("Section 5.3", text)
         self.assertIn("Table 5", text)
         self.assertIn("v0.1-paper-v1", text)
-        self.assertIn(
-            f"[paper source pinned at `{RESEARCH_COMMIT}`]"
-            f"({RESEARCH_BASE}/paper/manuscript-ars-v1/phase7_output_arxiv/main.tex)",
-            text,
-        )
+        self.assertIn(f"[{PAPER_TITLE}]({ARXIV_URL})", text)
+        self.assertIn("Haodi Fan", text)
+        self.assertIn("Zucong Lan", text)
+        self.assertIn(AUTHORING_REVISION, text)
+        self.assertNotIn("github.com/MetaInFLow/skillware", text)
+        self.assertNotRegex(text, rf"\[[^]]*{AUTHORING_REVISION}[^]]*\]\([^)]+\)")
 
     def test_table5_traceability_preserves_row_level_associations(self):
         text = read_doc("paper-map.md")
@@ -361,17 +397,13 @@ class MethodologyDocsTest(unittest.TestCase):
             text,
         )
 
-    def test_paper_map_catalog_links_resolve(self):
+    def test_paper_map_links_are_public_or_local_and_resolve(self):
         text = read_doc("paper-map.md")
-        targets = re.findall(r"\[[^]]+\]\((\.\./catalog/[^)]+)\)", text)
 
-        self.assertEqual(
-            set(targets),
-            {"../catalog/pattern-index.md", "../catalog/gof-23-screening.md"},
-        )
-        for target in targets:
+        self.assertEqual(set(external_markdown_links(text)), {ARXIV_URL})
+        for target in local_markdown_links(text):
             with self.subTest(target=target):
-                self.assertTrue((DOCS / target).resolve().is_file())
+                self.assertTrue((DOCS / target).resolve().exists())
 
 
 class ReadmeContractTest(unittest.TestCase):
@@ -379,22 +411,30 @@ class ReadmeContractTest(unittest.TestCase):
     def setUpClass(cls):
         cls.english = (ROOT / "README.md").read_text(encoding="utf-8")
         cls.chinese = (ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
+        cls.paper_map = read_doc("paper-map.md")
+        catalog = yaml.safe_load(
+            (ROOT / "catalog/pattern-index.yaml").read_text(encoding="utf-8")
+        )
+        cls.catalog_by_name = {row["name"]: row for row in catalog}
 
-    def test_readmes_have_aligned_opening_and_cross_links(self):
+    def test_readmes_have_language_specific_openings_and_cross_links(self):
         english_lines = self.english.splitlines()
         chinese_lines = self.chinese.splitlines()
 
         self.assertEqual(english_lines[0], "# Skillware Patterns")
         self.assertEqual(chinese_lines[0], "# Skillware Patterns")
-        self.assertEqual(english_lines[2], chinese_lines[2])
+        self.assertEqual(
+            english_lines[2],
+            "An executable, bilingual pattern-transfer supplement for the "
+            "Skillware paper.",
+        )
+        self.assertEqual(
+            chinese_lines[2], "Skillware 论文的双语可执行模式迁移补充材料。"
+        )
         self.assertIn("README.zh-CN.md", self.english)
         self.assertIn("README.md", self.chinese)
         for text in (self.english, self.chinese):
-            self.assertIn(
-                "Skillware: A Software Ontology and Engineering Lifecycle for "
-                "Persistent Behavioral Artifacts",
-                text,
-            )
+            self.assertIn(PAPER_TITLE, text)
 
     def test_readme_sections_follow_the_approved_order(self):
         for headings, text in (
@@ -410,16 +450,21 @@ class ReadmeContractTest(unittest.TestCase):
             self.assertEqual(positions, sorted(positions))
 
     def test_readmes_define_skillware_and_runtime_boundary(self):
-        definition = (
+        english_definition = (
             "Skillware is the software abstraction that extends software "
             "engineering to persistent behavioral artifacts"
+        )
+        chinese_definition = (
+            "Skillware 是将软件工程扩展至持久行为制品的软件抽象"
         )
         boundary = (
             "Behavioral Source -> Skill Artifact -> Skillware Unit -> "
             "Agent Host -> Agent Runtime"
         )
+        self.assertIn(english_definition, self.english)
+        self.assertNotIn(english_definition, self.chinese)
+        self.assertIn(chinese_definition, self.chinese)
         for text in (self.english, self.chinese):
-            self.assertIn(definition, text)
             self.assertIn(boundary, text)
             self.assertNotIn("Agent Execution Core", text)
             self.assertNotIn("Behavioral Compiler", text)
@@ -437,23 +482,71 @@ class ReadmeContractTest(unittest.TestCase):
             )
             self.assertNotRegex(text, r"(?i)maturity (?:score|rating)|成熟度(?:评分|分数)")
 
-    def test_main_text_and_supplement_tables_have_exact_pattern_sets(self):
-        english_main = readme_section(self.english, "Main-text mappings")
-        english_supplement = readme_section(self.english, "Repository supplement")
-        chinese_main = readme_section(self.chinese, "正文映射")
-        chinese_supplement = readme_section(self.chinese, "仓库补充实现")
+    def assert_readme_pattern_table(self, text, heading, expected_names, paper_heading):
+        rows = markdown_pattern_rows(readme_section(text, heading), expected_names)
+        names = tuple(name for name, _ in rows)
+        self.assertEqual(names, expected_names)
+        self.assertEqual(len(names), len(set(names)))
 
-        self.assertEqual(markdown_table_patterns(english_main), set(MAIN_TEXT_PATTERNS))
-        self.assertEqual(
-            markdown_table_patterns(english_supplement), set(SUPPLEMENT_PATTERNS)
+        paper_rows = dict(
+            markdown_pattern_rows(
+                readme_section(self.paper_map, paper_heading), expected_names
+            )
         )
-        self.assertEqual(markdown_table_patterns(chinese_main), set(MAIN_TEXT_PATTERNS))
-        self.assertEqual(
-            markdown_table_patterns(chinese_supplement), set(SUPPLEMENT_PATTERNS)
-        )
-        for section in (english_main, chinese_main):
-            for status in ("confirmed correspondence", "candidate correspondence", "constructive"):
-                self.assertIn(status, section)
+        self.assertEqual(set(paper_rows), set(expected_names))
+
+        for name, cells in rows:
+            with self.subTest(heading=heading, pattern=name):
+                catalog = self.catalog_by_name[name]
+                expected_role = (
+                    "main-text"
+                    if expected_names == MAIN_TEXT_PATTERNS
+                    else "repository-supplement"
+                )
+                self.assertEqual(catalog["paper_role"], expected_role)
+                metadata = (
+                    f"`{catalog['source_tradition']}` / "
+                    f"`{catalog['source_category']}`"
+                )
+                self.assertEqual(cells[1], metadata)
+                self.assertEqual(cells[3:5], PATTERN_CLAIMS[name])
+                self.assertEqual(
+                    markdown_links(" | ".join(cells)),
+                    [
+                        f"patterns/{catalog['id']}/definition.md",
+                        f"patterns/{catalog['id']}/correspondence.md",
+                        f"patterns/{catalog['id']}/sample/",
+                    ],
+                )
+
+                paper_cells = paper_rows[name]
+                self.assertEqual(paper_cells[2:4], PATTERN_CLAIMS[name])
+                self.assertEqual(
+                    markdown_links(" | ".join(paper_cells)),
+                    [
+                        f"../patterns/{catalog['id']}/definition.md",
+                        f"../patterns/{catalog['id']}/sample/",
+                        f"../patterns/{catalog['id']}/correspondence.md",
+                    ],
+                )
+
+    def test_main_text_and_supplement_tables_match_catalog_and_paper_map(self):
+        for text, main_heading, supplement_heading in (
+            (self.english, "Main-text mappings", "Repository supplement"),
+            (self.chinese, "正文映射", "仓库补充实现"),
+        ):
+            self.assert_readme_pattern_table(
+                text,
+                main_heading,
+                MAIN_TEXT_PATTERNS,
+                "Table 5 traceability",
+            )
+            self.assert_readme_pattern_table(
+                text,
+                supplement_heading,
+                SUPPLEMENT_PATTERNS,
+                "Repository supplement",
+            )
 
     def test_facade_walkthrough_links_real_artifacts_and_exact_commands(self):
         required_paths = (
@@ -477,10 +570,15 @@ class ReadmeContractTest(unittest.TestCase):
         ):
             section = readme_section(text, heading)
             numbered_steps = re.findall(r"(?m)^\d+\. ", section)
-            self.assertGreaterEqual(len(numbered_steps), 1)
-            self.assertLessEqual(len(numbered_steps), 3)
-            for command in FACADE_COMMANDS + VALIDATION_COMMANDS:
+            self.assertEqual(len(numbered_steps), 3)
+            commands = SETUP_COMMANDS + FACADE_COMMANDS + VALIDATION_COMMANDS
+            for command in commands:
                 self.assertIn(command, section)
+            positions = [section.index(command) for command in commands]
+            self.assertEqual(positions, sorted(positions))
+            install_position = section.index("python -m pip install -e .")
+            for command in VALIDATION_COMMANDS:
+                self.assertLess(install_position, section.index(command))
 
     def test_protocol_and_claim_statuses_are_complete_in_both_languages(self):
         for protocol_heading, status_heading, text in (
@@ -493,21 +591,38 @@ class ReadmeContractTest(unittest.TestCase):
                 self.assertIn(element, protocol)
             for status in STATUS_MEANINGS:
                 self.assertIn(status, statuses)
-            self.assertRegex(statuses, r"(?is)descriptive.*not (?:a )?score")
+        english_statuses = readme_section(self.english, "Claim statuses")
+        chinese_statuses = readme_section(self.chinese, "主张状态")
+        self.assertIn("These statuses are descriptive, not a score.", english_statuses)
+        self.assertIn("这些状态是描述性的，而非评分。", chinese_statuses)
+        self.assertNotIn("These statuses are descriptive", chinese_statuses)
 
     def test_responsibility_source_category_and_paper_link_boundaries(self):
-        paper_url = (
-            f"{RESEARCH_BASE}/paper/manuscript-ars-v1/phase7_output_arxiv/main.tex"
-        )
         for text in (self.english, self.chinese):
-            for repository in ("MetaInFlow/skillware", "MetaInFlow/skillware-patterns"):
-                self.assertIn(repository, text)
-            self.assertIn(paper_url, text)
+            self.assertIn("MetaInFlow/skillware-patterns", text)
+            self.assertIn(ARXIV_URL, text)
+            self.assertIn("Haodi Fan", text)
+            self.assertIn("Zucong Lan", text)
+            self.assertIn(AUTHORING_REVISION, text)
             self.assertIn("source_category", text)
             self.assertRegex(text, r"(?is)flat|扁平")
-            self.assertNotRegex(text, r"https?://arxiv\.org/(?:abs|pdf)/")
-        self.assertIn("will be inserted after assignment", self.english)
-        self.assertIn("分配后补入", self.chinese)
+            self.assertEqual(set(external_markdown_links(text)), {ARXIV_URL})
+            self.assertNotIn("github.com/MetaInFLow/skillware", text)
+            self.assertNotIn("arxiv.org/submit", text)
+            self.assertNotRegex(
+                text, rf"\[[^]]*{AUTHORING_REVISION}[^]]*\]\([^)]+\)"
+            )
+            self.assertIn(f"[{PAPER_TITLE}]({ARXIV_URL})", text)
+        self.assertIn("submitted 21 July 2026", self.english)
+        self.assertIn("2026 年 7 月 21 日提交", self.chinese)
+        self.assertIn("not a public dependency", self.english)
+        self.assertIn("self-contained executable supplement", self.english)
+        self.assertIn("不是公开依赖", self.chinese)
+        self.assertIn("自包含的可执行补充", self.chinese)
+        self.assertIn("not yet public-release ready", self.english)
+        self.assertIn("尚未达到公开发布就绪状态", self.chinese)
+        self.assertNotIn("will be inserted after assignment", self.english)
+        self.assertNotIn("分配后补入", self.chinese)
 
     def test_readme_local_links_resolve(self):
         for name, text in (("README.md", self.english), ("README.zh-CN.md", self.chinese)):

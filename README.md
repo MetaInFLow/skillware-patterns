@@ -6,7 +6,7 @@ An executable, bilingual pattern-transfer supplement for the Skillware paper.
 
 ## Paper and repository role
 
-This repository accompanies the paper *Skillware: A Software Ontology and Engineering Lifecycle for Persistent Behavioral Artifacts*. It publishes auditable pattern-transfer records and deterministic examples for one bounded part of the paper's software-engineering continuity argument.
+This repository accompanies the public paper [Skillware: A Software Ontology and Engineering Lifecycle for Persistent Behavioral Artifacts](https://arxiv.org/abs/2607.18970) by Haodi Fan and Zucong Lan. It publishes auditable pattern-transfer records and deterministic examples for one bounded part of the paper's software-engineering continuity argument.
 
 **Skillware is the software abstraction that extends software engineering to persistent behavioral artifacts.** The relevant boundary is:
 
@@ -26,9 +26,9 @@ This is not a new design-pattern collection. The source patterns and their tradi
 
 | Artifact | Responsibility | Evidence boundary |
 | --- | --- | --- |
-| Paper | Defines the Skillware ontology and argues for software-engineering continuity. | The public paper link will be inserted after assignment. Until then, use the [paper source pinned at research revision `1fc1dfd`](https://github.com/MetaInFLow/skillware/blob/1fc1dfd/paper/manuscript-ars-v1/phase7_output_arxiv/main.tex). |
-| [`MetaInFlow/skillware`](https://github.com/MetaInFLow/skillware/tree/1fc1dfd) | Preserves the manuscript source, corpus analysis, fixed-revision cases, counterevidence, and research provenance. | It is the research and source repository, pinned here to `1fc1dfd`. |
-| `MetaInFlow/skillware-patterns` (this repository) | Publishes the transfer protocol, sourced catalog, participant maps, runnable samples, misuse cases, and focused tests. | Constructive output can show that a mapping is buildable; it cannot validate the ontology or establish ecosystem prevalence. |
+| [Public arXiv paper](https://arxiv.org/abs/2607.18970) | Defines the Skillware ontology and argues for software-engineering continuity. | The public abstract record is the authoritative paper entry point. |
+| Private authoring/research archive | Preserves manuscript source, corpus analysis, frozen cases, counterevidence, and provenance. | Authoring revision `1fc1dfd` is an unlinked provenance identifier; the archive is not a public dependency. |
+| `MetaInFlow/skillware-patterns` (this repository) | Publishes the transfer protocol, sourced catalog, participant maps, runnable samples, misuse cases, and focused tests. | This self-contained executable supplement carries the local evidence required to inspect and run its claims. Its output cannot validate the ontology or establish ecosystem prevalence. |
 
 The [paper map](docs/paper-map.md) keeps these responsibilities separate and binds this supplement to `v0.1-paper-v1`.
 
@@ -46,14 +46,14 @@ The twelve pattern directories are peers in one flat navigation tree. `source_tr
 
 Paper Section 5.3 and Table 5 use these six mappings. Ecosystem correspondence and local constructibility are deliberately separate claim columns.
 
-| Pattern | Skillware participant relation | Ecosystem claim | Local sample claim | Record and evidence |
-| --- | --- | --- | --- | --- |
-| [Facade](patterns/facade/definition.md) | One entry Skill exposes a stable contract over specialist Skills. | confirmed correspondence | constructive | [correspondence](patterns/facade/correspondence.md) · [sample](patterns/facade/sample/) |
-| [Adapter](patterns/adapter/definition.md) | A thin binding translates canonical Skill semantics into a target system contract. | confirmed correspondence | constructive | [correspondence](patterns/adapter/correspondence.md) · [sample](patterns/adapter/sample/) |
-| [Composite](patterns/composite/definition.md) | Atomic and composite stages share one invocation and result contract. | candidate correspondence | constructive | [correspondence](patterns/composite/correspondence.md) · [sample](patterns/composite/sample/) |
-| [Observer](patterns/observer/definition.md) | A subject emits typed events to registered independent consumers. | candidate correspondence | constructive | [correspondence](patterns/observer/correspondence.md) · [sample](patterns/observer/sample/) |
-| [State](patterns/state/definition.md) | Persisted state controls permitted actions and transitions. | candidate correspondence | constructive | [correspondence](patterns/state/correspondence.md) · [sample](patterns/state/sample/) |
-| [Strategy](patterns/strategy/definition.md) | One request/result contract selects among interchangeable procedures. | candidate correspondence | constructive | [correspondence](patterns/strategy/correspondence.md) · [sample](patterns/strategy/sample/) |
+| Pattern | Source tradition / `source_category` | Skillware participant relation | Ecosystem claim | Local sample claim | Record and evidence |
+| --- | --- | --- | --- | --- | --- |
+| [Facade](patterns/facade/definition.md) | `gang-of-four` / `structural` | One entry Skill exposes a stable contract over specialist Skills. | confirmed correspondence | constructive | [correspondence](patterns/facade/correspondence.md) · [sample](patterns/facade/sample/) |
+| [Adapter](patterns/adapter/definition.md) | `gang-of-four` / `structural` | A thin binding translates canonical Skill semantics into a target system contract. | confirmed correspondence | constructive | [correspondence](patterns/adapter/correspondence.md) · [sample](patterns/adapter/sample/) |
+| [Composite](patterns/composite/definition.md) | `gang-of-four` / `structural` | Atomic and composite stages share one invocation and result contract. | candidate correspondence | constructive | [correspondence](patterns/composite/correspondence.md) · [sample](patterns/composite/sample/) |
+| [Observer](patterns/observer/definition.md) | `gang-of-four` / `behavioral` | A subject emits typed events to registered independent consumers. | candidate correspondence | constructive | [correspondence](patterns/observer/correspondence.md) · [sample](patterns/observer/sample/) |
+| [State](patterns/state/definition.md) | `gang-of-four` / `behavioral` | Persisted state controls permitted actions and transitions. | candidate correspondence | constructive | [correspondence](patterns/state/correspondence.md) · [sample](patterns/state/sample/) |
+| [Strategy](patterns/strategy/definition.md) | `gang-of-four` / `behavioral` | One request/result contract selects among interchangeable procedures. | candidate correspondence | constructive | [correspondence](patterns/strategy/correspondence.md) · [sample](patterns/strategy/sample/) |
 
 The statuses reproduce the evidence boundaries in the [paper map](docs/paper-map.md); a constructive sample does not upgrade a candidate ecosystem correspondence.
 
@@ -61,14 +61,14 @@ The statuses reproduce the evidence boundaries in the [paper map](docs/paper-map
 
 The supplement provides four additional GoF records and two records from other established traditions.
 
-| Pattern | Source tradition and `source_category` | Ecosystem claim | Local sample claim | Record and evidence |
-| --- | --- | --- | --- | --- |
-| [Decorator](patterns/decorator/definition.md) | Gang of Four; `structural` | candidate correspondence | constructive | [correspondence](patterns/decorator/correspondence.md) · [sample](patterns/decorator/sample/) |
-| [Template Method](patterns/template-method/definition.md) | Gang of Four; `behavioral` | candidate correspondence | constructive | [correspondence](patterns/template-method/correspondence.md) · [sample](patterns/template-method/sample/) |
-| [Memento](patterns/memento/definition.md) | Gang of Four; `behavioral` | candidate correspondence | constructive | [correspondence](patterns/memento/correspondence.md) · [sample](patterns/memento/sample/) |
-| [Mediator](patterns/mediator/definition.md) | Gang of Four; `behavioral` | candidate correspondence | constructive | [correspondence](patterns/mediator/correspondence.md) · [sample](patterns/mediator/sample/) |
-| [Pipes and Filters](patterns/pipes-and-filters/definition.md) | Pattern-Oriented Software Architecture; `architectural` | candidate correspondence | constructive | [correspondence](patterns/pipes-and-filters/correspondence.md) · [sample](patterns/pipes-and-filters/sample/) |
-| [Specification](patterns/specification/definition.md) | Domain-Driven Design; `domain` | not observable | constructive | [correspondence](patterns/specification/correspondence.md) · [sample](patterns/specification/sample/) |
+| Pattern | Source tradition / `source_category` | Skillware participant relation | Ecosystem claim | Local sample claim | Record and evidence |
+| --- | --- | --- | --- | --- | --- |
+| [Decorator](patterns/decorator/definition.md) | `gang-of-four` / `structural` | Optional review Skills wrap one shared component contract. | candidate correspondence | constructive | [correspondence](patterns/decorator/correspondence.md) · [sample](patterns/decorator/sample/) |
+| [Template Method](patterns/template-method/definition.md) | `gang-of-four` / `behavioral` | A root Skill owns invariant workflow order and bounded specialization hooks. | candidate correspondence | constructive | [correspondence](patterns/template-method/correspondence.md) · [sample](patterns/template-method/sample/) |
+| [Memento](patterns/memento/definition.md) | `gang-of-four` / `behavioral` | A caretaker captures and restores an originator's opaque configuration state. | candidate correspondence | constructive | [correspondence](patterns/memento/correspondence.md) · [sample](patterns/memento/sample/) |
+| [Mediator](patterns/mediator/definition.md) | `gang-of-four` / `behavioral` | A coordinator centralizes interaction among deployment-readiness Skills. | candidate correspondence | constructive | [correspondence](patterns/mediator/correspondence.md) · [sample](patterns/mediator/sample/) |
+| [Pipes and Filters](patterns/pipes-and-filters/definition.md) | `pattern-oriented-software-architecture` / `architectural` | Ordered Filters transform one versioned ticket record through explicit Pipes. | candidate correspondence | constructive | [correspondence](patterns/pipes-and-filters/correspondence.md) · [sample](patterns/pipes-and-filters/sample/) |
+| [Specification](patterns/specification/definition.md) | `domain-driven-design` / `domain` | Named, composable rules evaluate one bounded expense candidate. | not observable | constructive | [correspondence](patterns/specification/correspondence.md) · [sample](patterns/specification/sample/) |
 
 Pipes and Filters is not a GoF pattern; Specification is not a GoF pattern. Their labels preserve the established POSA and DDD provenance.
 
@@ -93,25 +93,28 @@ This is constructive evidence for the local mapping. The separate fixed-revision
 
 ## Quick start and validation
 
-Python 3.10+ is required; root catalog validation also requires PyYAML as declared in `pyproject.toml`. Run these commands from the repository root.
+Python 3.10+ is required. From a clean checkout, run these steps at the repository root; the editable install brings in PyYAML before any catalog-dependent test or validator runs.
 
-1. Run the Facade example and its focused verification.
+1. Create and activate an isolated environment.
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+2. Install this repository and its declared dependency.
+
+```bash
+python -m pip install -e .
+```
+
+3. Run the example, focused verification, complete tests, and integrity validator.
 
 ```bash
 python3 patterns/facade/sample/scripts/run_demo.py
 python3 -m unittest discover -s patterns/facade/sample/tests -v
-```
-
-2. Run the documentation contract and the complete root test suite.
-
-```bash
 python3 -m unittest tests/test_docs.py -v
 python3 -m unittest discover -s tests -v
-```
-
-3. Run the repository integrity validator.
-
-```bash
 python3 scripts/validate_repository.py
 ```
 
@@ -178,15 +181,15 @@ The repository does not claim invention of established patterns. Pattern, implem
 
 ## Citation
 
-The public arXiv link will be inserted after assignment; no identifier is inferred here. For current review, cite the paper title above and the [paper source pinned at `MetaInFlow/skillware@1fc1dfd`](https://github.com/MetaInFLow/skillware/blob/1fc1dfd/paper/manuscript-ars-v1/phase7_output_arxiv/main.tex), together with this repository release binding `v0.1-paper-v1`.
+Haodi Fan and Zucong Lan. [*Skillware: A Software Ontology and Engineering Lifecycle for Persistent Behavioral Artifacts*](https://arxiv.org/abs/2607.18970). arXiv:2607.18970 [cs.SE], submitted 21 July 2026.
 
-Formal software and preferred-paper metadata in `CITATION.cff` will be added in the next publication step. The [paper map](docs/paper-map.md) provides claim-level paths now.
+Formal software and preferred-paper metadata in `CITATION.cff` remains a release-preparation artifact for the next task. The [paper map](docs/paper-map.md) provides claim-level paths now; authoring revision `1fc1dfd` is recorded there as unlinked provenance.
 
 ## Contributing
 
 Contributions should preserve established source provenance, the flat pattern layout, the seven-element admission protocol, controlled statuses, bilingual definitions, a standalone sample, a close misuse case, and focused tests. A new directory is not admitted solely because it carries a familiar pattern name.
 
-The formal contribution guide and code of conduct are upcoming publication-governance files. Until they are added, proposed changes should remain scoped to reproducible corrections, evidence additions, and protocol-complete pattern records.
+The formal contribution guide and code of conduct are upcoming publication-governance files. Until they are added, proposed changes should remain scoped to reproducible corrections, evidence additions, and protocol-complete pattern records. This repository remains in release preparation and is not yet public-release ready.
 
 ## Licenses
 
