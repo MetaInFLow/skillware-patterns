@@ -1,0 +1,1 @@
+ERROR: configuration fields must be exactly: version, endpoint; unexpected: debug

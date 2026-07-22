@@ -1,0 +1,7 @@
+{
+  "status": "migrated",
+  "from_version": 1,
+  "to_version": 2,
+  "endpoint": "stable",
+  "restored": false
+}

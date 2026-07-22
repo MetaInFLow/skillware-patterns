@@ -1,0 +1,9 @@
+id: memento
+name: Memento
+name_zh: 备忘录模式
+source_tradition: gang-of-four
+source_category: behavioral
+paper_role: repository-supplement
+implementation_status: detailed
+scenario: Configuration Migration
+scenario_zh: 配置迁移回滚

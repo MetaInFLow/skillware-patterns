@@ -1,0 +1,34 @@
+name: Configuration Migration
+name_zh: 配置迁移回滚
+configuration_contract: service-configuration-v1
+memento_contract: configuration-memento-v1
+participants:
+  - role: Originator
+    id: configuration-originator
+    path: child-skills/configuration-originator/SKILL.md
+  - role: Memento
+    id: exact-configuration-checkpoint
+    path: references/configuration-memento-contract.md
+  - role: Caretaker
+    id: migration-caretaker
+    path: child-skills/migration-caretaker/SKILL.md
+capture: exact-bytes-plus-metadata
+metadata:
+  - canonical-target
+  - permission-mode
+  - sha256-checksum
+  - caretaker-owner
+  - lifecycle-state
+write: same-directory-atomic-replace
+restore: atomic-replace
+post_write_validation: exact-rendered-bytes-and-schema
+successful_commit: discard-without-restore
+checkpoint_limit: one-live-per-caretaker
+foreign_or_stale_memento: reject
+restore_failure: report-both-errors-and-keep-checkpoint-active
+input_limit_bytes: 65536
+endpoint_limit_characters: 4096
+version_limit: 2147483647
+concurrency: single-cooperative-writer
+oracle_path: scripts/run_demo.py
+contract_path: references/configuration-memento-contract.md

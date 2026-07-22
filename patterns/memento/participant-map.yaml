@@ -1,0 +1,53 @@
+pattern: Memento
+pattern_id: memento
+participants:
+  Originator:
+    role: Configuration Originator child Skill and ConfigurationOriginator oracle
+    behavior: Encapsulates validated configuration state, creates an opaque exact-byte memento, renders the next version, validates the committed file, and restores only its own target.
+    paths:
+      - sample/child-skills/configuration-originator/SKILL.md
+      - sample/scripts/run_demo.py
+      - sample/references/configuration-memento-contract.md
+  Memento:
+    role: Opaque configuration-memento-v1 checkpoint
+    behavior: Holds exact prior bytes, target identity, permission mode, checksum, owner identity, and lifecycle state without exposing configuration content to the Caretaker.
+    paths:
+      - sample/references/configuration-memento-contract.md
+      - sample/scripts/run_demo.py
+  Caretaker:
+    role: Configuration Migration root Skill, Migration Caretaker child Skill, and MigrationCaretaker oracle
+    behavior: Owns capture before mutation, failure restoration, successful disposal without restoration, one-live-checkpoint policy, and stale or foreign memento rejection.
+    paths:
+      - sample/SKILL.md
+      - sample/child-skills/migration-caretaker/SKILL.md
+      - sample/scripts/run_demo.py
+      - sample/references/configuration-memento-contract.md
+execution_context:
+  Agent Host:
+    responsibility: Activates the configuration-migration Skillware Unit.
+    evidence_status: not observable
+    note: The constructive sample supplies no Agent Host integration evidence.
+  Agent Runtime:
+    responsibility: Interprets activated Behavioral Source and carries out the migration workflow.
+    evidence_status: not observable
+    note: The deterministic Python oracle is not evidence of model interpretation.
+implementation_paths:
+  - sample/scripts/run_demo.py
+  - sample/skillware.yaml
+  - sample/references/configuration-memento-contract.md
+  - sample/fixtures/valid/service-config.json
+  - sample/fixtures/invalid/corrupt-config.json
+  - sample/fixtures/invalid/duplicate-version.json
+  - sample/fixtures/invalid/wrong-version-type.json
+  - sample/fixtures/invalid/unknown-field.json
+  - sample/expected/migration-result.json
+  - sample/expected/migrated-config.json
+  - sample/expected/missing-config-error.txt
+  - sample/expected/corrupt-config-error.txt
+  - sample/expected/duplicate-version-error.txt
+  - sample/expected/wrong-version-type-error.txt
+  - sample/expected/unknown-field-error.txt
+  - sample/expected/non-utf8-config-error.txt
+  - sample/tests/test_demo.py
+misuse_path: misuse/SKILL.md
+evidence_path: evidence/skillopt-frozen-case.md
