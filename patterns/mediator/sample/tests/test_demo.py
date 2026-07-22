@@ -223,6 +223,60 @@ class MediatorDemoTest(unittest.TestCase):
                     demo.coordinate(statuses, colleagues=colleagues)
                 self.assertEqual(calls, [])
 
+    def test_rejected_statuses_leave_injected_colleagues_unbound_and_reusable(self):
+        demo = self.require_demo()
+        calls = []
+        colleagues = [
+            demo.Colleague(
+                participant_id,
+                f"injected:{participant_id}",
+                lambda status, item=participant_id: calls.append(item) or status,
+            )
+            for participant_id in PARTICIPANT_IDS
+        ]
+        invalid = self.default_statuses()
+        invalid.pop("approval")
+
+        with self.assertRaisesRegex(
+            demo.CoordinationError,
+            "^statuses fields must be exactly: build, security, docs, approval; missing: approval$",
+        ):
+            demo.coordinate(invalid, colleagues=colleagues)
+
+        self.assertEqual(calls, [])
+        self.assertTrue(
+            all(colleague.mediator_address is None for colleague in colleagues)
+        )
+
+        result = demo.coordinate(self.default_statuses(), colleagues=colleagues)
+        self.assertEqual(result["decision"], "release")
+        self.assertEqual(calls, list(PARTICIPANT_IDS))
+
+    def test_non_string_status_keys_have_stable_errors_without_binding(self):
+        demo = self.require_demo()
+
+        for invalid_key in (7, object()):
+            with self.subTest(key_type=type(invalid_key).__name__):
+                statuses = self.default_statuses()
+                statuses[invalid_key] = statuses.pop("approval")
+                colleagues = [
+                    demo.Colleague(participant_id, f"injected:{participant_id}")
+                    for participant_id in PARTICIPANT_IDS
+                ]
+
+                with self.assertRaisesRegex(
+                    demo.CoordinationError,
+                    "^statuses field names must be non-empty strings$",
+                ):
+                    demo.coordinate(statuses, colleagues=colleagues)
+
+                self.assertTrue(
+                    all(
+                        colleague.mediator_address is None
+                        for colleague in colleagues
+                    )
+                )
+
     def test_non_mapping_statuses_are_rejected(self):
         demo = self.require_demo()
 
@@ -273,6 +327,62 @@ class MediatorDemoTest(unittest.TestCase):
                 ):
                     demo.coordinate(self.default_statuses(), colleagues=colleagues)
 
+    def test_invalid_colleague_ids_are_stable_and_constructor_is_transactional(self):
+        demo = self.require_demo()
+
+        for invalid_id in (7, object(), ""):
+            with self.subTest(id_type=type(invalid_id).__name__):
+                colleagues = [
+                    demo.Colleague("build", "injected:build"),
+                    demo.Colleague("security", "injected:security"),
+                    demo.Colleague("docs", "injected:docs"),
+                    demo.Colleague(invalid_id, "injected:invalid"),
+                ]
+
+                with self.assertRaisesRegex(
+                    demo.CoordinationError,
+                    "^colleague participant_id must be a non-empty string$",
+                ):
+                    demo.DeploymentCoordinator(colleagues)
+
+                self.assertTrue(
+                    all(
+                        colleague.mediator_address is None
+                        for colleague in colleagues
+                    )
+                )
+
+    def test_every_constructor_rejection_leaves_valid_colleagues_unbound(self):
+        demo = self.require_demo()
+
+        def colleague(participant_id):
+            return demo.Colleague(participant_id, f"injected:{participant_id}")
+
+        cases = (
+            [colleague("build"), colleague("security"), colleague("docs"), object()],
+            [colleague("build"), colleague("security"), colleague("docs"), colleague("docs")],
+            [colleague("build"), colleague("security"), colleague("docs")],
+            [
+                colleague("build"),
+                colleague("security"),
+                colleague("docs"),
+                colleague("approval"),
+                colleague("operations"),
+            ],
+        )
+
+        for colleagues in cases:
+            with self.subTest(size=len(colleagues)):
+                with self.assertRaises(demo.CoordinationError):
+                    demo.DeploymentCoordinator(colleagues)
+                self.assertTrue(
+                    all(
+                        item.mediator_address is None
+                        for item in colleagues
+                        if isinstance(item, demo.Colleague)
+                    )
+                )
+
     def test_colleague_cannot_be_shared_between_mediators(self):
         demo = self.require_demo()
         colleague = demo.Colleague("build", "injected:build")
@@ -285,6 +395,11 @@ class MediatorDemoTest(unittest.TestCase):
             ]
         )
 
+        fresh = [
+            demo.Colleague("build", "other:build"),
+            demo.Colleague("security", "other:security"),
+            demo.Colleague("docs", "other:docs"),
+        ]
         with self.assertRaisesRegex(
             demo.CoordinationError,
             "^colleague build is already bound to another mediator$",
@@ -292,12 +407,37 @@ class MediatorDemoTest(unittest.TestCase):
             demo.DeploymentCoordinator(
                 [
                     colleague,
-                    demo.Colleague("security", "other:security"),
-                    demo.Colleague("docs", "other:docs"),
+                    fresh[1],
+                    fresh[2],
                     demo.Colleague("approval", "other:approval"),
                 ]
             )
         self.assertEqual(first.address, "deployment-coordinator")
+        self.assertTrue(all(item.mediator_address is None for item in fresh))
+
+    def test_late_already_bound_colleague_does_not_bind_earlier_candidates(self):
+        demo = self.require_demo()
+        original = [
+            demo.Colleague(participant_id, f"original:{participant_id}")
+            for participant_id in PARTICIPANT_IDS
+        ]
+        demo.DeploymentCoordinator(original)
+        candidates = [
+            demo.Colleague("build", "candidate:build"),
+            demo.Colleague("security", "candidate:security"),
+            demo.Colleague("docs", "candidate:docs"),
+            original[3],
+        ]
+
+        with self.assertRaisesRegex(
+            demo.CoordinationError,
+            "^colleague approval is already bound to another mediator$",
+        ):
+            demo.DeploymentCoordinator(candidates)
+
+        self.assertTrue(
+            all(item.mediator_address is None for item in candidates[:3])
+        )
 
     def test_child_skills_report_only_to_mediator(self):
         for participant_id in PARTICIPANT_IDS:

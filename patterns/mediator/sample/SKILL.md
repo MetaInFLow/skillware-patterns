@@ -30,9 +30,12 @@ Host and Agent Runtime are execution context, not GoF Mediator participants.
 1. Require exactly `build`, `security`, `docs`, and `approval`, each with the
    literal status `pass` or `fail`. Reject missing, extra, duplicate, wrong-type,
    non-UTF-8, malformed, or oversized input before addressing a Colleague.
-2. Inject exactly one Colleague for each participant. Reject duplicates,
-   missing participants, extras, non-Colleague objects, or a Colleague already
-   bound to another Mediator.
+2. Only after status validation, inspect the entire injected Colleague set
+   without binding any item. Require non-empty string participant IDs and
+   exactly one Colleague for each participant. Reject duplicates, missing
+   participants, extras, non-Colleague objects, or a Colleague already bound to
+   another Mediator. Bind all four only after every admission check passes; a
+   rejected set leaves every previously unbound Colleague reusable.
 3. Address Colleagues exactly once in build, security, docs, approval order.
    Give each only its own status. A Colleague reports only through the Mediator
    boundary and never receives peer references.

@@ -27,11 +27,15 @@ and never mutates the caller mapping.
 
 ## Collaboration / 协作
 
-The ConcreteMediator validates one unique Colleague per canonical participant,
-binds each to address `deployment-coordinator`, and invokes each exactly once in
-build, security, docs, approval order. Each Colleague receives only its own
-status, performs its bounded specialist callable, and calls `Mediator.receive`.
-No Colleague receives a peer list or peer address.
+Status validation and copying complete before ConcreteMediator construction.
+The ConcreteMediator then prevalidates the entire injected set: every item is a
+Colleague, every participant ID is a non-empty string, identities are complete
+and unique, and every Colleague is unbound. Only after all admission checks pass
+does it bind each to address `deployment-coordinator`. Rejection leaves every
+previously unbound Colleague unchanged and reusable. It invokes each exactly
+once in build, security, docs, approval order. Each Colleague receives only its
+own status, performs its bounded specialist callable, and calls
+`Mediator.receive`. No Colleague receives a peer list or peer address.
 
 ConcreteMediator catches a specialist exception or invalid callable report,
 records that participant as `fail`, and continues. It alone applies

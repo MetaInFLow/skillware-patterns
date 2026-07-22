@@ -42,10 +42,13 @@ explicitly and allowing their interaction to vary independently.
 
 ## Collaboration
 
-The ConcreteMediator validates a complete unique participant set, orders it as
-build, security, docs, approval, and binds every Colleague to its own address.
-After validating and copying input, it addresses each Colleague once with only
-that participant's status. A Colleague runs its specialist callable and reports
+The public API validates and copies all statuses before constructing a
+ConcreteMediator. The ConcreteMediator then prevalidates the complete injected
+set, including types, non-empty string IDs, exact unique identities, and unbound
+state, before binding any item. Rejection leaves every previously unbound
+Colleague reusable. It orders the admitted set as build, security, docs,
+approval, binds every Colleague to its own address, and addresses each once with
+only that participant's status. A Colleague runs its specialist callable and reports
 back through `Mediator.receive`; it has no peer collection or peer path. The
 ConcreteMediator treats an exception or invalid callable report as `fail` and
 continues. After all four attempts, it releases only if every final report is

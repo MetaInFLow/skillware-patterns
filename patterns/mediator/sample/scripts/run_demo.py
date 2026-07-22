@@ -54,8 +54,11 @@ def exact_fields_error(subject, actual):
 def validate_statuses(statuses):
     if not isinstance(statuses, Mapping):
         raise CoordinationError("statuses must be a mapping")
-    if set(statuses) != set(PARTICIPANT_IDS):
-        raise CoordinationError(exact_fields_error("statuses fields", statuses))
+    field_names = tuple(statuses)
+    if any(not isinstance(field, str) or not field for field in field_names):
+        raise CoordinationError("statuses field names must be non-empty strings")
+    if set(field_names) != set(PARTICIPANT_IDS):
+        raise CoordinationError(exact_fields_error("statuses fields", field_names))
 
     copied = {}
     for participant_id in PARTICIPANT_IDS:
@@ -121,6 +124,14 @@ class DeploymentCoordinator(Mediator):
                 raise CoordinationError(
                     "colleagues must contain only Colleague instances"
                 )
+        for colleague in supplied:
+            if (
+                not isinstance(colleague.participant_id, str)
+                or not colleague.participant_id
+            ):
+                raise CoordinationError(
+                    "colleague participant_id must be a non-empty string"
+                )
 
         by_id = {}
         for colleague in supplied:
@@ -136,7 +147,7 @@ class DeploymentCoordinator(Mediator):
 
         ordered = tuple(by_id[participant_id] for participant_id in PARTICIPANT_IDS)
         for colleague in ordered:
-            if colleague._mediator is not None and colleague._mediator is not self:
+            if colleague._mediator is not None:
                 raise CoordinationError(
                     f"colleague {colleague.participant_id} is already bound to another mediator"
                 )
@@ -166,6 +177,9 @@ class DeploymentCoordinator(Mediator):
 
     def coordinate(self, statuses):
         copied_statuses = validate_statuses(statuses)
+        return self._coordinate_validated(copied_statuses)
+
+    def _coordinate_validated(self, copied_statuses):
         self._reports = {}
         for colleague in self._colleagues:
             self._active_colleague = colleague
@@ -203,8 +217,9 @@ def default_colleagues():
 
 
 def coordinate(statuses, colleagues=None):
+    copied_statuses = validate_statuses(statuses)
     selected = default_colleagues() if colleagues is None else colleagues
-    return DeploymentCoordinator(selected).coordinate(statuses)
+    return DeploymentCoordinator(selected)._coordinate_validated(copied_statuses)
 
 
 def validate_workflow(workflow):
