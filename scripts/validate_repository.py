@@ -168,6 +168,8 @@ def _load_for_validation(path: str, errors: list[str]):
     except yaml.YAMLError as exc:
         problem = getattr(exc, "problem", None) or str(exc).splitlines()[0]
         errors.append(f"invalid YAML in {path}: {problem}")
+    except RecursionError:
+        errors.append(f"YAML nesting exceeds parser capacity in {path}")
     except (OSError, UnicodeError) as exc:
         errors.append(f"unable to read {path}: {exc}")
     return LOAD_FAILED
@@ -182,6 +184,8 @@ def _load_yaml_file(path: Path, errors: list[str]):
     except yaml.YAMLError as exc:
         problem = getattr(exc, "problem", None) or str(exc).splitlines()[0]
         errors.append(f"invalid YAML in {display}: {problem}")
+    except RecursionError:
+        errors.append(f"YAML nesting exceeds parser capacity in {display}")
     except (OSError, UnicodeError) as exc:
         errors.append(f"unable to read {display}: {exc}")
     return LOAD_FAILED
@@ -473,8 +477,8 @@ def _validate_definition_headings(
 
 def _level_two_headings(markdown: str) -> set[str]:
     headings = set()
-    for line in markdown.splitlines():
-        match = re.fullmatch(r"\s*##\s+(.+?)(?:\s+#+)?\s*", line)
+    for line in _visible_markdown(markdown).splitlines():
+        match = re.fullmatch(r" {0,3}##[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*", line)
         if match:
             headings.add(match.group(1))
     return headings
@@ -605,7 +609,7 @@ def _validate_record_tree(pattern_id: str, record: Path, errors: list[str]) -> b
         return False
     try:
         record_root = record.resolve().relative_to(patterns_root)
-    except ValueError:
+    except (OSError, RuntimeError, ValueError):
         errors.append(f"{pattern_id}: resolved pattern record leaves patterns root")
         return False
     if record_root != Path(pattern_id):
@@ -623,9 +627,10 @@ def _validate_record_tree(pattern_id: str, record: Path, errors: list[str]) -> b
                     f"{pattern_id}: symbolic link is not allowed: {relative}"
                 )
                 valid = False
+                continue
             try:
                 path.resolve().relative_to(record.resolve())
-            except ValueError:
+            except (OSError, RuntimeError, ValueError):
                 errors.append(
                     f"{pattern_id}: resolved path leaves its pattern record: {relative}"
                 )
@@ -636,6 +641,9 @@ def _validate_record_tree(pattern_id: str, record: Path, errors: list[str]) -> b
 def _validate_record(row: dict, errors: list[str]) -> None:
     pattern_id = row["id"]
     record = ROOT / "patterns" / pattern_id
+    if record.is_symlink():
+        _validate_record_tree(pattern_id, record, errors)
+        return
     if not record.is_dir():
         return
     if not _validate_record_tree(pattern_id, record, errors):
@@ -745,7 +753,11 @@ def _validate_records(index: list[dict]) -> list[str]:
     except ValueError:
         return ["resolved patterns directory leaves repository root"]
 
-    actual_ids = {path.name for path in patterns_root.iterdir() if path.is_dir()}
+    actual_ids = {
+        path.name
+        for path in patterns_root.iterdir()
+        if path.is_dir() or path.is_symlink()
+    }
     for pattern_id in sorted(expected_ids - actual_ids):
         errors.append(f"missing pattern record directory: patterns/{pattern_id}")
     for pattern_id in sorted(actual_ids - expected_ids):

@@ -416,10 +416,29 @@ class ValidatorTest(unittest.TestCase):
 
         errors = validate_repository.validate()
         self.assertIn("facade: symbolic link is not allowed: sample/SKILL.md", errors)
-        self.assertIn(
-            "facade: resolved path leaves its pattern record: sample/SKILL.md",
-            errors,
+        self.assertFalse(
+            any("resolved path" in error and "sample/SKILL.md" in error for error in errors)
         )
+
+    def test_self_referential_record_and_file_symlinks_are_errors_not_crashes(self):
+        facade = self.root / "patterns/facade"
+        shutil.rmtree(facade)
+        facade.symlink_to("facade", target_is_directory=True)
+
+        self.assertIn(
+            "facade: pattern record directory must not be a symbolic link",
+            validate_repository.validate(),
+        )
+
+        facade.unlink()
+        shutil.copytree(ROOT / "patterns/facade", facade)
+        skill = facade / "sample/SKILL.md"
+        skill.unlink()
+        skill.symlink_to("SKILL.md")
+
+        errors = validate_repository.validate()
+        self.assertIn("facade: symbolic link is not allowed: sample/SKILL.md", errors)
+        self.assertFalse(any("unable to resolve" in error for error in errors))
 
     def test_pattern_metadata_must_exactly_match_the_catalog(self):
         metadata = deepcopy(self.valid_index[0])
@@ -532,6 +551,17 @@ class ValidatorTest(unittest.TestCase):
             validate_repository.validate(),
         )
 
+    def test_yaml_parser_recursion_is_an_actionable_validation_error(self):
+        nested = "root: " + "[" * 500 + "'value'" + "]" * 500 + "\n"
+        path = self.root / "patterns/facade/participant-map.yaml"
+        path.write_text(nested, encoding="utf-8")
+
+        self.assertIn(
+            "YAML nesting exceeds parser capacity in "
+            "patterns/facade/participant-map.yaml",
+            validate_repository.validate(),
+        )
+
     def test_repository_relative_participant_path_may_target_its_own_record(self):
         path = self.root / "patterns/facade/participant-map.yaml"
         participant_map = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -591,6 +621,41 @@ class ValidatorTest(unittest.TestCase):
         chinese.write_text(
             chinese.read_text(encoding="utf-8").replace(
                 "## 意图（Intent）", "## 意图（Intent） ##", 1
+            ),
+            encoding="utf-8",
+        )
+
+        self.assertEqual(validate_repository.validate(), [])
+
+    def test_definition_headings_must_be_visible_and_not_code_indented(self):
+        english = self.root / "patterns/facade/definition.md"
+        english.write_text(
+            english.read_text(encoding="utf-8")
+            .replace("## Intent", "```text\n## Intent\n```", 1)
+            .replace("## Forces", "    ## Forces", 1),
+            encoding="utf-8",
+        )
+        chinese = self.root / "patterns/facade/definition.zh-CN.md"
+        chinese.write_text(
+            chinese.read_text(encoding="utf-8").replace(
+                "## 意图（Intent）", "<!-- ## 意图（Intent） -->", 1
+            ),
+            encoding="utf-8",
+        )
+
+        errors = validate_repository.validate()
+
+        self.assertIn("facade: definition.md missing heading Intent", errors)
+        self.assertIn("facade: definition.md missing heading Forces", errors)
+        self.assertIn(
+            "facade: definition.zh-CN.md missing heading 意图（Intent）", errors
+        )
+
+    def test_definition_headings_allow_three_leading_spaces(self):
+        english = self.root / "patterns/facade/definition.md"
+        english.write_text(
+            english.read_text(encoding="utf-8").replace(
+                "## Intent", "   ## Intent ###", 1
             ),
             encoding="utf-8",
         )
