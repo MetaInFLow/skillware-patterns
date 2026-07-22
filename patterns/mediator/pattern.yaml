@@ -1,0 +1,9 @@
+id: mediator
+name: Mediator
+name_zh: 中介者模式
+source_tradition: gang-of-four
+source_category: behavioral
+paper_role: repository-supplement
+implementation_status: detailed
+scenario: Deployment Coordinator
+scenario_zh: 部署协调

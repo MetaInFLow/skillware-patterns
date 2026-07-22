@@ -1,0 +1,60 @@
+pattern: Mediator
+pattern_id: mediator
+participants:
+  Mediator:
+    role: Mediator coordination interface and deployment-readiness-v1 contract
+    behavior: Defines the single report boundary through which addressed Colleagues communicate without peer references.
+    paths:
+      - sample/references/deployment-readiness-contract.md
+      - sample/scripts/run_demo.py
+  ConcreteMediator:
+    role: Deployment Coordinator root Skill and DeploymentCoordinator oracle
+    behavior: Injects and addresses each Colleague once in canonical order, isolates specialist failures, owns the all-pass readiness policy, and makes the final release decision without doing specialist work.
+    paths:
+      - sample/SKILL.md
+      - sample/scripts/run_demo.py
+      - sample/skillware.yaml
+      - sample/references/deployment-readiness-contract.md
+  Colleague:
+    role: Build, Security, Docs, and Approval child Skills plus Colleague oracle instances
+    behavior: Each performs only its bounded specialist check and reports pass or fail to the ConcreteMediator; no Colleague stores or invokes peers.
+    paths:
+      - sample/child-skills/build/SKILL.md
+      - sample/child-skills/security/SKILL.md
+      - sample/child-skills/docs/SKILL.md
+      - sample/child-skills/approval/SKILL.md
+      - sample/scripts/run_demo.py
+      - sample/references/deployment-readiness-contract.md
+execution_context:
+  Agent Host:
+    responsibility: Activates the deployment-coordinator Skillware Unit.
+    evidence_status: not observable
+    note: The constructive sample supplies no Agent Host integration evidence.
+  Agent Runtime:
+    responsibility: Interprets activated Behavioral Source and carries out colleague coordination.
+    evidence_status: not observable
+    note: The deterministic Python oracle is not evidence of model interpretation.
+implementation_paths:
+  - sample/scripts/run_demo.py
+  - sample/skillware.yaml
+  - sample/references/deployment-readiness-contract.md
+  - sample/fixtures/valid/release-ready.json
+  - sample/fixtures/valid/security-failure.json
+  - sample/fixtures/invalid/missing-approval.json
+  - sample/fixtures/invalid/extra-status.json
+  - sample/fixtures/invalid/invalid-status.json
+  - sample/fixtures/invalid/wrong-statuses-type.json
+  - sample/fixtures/invalid/duplicate-build.json
+  - sample/fixtures/invalid/invalid-json.json
+  - sample/expected/release-result.json
+  - sample/expected/security-failure-result.json
+  - sample/expected/missing-approval-error.txt
+  - sample/expected/extra-status-error.txt
+  - sample/expected/invalid-status-error.txt
+  - sample/expected/wrong-statuses-type-error.txt
+  - sample/expected/duplicate-build-error.txt
+  - sample/expected/invalid-json-error.txt
+  - sample/expected/non-utf8-statuses-error.txt
+  - sample/tests/test_demo.py
+misuse_path: misuse/SKILL.md
+evidence_path: evidence/financial-services-frozen-case.md

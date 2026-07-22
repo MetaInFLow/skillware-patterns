@@ -1,0 +1,38 @@
+name: Deployment Coordinator
+name_zh: 部署协调
+mediator_contract: deployment-readiness-v1
+participants:
+  - role: ConcreteMediator
+    id: deployment-coordinator
+    path: SKILL.md
+  - role: Colleague
+    id: build
+    path: child-skills/build/SKILL.md
+  - role: Colleague
+    id: security
+    path: child-skills/security/SKILL.md
+  - role: Colleague
+    id: docs
+    path: child-skills/docs/SKILL.md
+  - role: Colleague
+    id: approval
+    path: child-skills/approval/SKILL.md
+communication_path: participants->mediator->release
+participant_order:
+  - build
+  - security
+  - docs
+  - approval
+status_values:
+  - pass
+  - fail
+release_policy: all-participants-pass
+specialist_failure_policy: isolate-and-fail-closed
+invocation_policy: exactly-once-in-canonical-order
+participant_addressing: mediator-injected
+duplicate_participants: reject
+unknown_participants: reject
+mutation_policy: copy-statuses
+input_limit_bytes: 65536
+oracle_path: scripts/run_demo.py
+contract_path: references/deployment-readiness-contract.md

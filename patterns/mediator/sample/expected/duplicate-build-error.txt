@@ -1,0 +1,1 @@
+error: workflow contains duplicate JSON object member: build

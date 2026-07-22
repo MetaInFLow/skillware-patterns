@@ -281,6 +281,41 @@ class CatalogTest(unittest.TestCase):
         )
         self.assertNotIn("EvoZeus", markdown_row)
 
+    def test_mediator_screening_uses_only_pinned_financial_services_candidate(self):
+        mediator = next(row for row in self.screen if row["id"] == "mediator")
+        reasoning = mediator["reasoning"]
+
+        self.assertNotIn("EvoZeus", reasoning)
+        self.assertIn("4aa51ed3d379731f8f9beff498d749580372699c", reasoning)
+        self.assertIn("managed-agent-cookbooks/gl-reconciler/agent.yaml", reasoning)
+        self.assertIn(
+            "managed-agent-cookbooks/gl-reconciler/subagents/reader.yaml",
+            reasoning,
+        )
+        self.assertIn(
+            "managed-agent-cookbooks/gl-reconciler/subagents/critic.yaml",
+            reasoning,
+        )
+        self.assertIn(
+            "managed-agent-cookbooks/gl-reconciler/subagents/resolver.yaml",
+            reasoning,
+        )
+        self.assertIn("scripts/test-cookbooks.sh", reasoning)
+        self.assertIn("candidate", reasoning)
+        self.assertIn("central orchestration", reasoning)
+        self.assertIn("common Colleague contract", reasoning)
+        self.assertIn("runtime decision behavior", reasoning)
+
+        markdown_row = next(
+            line
+            for line in (ROOT / "catalog/gof-23-screening.md")
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.startswith("| Mediator |")
+        )
+        self.assertNotIn("EvoZeus", markdown_row)
+        self.assertIn("4aa51ed3d379731f8f9beff498d749580372699c", markdown_row)
+
     def test_markdown_catalogs_are_generated_from_yaml(self):
         from scripts.render_catalog import render_gof_screen, render_pattern_index
 

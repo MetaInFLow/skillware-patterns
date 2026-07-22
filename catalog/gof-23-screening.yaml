@@ -181,7 +181,7 @@
   source_intent: Encapsulate peer interactions so colleagues do not refer to each other explicitly.
   skillware_carriers: [coordinator Skill, parent Agent, coordination manifest]
   screening_result: strong
-  reasoning: financial-services workflow orchestration and EvoZeus coordination are candidates; the companion repository verifies colleague isolation.
+  reasoning: At pinned anthropics/financial-services commit 4aa51ed3d379731f8f9beff498d749580372699c, managed-agent-cookbooks/gl-reconciler/agent.yaml centrally registers managed-agent-cookbooks/gl-reconciler/subagents/reader.yaml, managed-agent-cookbooks/gl-reconciler/subagents/critic.yaml, and managed-agent-cookbooks/gl-reconciler/subagents/resolver.yaml while scripts/test-cookbooks.sh checks depth-one agents. This is candidate-only because peer non-reference and central orchestration are source-observed, but a common Colleague contract and runtime decision behavior may be incomplete.
   false_positive_risk: A central God Skill that absorbs specialist work is not a sound Mediator.
   detailed_sample: true
 

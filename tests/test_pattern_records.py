@@ -1049,6 +1049,91 @@ class PatternRecordContractTest(unittest.TestCase):
                 with self.subTest(path=path.relative_to(record)):
                     self.assertNotIn("EvoZeus", path.read_text(encoding="utf-8"))
 
+    def test_mediator_roles_contract_evidence_and_chinese_parity(self):
+        record = PATTERNS / "mediator"
+        participant_map = yaml.safe_load(
+            (record / "participant-map.yaml").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            set(participant_map["participants"]),
+            {"Mediator", "ConcreteMediator", "Colleague"},
+        )
+        context = participant_map["execution_context"]
+        self.assertEqual(set(context), {"Agent Host", "Agent Runtime"})
+        for role in context.values():
+            self.assertEqual(role["evidence_status"], "not observable")
+            self.assertNotIn("path", role)
+            self.assertNotIn("evidence_path", role)
+
+        contract = yaml.safe_load(
+            (record / "sample/skillware.yaml").read_text(encoding="utf-8")
+        )
+        self.assertEqual(contract["mediator_contract"], "deployment-readiness-v1")
+        self.assertEqual(contract["communication_path"], "participants->mediator->release")
+        self.assertEqual(
+            contract["participant_order"],
+            ["build", "security", "docs", "approval"],
+        )
+        self.assertEqual(contract["status_values"], ["pass", "fail"])
+        self.assertEqual(contract["release_policy"], "all-participants-pass")
+        self.assertEqual(contract["specialist_failure_policy"], "isolate-and-fail-closed")
+        self.assertEqual(contract["mutation_policy"], "copy-statuses")
+
+        evidence = (
+            record / "evidence/financial-services-frozen-case.md"
+        ).read_text(encoding="utf-8")
+        urls = re.findall(r"https://github\.com/[^)\s]+", evidence)
+        expected_paths = {
+            "managed-agent-cookbooks/gl-reconciler/agent.yaml",
+            "managed-agent-cookbooks/gl-reconciler/subagents/reader.yaml",
+            "managed-agent-cookbooks/gl-reconciler/subagents/critic.yaml",
+            "managed-agent-cookbooks/gl-reconciler/subagents/resolver.yaml",
+            "scripts/test-cookbooks.sh",
+        }
+        pinned_paths = set()
+        for url in urls:
+            parsed = urlparse(url)
+            parts = parsed.path.strip("/").split("/")
+            if len(parts) < 5 or parts[2] != "blob":
+                continue
+            with self.subTest(url=url):
+                self.assertEqual(parsed.scheme, "https")
+                self.assertEqual(parsed.netloc, "github.com")
+                self.assertEqual(parts[:2], ["anthropics", "financial-services"])
+                self.assertEqual(parts[3], "4aa51ed3d379731f8f9beff498d749580372699c")
+                upstream_path = "/".join(parts[4:])
+                self.assertIn(upstream_path, expected_paths)
+                pinned_paths.add(upstream_path)
+        self.assertEqual(pinned_paths, expected_paths)
+        self.assertIn("**Claim status:** candidate correspondence", evidence)
+        self.assertIn("central orchestration", evidence)
+        self.assertIn("common Colleague contract", evidence)
+        self.assertIn("runtime decision behavior", evidence)
+
+        chinese = (record / "definition.zh-CN.md").read_text(encoding="utf-8")
+        for required in (
+            "Mediator",
+            "ConcreteMediator",
+            "Colleague",
+            "Design Patterns",
+            "1994",
+            "Gang of Four",
+            "Behavioral Source",
+            "Skill Artifact",
+            "可信进程内代码",
+            "确定性 oracle 不解释自然语言 Skill",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, chinese)
+
+        for path in record.rglob("*"):
+            if path.is_file() and path.suffix in {".md", ".yaml", ".py", ".json"}:
+                with self.subTest(path=path.relative_to(record)):
+                    text = path.read_text(encoding="utf-8")
+                    self.assertNotIn("EvoZeus", text)
+                    self.assertNotIn("skillware-github", text)
+                    self.assertNotIn("github.com/MetaInFLow/skillware", text)
+
 
 if __name__ == "__main__":
     unittest.main()

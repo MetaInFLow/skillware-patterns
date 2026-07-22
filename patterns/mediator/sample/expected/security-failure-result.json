@@ -1,0 +1,10 @@
+{
+  "decision": "blocked",
+  "communication_path": "participants->mediator->release",
+  "statuses": {
+    "build": "pass",
+    "security": "fail",
+    "docs": "pass",
+    "approval": "pass"
+  }
+}
