@@ -13,6 +13,8 @@ participants:
     id: migration-caretaker
     path: child-skills/migration-caretaker/SKILL.md
 capture: exact-bytes-plus-metadata
+preparation: originator-private-immutable-payload
+prepared_token: opaque-originator-issued-one-use
 metadata:
   - canonical-target
   - permission-mode
@@ -25,6 +27,7 @@ post_write_validation: exact-rendered-bytes-and-schema
 pre_write_failure: discard-without-restore
 write_attempt_failure: restore-conservatively
 successful_commit: discard-without-restore
+retirement_integrity: checksum-owner-active-identity
 checkpoint_limit: one-live-per-caretaker
 foreign_or_stale_memento: reject
 restore_failure: report-both-errors-and-keep-checkpoint-active

@@ -106,6 +106,129 @@ class MementoDemoTest(unittest.TestCase):
         self.assertNotIn("stable", repr(checkpoint))
         self.assertTrue(caretaker.has_checkpoint)
 
+    def test_preparation_returns_only_an_opaque_token(self):
+        demo = self.require_demo()
+        self.write_config()
+        originator = demo.ConfigurationOriginator(self.config)
+        caretaker = demo.MigrationCaretaker(originator)
+        checkpoint = caretaker.capture()
+
+        prepared = caretaker.prepare_migration(checkpoint)
+
+        self.assertIsInstance(prepared, demo.PreparedMigration)
+        self.assertNotIsInstance(prepared, tuple)
+        self.assertEqual(repr(prepared), "PreparedMigration(<opaque>)")
+        for public_name in (
+            "configuration",
+            "payload",
+            "bytes",
+            "mode",
+            "target",
+            "memento",
+            "owner",
+        ):
+            self.assertFalse(hasattr(prepared, public_name))
+        with self.assertRaises(AttributeError):
+            prepared.payload = b"tampered"
+
+    def test_tuple_and_forged_prepared_tokens_cannot_mutate_originator(self):
+        demo = self.require_demo()
+        original = self.write_config()
+        os.chmod(self.config, 0o640)
+        originator = demo.ConfigurationOriginator(self.config)
+        caretaker = demo.MigrationCaretaker(originator)
+        checkpoint = caretaker.capture()
+        owner = caretaker._owner_token
+        forged = object.__new__(demo.PreparedMigration)
+        attempts = (
+            (
+                ({"version": 1}, {"version": 99}, b"malicious", 0o777),
+                "prepared migration token is invalid",
+            ),
+            (forged, "prepared migration token is unknown or already consumed"),
+        )
+
+        for token, message in attempts:
+            with self.subTest(message=message):
+                with self.assertRaisesRegex(
+                    demo.PreparedMigrationError,
+                    f"^{re.escape(message)}$",
+                ):
+                    originator.write_prepared(token, checkpoint, owner)
+                self.assertEqual(self.config.read_bytes(), original)
+                if os.name == "posix":
+                    self.assertEqual(stat.S_IMODE(self.config.stat().st_mode), 0o640)
+                self.assertEqual(
+                    originator._configuration,
+                    {"version": 1, "endpoint": "stable"},
+                )
+
+    def test_tampered_prepared_token_cannot_mutate_originator(self):
+        demo = self.require_demo()
+        original = self.write_config()
+        os.chmod(self.config, 0o640)
+        originator = demo.ConfigurationOriginator(self.config)
+        caretaker = demo.MigrationCaretaker(originator)
+        checkpoint = caretaker.capture()
+        prepared = caretaker.prepare_migration(checkpoint)
+        object.__setattr__(
+            prepared,
+            "_PreparedMigration__seal",
+            object(),
+        )
+
+        with self.assertRaisesRegex(
+            demo.PreparedMigrationError,
+            r"^prepared migration token integrity check failed$",
+        ):
+            originator.write_prepared(
+                prepared,
+                checkpoint,
+                caretaker._owner_token,
+            )
+
+        self.assertEqual(self.config.read_bytes(), original)
+        if os.name == "posix":
+            self.assertEqual(stat.S_IMODE(self.config.stat().st_mode), 0o640)
+        self.assertEqual(
+            originator._configuration,
+            {"version": 1, "endpoint": "stable"},
+        )
+
+    def test_prepared_token_is_consumed_before_first_write_attempt(self):
+        demo = self.require_demo()
+        self.write_config()
+        originator = demo.ConfigurationOriginator(self.config)
+        caretaker = demo.MigrationCaretaker(originator)
+        checkpoint = caretaker.capture()
+        prepared = caretaker.prepare_migration(checkpoint)
+
+        first = originator.write_prepared(
+            prepared,
+            checkpoint,
+            caretaker._owner_token,
+        )
+        first_bytes = self.config.read_bytes()
+        with mock.patch.object(demo, "atomic_replace") as replace:
+            with self.assertRaisesRegex(
+                demo.PreparedMigrationError,
+                r"^prepared migration token is unknown or already consumed$",
+            ):
+                originator.write_prepared(
+                    prepared,
+                    checkpoint,
+                    caretaker._owner_token,
+                )
+
+        replace.assert_not_called()
+        self.assertEqual(first[0]["version"], 1)
+        self.assertEqual(first[1]["version"], 2)
+        self.assertEqual(self.config.read_bytes(), first_bytes)
+        self.assertEqual(
+            json.loads(first_bytes.decode("utf-8")),
+            {"endpoint": "stable", "version": 2},
+        )
+
     def test_caretaker_rejects_stale_and_cross_target_mementos(self):
         demo = self.require_demo()
         self.write_config()
@@ -147,6 +270,36 @@ class MementoDemoTest(unittest.TestCase):
             r"^caretaker already owns an active memento$",
         ):
             caretaker.capture()
+
+    def test_caretaker_commit_and_discard_reject_corrupted_memento(self):
+        demo = self.require_demo()
+
+        for operation_name in ("commit", "discard"):
+            with self.subTest(operation=operation_name):
+                path = Path(self.temp_dir.name) / f"{operation_name}.json"
+                original = b'{"version":1,"endpoint":"stable"}'
+                path.write_bytes(original)
+                os.chmod(path, 0o640)
+                originator = demo.ConfigurationOriginator(path)
+                caretaker = demo.MigrationCaretaker(originator)
+                checkpoint = caretaker.capture()
+                checkpoint._raw = b'{"version":9,"endpoint":"tampered"}'
+
+                with self.assertRaisesRegex(
+                    demo.MementoIntegrityError,
+                    r"^memento checksum does not match captured bytes$",
+                ):
+                    getattr(caretaker, operation_name)(checkpoint)
+
+                self.assertTrue(caretaker.has_checkpoint)
+                self.assertTrue(checkpoint._active)
+                self.assertEqual(path.read_bytes(), original)
+                if os.name == "posix":
+                    self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o640)
+                self.assertEqual(
+                    originator._configuration,
+                    {"version": 1, "endpoint": "stable"},
+                )
 
     def test_cross_target_restore_is_rejected_even_inside_originator(self):
         demo = self.require_demo()
@@ -696,14 +849,19 @@ class MementoDemoTest(unittest.TestCase):
             "python3 scripts/run_demo.py",
             "python3 -m unittest discover tests -v",
             "root harness automatically",
+            "Preparation and conflict failures discard without restoration",
+            "write-attempt or post-write validation failures restore",
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, root)
         for phrase in (
             "memento_contract: configuration-memento-v1",
             "capture: exact-bytes-plus-metadata",
+            "preparation: originator-private-immutable-payload",
+            "prepared_token: opaque-originator-issued-one-use",
             "restore: atomic-replace",
             "successful_commit: discard-without-restore",
+            "retirement_integrity: checksum-owner-active-identity",
         ):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, manifest)

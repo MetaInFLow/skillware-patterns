@@ -22,6 +22,9 @@ The Originator owns validation and its private configuration state. It alone:
 - requires the Caretaker owner capability and an active Memento for preparation
   and restore, including direct Originator calls;
 - verifies the target still matches the capture during no-write preparation;
+- stores the resulting immutable payload privately, bound to an opaque token's
+  identity and integrity seal, target, owner capability, and active Memento;
+- consumes a verified one-use token before its first atomic write attempt;
 - renders deterministic UTF-8 JSON with sorted keys, two-space indentation,
   and one final newline;
 - atomically replaces and rereads the migrated target; and
@@ -35,6 +38,17 @@ The target binding and SHA-256 value detect accidental cross-target use or
 corruption inside the trusted process; they do not provide confidentiality or
 hostile-code security.
 
+## Prepared migration token
+
+Preparation returns only an opaque Originator-issued `PreparedMigration` token.
+It exposes no configuration, bytes, mode, target, Memento, owner, or payload.
+The immutable payload remains in private Originator storage. Write admission
+requires the exact issued token identity and seal, target, owner capability,
+and still-active integrity-valid Memento. Tuple-style, forged, tampered,
+mismatched, foreign, stale, and already consumed tokens are rejected before
+mutation. A valid token is removed from Originator storage before atomic I/O,
+so neither success nor a partial write failure can reuse it.
+
 ## Caretaker
 
 One Caretaker owns at most one live Memento. It captures before mutation,
@@ -43,7 +57,9 @@ preparation or conflict validation fails before any write attempt. After a
 write attempt it requests Originator restore on failure and expires only after
 verified restore. A successful migration expires it without a restore call.
 Foreign, stale, checksum-corrupted, and second-live Mementos are controlled
-errors at both Caretaker and Originator access paths.
+errors at both Caretaker and Originator access paths. `commit` and `discard`
+verify checksum, owner capability, active lifecycle, and exact object identity
+before retiring a Memento or invalidating its outstanding prepared tokens.
 
 ## Atomicity and failure
 

@@ -50,16 +50,20 @@ The Originator checks that the file is a bounded, regular, non-symlink UTF-8
 JSON configuration, retains validated state privately, and creates an opaque
 checkpoint containing exact bytes and metadata. Preparation capability-checks
 active ownership, target, and checksum, then verifies the target still equals
-the capture and renders version `n + 1` without writing. A preparation or
-conflict failure makes the Caretaker expire and discard the checkpoint without
-restoring, so it cannot overwrite newer external content. Once mutation is
-attempted, the Originator applies mode to the open same-directory temporary
+the capture and renders version `n + 1` without writing. The Originator keeps
+that immutable prepared payload in private storage bound to the target, owner
+capability, active Memento, token identity, and integrity seal; the Caretaker
+receives only an opaque one-use `PreparedMigration` token. A preparation or
+conflict failure makes the Caretaker integrity-check, expire, and discard the
+checkpoint and outstanding token without restoring, so it cannot overwrite
+newer external content. Once mutation is attempted, the Originator revalidates
+all bindings, consumes the token before I/O, and applies mode to the open same-directory temporary
 file, fsyncs it, atomically replaces the target, fsyncs the directory, and
 rereads the file. Any error from that write attempt or post-write validation is
 handled conservatively as potentially mutated and invokes exact restore. On
-success the Caretaker expires the checkpoint without restoration. It expires a
-failure checkpoint only after restoration succeeds; restore failure leaves it
-active for a trusted retry and reports both errors.
+success the Caretaker checksum-validates and expires the checkpoint without
+restoration. It expires a failure checkpoint only after restoration succeeds;
+restore failure leaves it active for a trusted retry and reports both errors.
 
 ## Consequences
 
@@ -108,7 +112,9 @@ roles, the literal `migrate(path, fail=True)` restoration API, exact prior-byte
 and permission capture, checksum, active lifecycle, owner capability, and
 target binding, conflict-safe pre-write discard, atomic migration and restore,
 post-write validation, conservative partial-write handling, mode-before-fsync
-ordering, successful disposal without restoration, direct stale/foreign and
+ordering, Originator-private immutable prepared payloads, opaque one-use token
+consumption, forged/tampered/reused token rejection, checksum-validated commit
+and discard, successful disposal without restoration, direct stale/foreign and
 integrity rejection, retryable restore failure, bounded strict JSON input,
 stable CLI errors, deterministic output, and no partial target content at
 atomic replacement boundaries.
@@ -147,7 +153,9 @@ discover tests -v`. Tests cover the literal rollback API, successful migration,
 no restore after commit, byte and permission restoration, write and validation
 failure, pre-write external-change preservation, conservative post-rename
 failure, mode/fsync ordering, restore failure reporting and retry, direct stale,
-foreign-owner, cross-target, and integrity-corrupted mementos,
+foreign-owner, cross-target, and integrity-corrupted mementos, opaque prepared
+tokens, immutable private payloads, tuple/forged/tampered/reused token rejection,
+and corrupted commit/discard rejection,
 missing/corrupt/non-UTF-8 input, duplicate fields, strict types, non-finite
 numbers, lone surrogates, symlinks, version and size bounds, deterministic
 fixtures, stable CLI errors, and root/child contract files. The repository root

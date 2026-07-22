@@ -10,8 +10,14 @@ type: workflow
 ## Trigger
 
 Use this root Skill when a `service-configuration-v1` file must increment its
-version atomically and every failure after capture must restore exact prior
-bytes through [`configuration-memento-v1`](references/configuration-memento-contract.md).
+version atomically under
+[`configuration-memento-v1`](references/configuration-memento-contract.md).
+Preparation and conflict failures discard without restoration; write-attempt or post-write validation failures restore exact prior bytes.
+
+## 中文触发约定
+
+写入前的准备或冲突失败只丢弃检查点，不执行恢复；只有开始写入尝试后的失败或写后校验失败才
+恢复精确原始字节。
 
 ## Participants
 
@@ -29,8 +35,10 @@ Agent Host and Agent Runtime are execution context, not Memento participants.
    its timing and lifecycle but never reads or alters its state.
 3. Ask the Originator to capability-check active ownership, target, and
    checksum, then prepare `version + 1` and validate that the target still
-   equals the capture without writing. If preparation or conflict validation
-   fails, expire the checkpoint without restore and preserve current content.
+   equals the capture without writing. The Originator retains an immutable
+   prepared payload privately; the Caretaker receives only an opaque one-use
+   token. If preparation or conflict validation fails, checksum-validate and
+   expire the checkpoint and token without restore, preserving current content.
 4. After successful preparation, begin the write attempt. Apply captured mode
    on the open same-directory temporary file, fsync the file, atomically
    replace, fsync the directory, then reread and validate the exact bytes.
@@ -42,7 +50,10 @@ Agent Host and Agent Runtime are execution context, not Memento participants.
    fails, report both failures and do not claim recovery; keep the checkpoint
    active for a trusted retry.
 6. On successful validation, expire and discard the Memento **without** calling
-   restore. Reject reused, foreign-Caretaker, or cross-target checkpoints.
+   restore, but only after validating checksum, owner, active lifecycle, and
+   object identity. Reject reused, foreign-Caretaker, integrity-corrupted, or
+   cross-target checkpoints and tuple-style, forged, tampered, or reused
+   preparation tokens.
 7. Return only deterministic status, old version, new version, endpoint, and
    `restored: false`. Never include checkpoint contents or target-specific
    absolute paths.

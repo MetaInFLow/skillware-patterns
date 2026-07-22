@@ -7,6 +7,10 @@ discards without restore, preserving newer external content. Once a write is
 attempted, the Caretaker restores conservatively on failure and discards the
 checkpoint without restore after success.
 
+The Originator retains every immutable prepared payload privately and returns
+only a sealed opaque one-use token. Commit and discard validate checkpoint
+checksum, ownership, active lifecycle, and identity before retirement.
+
 Run the deterministic default demo without modifying its fixture:
 
 ```bash

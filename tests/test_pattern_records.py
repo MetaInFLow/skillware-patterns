@@ -993,8 +993,20 @@ class PatternRecordContractTest(unittest.TestCase):
         )
         self.assertEqual(contract["memento_contract"], "configuration-memento-v1")
         self.assertEqual(contract["capture"], "exact-bytes-plus-metadata")
+        self.assertEqual(
+            contract["preparation"],
+            "originator-private-immutable-payload",
+        )
+        self.assertEqual(
+            contract["prepared_token"],
+            "opaque-originator-issued-one-use",
+        )
         self.assertEqual(contract["restore"], "atomic-replace")
         self.assertEqual(contract["successful_commit"], "discard-without-restore")
+        self.assertEqual(
+            contract["retirement_integrity"],
+            "checksum-owner-active-identity",
+        )
 
         evidence = (record / "evidence/skillopt-frozen-case.md").read_text(
             encoding="utf-8"

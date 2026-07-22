@@ -22,8 +22,13 @@ lifecycle state. Never expose those contents to the Caretaker.
 For preparation and restore, require the Caretaker owner capability and reject
 inactive, foreign, checksum-invalid, or cross-target checkpoints even on a
 direct Originator call. Before mutation, verify that the target still matches
-the captured bytes and render only `version + 1` with the same endpoint. A
-preparation conflict must not write or restore. For the later write attempt,
+the captured bytes and render only `version + 1` with the same endpoint. Keep
+the immutable prepared payload in private Originator storage, bound to a sealed
+opaque one-use token, target, owner capability, and active Memento. Never
+return payload fields to the Caretaker. Reject tuple-style, forged, tampered,
+foreign, stale, mismatched, or reused tokens without mutation. A preparation
+conflict must not write or restore. Consume a valid token before the later
+write attempt, then
 apply mode to the open temporary file before its final fsync, atomically
 replace, fsync the directory, and reread the exact result. Restore exact bytes
 and permissions through the same durable ordering.

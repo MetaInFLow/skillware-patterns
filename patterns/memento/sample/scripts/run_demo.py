@@ -35,6 +35,10 @@ class MementoIntegrityError(RuntimeError):
     pass
 
 
+class PreparedMigrationError(RuntimeError):
+    pass
+
+
 class RestorationError(RuntimeError):
     def __init__(self, failure):
         self.failure = failure
@@ -227,6 +231,66 @@ def apply_mode_before_fsync(descriptor, path, mode):
         os.chmod(path, mode)
 
 
+_PREPARED_AUTHORITY = object()
+
+
+class PreparedMigration:
+    __slots__ = ("__identity", "__seal")
+
+    def __new__(cls, authority=None, identity=None, seal=None):
+        if authority is not _PREPARED_AUTHORITY:
+            raise PreparedMigrationError(
+                "prepared migration tokens are Originator-issued"
+            )
+        instance = super().__new__(cls)
+        object.__setattr__(instance, "_PreparedMigration__identity", identity)
+        object.__setattr__(instance, "_PreparedMigration__seal", seal)
+        return instance
+
+    def __setattr__(self, _name, _value):
+        raise AttributeError("PreparedMigration token is immutable")
+
+    def __repr__(self):
+        return "PreparedMigration(<opaque>)"
+
+
+class _PreparedPayload:
+    __slots__ = (
+        "token_identity",
+        "seal",
+        "target",
+        "owner_token",
+        "memento",
+        "from_version",
+        "to_version",
+        "endpoint",
+        "migrated_raw",
+        "mode",
+    )
+
+    def __init__(
+        self,
+        *,
+        token_identity,
+        seal,
+        target,
+        owner_token,
+        memento,
+        from_version,
+        to_version,
+        endpoint,
+        migrated_raw,
+        mode,
+    ):
+        values = locals().copy()
+        values.pop("self")
+        for name, value in values.items():
+            object.__setattr__(self, name, value)
+
+    def __setattr__(self, _name, _value):
+        raise AttributeError("prepared payload is immutable")
+
+
 class ConfigurationMemento:
     __slots__ = (
         "_target_key",
@@ -269,6 +333,7 @@ class ConfigurationOriginator:
     def __init__(self, path):
         self._path = Path(path)
         self._configuration = None
+        self.__prepared_payloads = {}
 
     @property
     def path(self):
@@ -295,18 +360,86 @@ class ConfigurationOriginator:
             "endpoint": current["endpoint"],
         }
         migrated_raw = render_configuration(migrated)
-        return current, migrated, migrated_raw, prior_mode, memento
+        token_identity = object()
+        seal = object()
+        prepared = PreparedMigration(
+            _PREPARED_AUTHORITY,
+            token_identity,
+            seal,
+        )
+        self.__prepared_payloads[prepared] = _PreparedPayload(
+            token_identity=token_identity,
+            seal=seal,
+            target=target_key(self._path),
+            owner_token=owner_token,
+            memento=memento,
+            from_version=current["version"],
+            to_version=migrated["version"],
+            endpoint=migrated["endpoint"],
+            migrated_raw=migrated_raw,
+            mode=prior_mode,
+        )
+        return prepared
 
     def write_prepared(self, prepared, memento, owner_token):
+        if not isinstance(prepared, PreparedMigration):
+            raise PreparedMigrationError("prepared migration token is invalid")
         memento._snapshot_for(self._path, owner_token)
-        current, migrated, migrated_raw, prior_mode, prepared_memento = prepared
-        if prepared_memento is not memento:
+        payload = self.__prepared_payloads.get(prepared)
+        if payload is None:
+            raise PreparedMigrationError(
+                "prepared migration token is unknown or already consumed"
+            )
+        try:
+            token_identity = object.__getattribute__(
+                prepared,
+                "_PreparedMigration__identity",
+            )
+            seal = object.__getattribute__(
+                prepared,
+                "_PreparedMigration__seal",
+            )
+        except AttributeError as exc:
+            raise PreparedMigrationError(
+                "prepared migration token integrity check failed"
+            ) from exc
+        if token_identity is not payload.token_identity or seal is not payload.seal:
+            raise PreparedMigrationError(
+                "prepared migration token integrity check failed"
+            )
+        if (
+            payload.target != target_key(self._path)
+            or payload.owner_token is not owner_token
+            or payload.memento is not memento
+        ):
             raise MementoLifecycleError(
                 "prepared migration does not match memento"
             )
-        atomic_replace(self._path, migrated_raw, prior_mode)
+        del self.__prepared_payloads[prepared]
+        atomic_replace(self._path, payload.migrated_raw, payload.mode)
+        current = {
+            "version": payload.from_version,
+            "endpoint": payload.endpoint,
+        }
+        migrated = {
+            "version": payload.to_version,
+            "endpoint": payload.endpoint,
+        }
         self._configuration = migrated
-        return current, migrated, migrated_raw
+        return current, migrated, payload.migrated_raw
+
+    def validate_memento(self, memento, owner_token):
+        memento._snapshot_for(self._path, owner_token)
+
+    def forget_prepared_for(self, memento, owner_token):
+        self.validate_memento(memento, owner_token)
+        stale_tokens = [
+            token
+            for token, payload in self.__prepared_payloads.items()
+            if payload.memento is memento and payload.owner_token is owner_token
+        ]
+        for token in stale_tokens:
+            del self.__prepared_payloads[token]
 
     def validate_committed(self, expected_configuration, expected_raw):
         raw, _mode = read_bounded_file(self._path)
@@ -350,6 +483,7 @@ class MigrationCaretaker:
             )
         if not memento._active or self._checkpoint is not memento:
             raise MementoLifecycleError("memento is no longer active")
+        self._originator.validate_memento(memento, self._owner_token)
 
     def restore(self, memento):
         self._require_owned_active(memento)
@@ -362,11 +496,13 @@ class MigrationCaretaker:
 
     def commit(self, memento):
         self._require_owned_active(memento)
+        self._originator.forget_prepared_for(memento, self._owner_token)
         memento._retire()
         self._checkpoint = None
 
     def discard(self, memento):
         self._require_owned_active(memento)
+        self._originator.forget_prepared_for(memento, self._owner_token)
         memento._retire()
         self._checkpoint = None
 
