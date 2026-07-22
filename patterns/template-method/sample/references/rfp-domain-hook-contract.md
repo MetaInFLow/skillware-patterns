@@ -16,10 +16,13 @@ The AbstractClass alone owns this exact order:
 4. `draft-response`
 5. `quality-check`
 
-A ConcreteClass implements only operation 3. It cannot replace the template
-method or any other operation. The Python oracle rejects a ConcreteClass that
+A ConcreteClass supplies only operation 3 as a single-argument `staticmethod`.
+The public helpers call `RfpResponseTemplate.run(concrete_class, request)`
+explicitly and create no ConcreteClass instance. A ConcreteClass that directly
 defines `run`, `_extract_requirements`, `_analyze_gaps`, `_draft_response`, or
-`_quality_check`.
+`_quality_check` is rejected. The same names inherited through an earlier
+multiple-inheritance mixin are never dispatched by the public helpers, so they
+are irrelevant to the current execution rather than trusted extension points.
 
 ## Root request
 
@@ -50,7 +53,10 @@ Every ConcreteClass accepts one copied JSON object with exactly `rfp_id`,
 `domain`, `requirements`, and `gaps`. The requirements are the validated root
 requirements in original order. `gaps` is an ordered array of unique
 requirement ids. The hook may inspect or mutate its private copy, but mutation
-cannot affect the caller or AbstractClass state.
+cannot affect the caller or AbstractClass state. The implementation keeps RFP
+identity, domain, requirements, and the accumulated trace in local immutable
+snapshots. Mandatory operations are inline and are not methods or capabilities
+available to the hook.
 
 ## Hook result
 
@@ -65,7 +71,8 @@ canonical order:
 The AbstractClass invokes this operation exactly once, validates and copies its
 result, then drafts. A malformed result stops the workflow before drafting. A
 raised exception propagates unchanged and also stops drafting and quality
-checking. No partial result is emitted.
+checking. No partial result is emitted. Unknown result fields are rejected, so
+the hook cannot claim a skip, repeat, insertion, or replacement stage.
 
 ## Final result
 
@@ -79,4 +86,10 @@ containers are isolated from caller and ConcreteClass-owned values.
 
 The deterministic hook values expose the participant collaboration for tests.
 They are not sector assurance, and Python execution is not evidence that an
-Agent Runtime interpreted the natural-language Behavioral Source.
+Agent Runtime interpreted the natural-language Behavioral Source. This
+in-process oracle is not a sandbox for arbitrary trusted Python: a hook with
+module access could create unrelated process side effects or start an
+independent nested workflow. The enforced guarantee is that its only supplied
+capability for the current execution is the copied hook request, so it cannot
+change that execution's local identity, domain, requirements, trace, or
+mandatory dispatch.

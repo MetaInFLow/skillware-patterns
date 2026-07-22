@@ -37,8 +37,8 @@ participants.
    `extract-requirements`, `analyze-gaps`, `apply-domain-hook`,
    `draft-response`, `quality-check`.
 3. Select one ConcreteClass from the validated domain. Give its hook an
-   isolated `rfp-domain-hook-v1` request, invoke the hook exactly once, and
-   validate and copy its result before drafting.
+   isolated `rfp-domain-hook-v1` request. Invoke its single-argument static
+   hook callable exactly once, and validate and copy its result before drafting.
 4. Permit the ConcreteClass to supply only domain `focus_areas` and
    `required_evidence`. It must not skip, insert, repeat, or reorder any
    mandatory stage, and must not own the final response or quality decision.
@@ -48,12 +48,24 @@ participants.
    RFP identity, requirement order, hook result, draft coverage, and quality
    fields. Return isolated deterministic data.
 
+The executable public boundary dispatches the AbstractClass template
+implementation explicitly. It creates no ConcreteClass instance, stores no
+request or trace on `self`, and never resolves mandatory operations through a
+ConcreteClass or mixin. Request identity, domain, requirements, and trace remain
+local snapshots; inherited `run` or mandatory-stage names are irrelevant to
+`run_template` and `run_rfp`. The hook receives only its copied request. It may
+start an independent nested public workflow or cause arbitrary process side
+effects if trusted Python grants it module access, but it has no capability to
+change the current execution's snapshots or mandatory-stage count.
+
 ## 中文执行约定
 
 本根 Skill 是 AbstractClass，拥有完整且不可重排的模板方法：
 先提取需求，再分析缺口，仅调用一次领域钩子，然后起草并质检。
 医疗与金融子 Skill 是 ConcreteClass，只能实现
-`apply-domain-hook`，不得更改必经阶段。钩子失败时原样传播异常，
+`apply-domain-hook` 静态可调用项，不得更改必经阶段。公开执行边界
+显式调用 AbstractClass 实现，不创建领域实例，请求身份、领域与轨迹都保留为
+局部快照。钩子失败时原样传播异常，
 且不得继续起草或质检。
 
 ## Demo mode and root harness
@@ -75,4 +87,7 @@ access or imports from another pattern.
 The domain content is illustrative and is not a legal, compliance, clinical,
 security, procurement, or financial assurance. Selecting a runtime-swappable
 whole RFP algorithm would be Strategy. Letting a domain profile reorder the
-checklist removes the Template Method invariant.
+checklist removes the Template Method invariant. This in-process oracle does
+not sandbox arbitrary Python side effects; its guarantee is narrower: the
+static hook has no instance or current-execution capability and cannot alter
+the local snapshots or stage dispatch used by the public API.

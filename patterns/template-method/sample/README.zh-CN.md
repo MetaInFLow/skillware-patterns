@@ -17,7 +17,8 @@ python3 -m unittest discover tests -v
 
 测试验证 `run_rfp("healthcare")` 字面 API、固定顺序、钩子仅调用
 一次、失败后立即停止、共享钩子契约、有界替换、必经阶段不可
-重写、输入输出隔离、确定性、重复 JSON 成员拒绝、Unicode 与深度/类型
-边界。
+重写、AbstractClass 显式分派、多重继承绕过抵抗、静态钩子隔离、恶意身份/领域/轨迹
+修改抵抗、输入输出隔离、确定性、重复 JSON 成员拒绝、Unicode 与深度/类型
+边界。聚焦测试与预言机只使用 Python 标准库。
 
 领域内容只用于展示模式，不是专业 RFP 或合规意见。

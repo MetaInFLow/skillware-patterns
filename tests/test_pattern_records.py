@@ -1,3 +1,4 @@
+import importlib.util
 from pathlib import Path
 import re
 import unittest
@@ -733,6 +734,114 @@ class PatternRecordContractTest(unittest.TestCase):
             self.assertEqual(role["evidence_status"], "not observable")
             self.assertNotIn("path", role)
             self.assertNotIn("evidence_path", role)
+
+    def test_template_method_separates_roles_and_declares_hardened_dispatch(self):
+        participant_map = yaml.safe_load(
+            (PATTERNS / "template-method/participant-map.yaml").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            set(participant_map["participants"]),
+            {"AbstractClass", "ConcreteClass"},
+        )
+        context = participant_map["execution_context"]
+        self.assertEqual(set(context), {"Agent Host", "Agent Runtime"})
+        for role in context.values():
+            self.assertEqual(role["evidence_status"], "not observable")
+            self.assertNotIn("path", role)
+            self.assertNotIn("evidence_path", role)
+
+        contract = yaml.safe_load(
+            (PATTERNS / "template-method/sample/skillware.yaml").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            contract["abstract_class"]["template_method"]["order"],
+            [
+                "extract-requirements",
+                "analyze-gaps",
+                "apply-domain-hook",
+                "draft-response",
+                "quality-check",
+            ],
+        )
+        self.assertEqual(contract["hook_binding"], "staticmethod")
+        self.assertEqual(
+            contract["template_dispatch"],
+            "explicit-abstract-class-implementation",
+        )
+
+    def test_template_method_public_api_ignores_mro_run_bypass(self):
+        demo_path = PATTERNS / "template-method/sample/scripts/run_demo.py"
+        spec = importlib.util.spec_from_file_location(
+            "root_template_method_demo", demo_path
+        )
+        demo = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(demo)
+        bypass_calls = []
+
+        class BypassMixin:
+            def run(self, request):
+                bypass_calls.append(request)
+                return {"domain": "healthcare", "stages": ["quality-check"]}
+
+        class BypassHealthcare(BypassMixin, demo.RfpResponseTemplate):
+            domain = "healthcare"
+
+            @staticmethod
+            def apply_domain_hook(hook_request):
+                return demo.healthcare_domain_hook(hook_request)
+
+        result = demo.run_template(
+            BypassHealthcare,
+            demo.default_request("healthcare"),
+        )
+
+        self.assertEqual(bypass_calls, [])
+        self.assertEqual(result["stages"], list(demo.REQUIRED_STAGES))
+
+    def test_template_method_evidence_urls_are_exact_and_pinned(self):
+        evidence = (
+            PATTERNS / "template-method/evidence/superpowers-frozen-case.md"
+        ).read_text(encoding="utf-8")
+        urls = re.findall(r"https://github\.com/[^)\s]+", evidence)
+        expected_paths = {
+            "skills/brainstorming/SKILL.md",
+            "skills/test-driven-development/SKILL.md",
+        }
+        pinned_paths = set()
+
+        for url in urls:
+            parsed = urlparse(url)
+            parts = parsed.path.strip("/").split("/")
+            if len(parts) < 5 or parts[2] != "blob":
+                continue
+            owner, repository, _, revision = parts[:4]
+            upstream_path = "/".join(parts[4:])
+            with self.subTest(url=url):
+                self.assertEqual((owner, repository), ("obra", "superpowers"))
+                self.assertEqual(
+                    revision, "896224c4b1879920ab573417e68fd51d2ccc9072"
+                )
+                self.assertIn(upstream_path, expected_paths)
+            pinned_paths.add(upstream_path)
+
+        self.assertEqual(pinned_paths, expected_paths)
+        self.assertIn("**Claim status:** candidate correspondence", evidence)
+        self.assertIn("ConcreteClass substitution", evidence)
+        self.assertIn("Agent Runtime behavior is unverified", evidence)
+
+    def test_template_method_chinese_forces_cover_all_validation_boundaries(self):
+        chinese = (PATTERNS / "template-method/definition.zh-CN.md").read_text(
+            encoding="utf-8"
+        )
+        forces = chinese.split("## 作用力（Forces）", 1)[1].split(
+            "## 参与者（Participants）", 1
+        )[0]
+        self.assertIn("输入、钩子输出和最终结果", forces)
+        self.assertIn("确定性", forces)
 
     def test_decorator_contract_declares_preservation_and_order(self):
         contract = yaml.safe_load(

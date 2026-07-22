@@ -37,7 +37,9 @@ unverified. The correspondence is therefore candidate, not confirmed.
 - **Focused verification:** [`sample/tests/test_demo.py`](sample/tests/test_demo.py)
 
 The root owns all five stages and allows only `apply-domain-hook` to vary.
-Healthcare and Finance implement the exact same hook contract. Focused tests
-prove exact order, once-only invocation, stop-on-failure behavior, override
-rejection, input and result validation, deterministic output, and isolated
-copies. This local construction does not establish upstream or model behavior.
+Healthcare and Finance supply static callables under the exact same hook
+contract. Focused tests prove explicit AbstractClass dispatch, exact order,
+once-only invocation, MRO bypass resistance, stop-on-failure behavior, malicious
+identity/domain/trace mutation and stage-claim rejection, input and result
+validation, deterministic output, and isolated copies. This local construction
+does not establish upstream or model behavior.

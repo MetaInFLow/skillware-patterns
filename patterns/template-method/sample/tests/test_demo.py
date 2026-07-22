@@ -1,14 +1,14 @@
 from copy import deepcopy
 import importlib.util
+import inspect
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
-
-import yaml
 
 
 SAMPLE = Path(__file__).resolve().parents[1]
@@ -60,14 +60,17 @@ class TemplateMethodDemoTest(unittest.TestCase):
         )
         self.assertEqual(result["domain"], "healthcare")
 
-    def test_abstract_class_alone_cannot_run_without_domain_operation(self):
+    def test_abstract_class_alone_cannot_run_without_concrete_static_hook(self):
         demo = self.require_demo()
 
         with self.assertRaisesRegex(
-            TypeError,
-            "Can't instantiate abstract class RfpResponseTemplate",
+            demo.ValidationError,
+            "^concrete_class must be a concrete RfpResponseTemplate ConcreteClass$",
         ):
-            demo.RfpResponseTemplate(demo.default_request("healthcare"))
+            demo.run_template(
+                demo.RfpResponseTemplate,
+                demo.default_request("healthcare"),
+            )
 
     def test_skeleton_owns_order_and_rejects_concrete_reordering(self):
         demo = self.require_demo()
@@ -83,7 +86,8 @@ class TemplateMethodDemoTest(unittest.TestCase):
                 def run(self):
                     return {"stages": list(reversed(demo.REQUIRED_STAGES))}
 
-                def apply_domain_hook(self, hook_request):
+                @staticmethod
+                def apply_domain_hook(hook_request):
                     return demo.healthcare_domain_hook(hook_request)
 
         with self.assertRaisesRegex(
@@ -97,7 +101,8 @@ class TemplateMethodDemoTest(unittest.TestCase):
             class SkipsQualityCheck(demo.RfpResponseTemplate):
                 domain = "healthcare"
 
-                def apply_domain_hook(self, hook_request):
+                @staticmethod
+                def apply_domain_hook(hook_request):
                     return demo.healthcare_domain_hook(hook_request)
 
                 def _quality_check(self, draft):
@@ -110,7 +115,8 @@ class TemplateMethodDemoTest(unittest.TestCase):
         class CountingHealthcare(demo.RfpResponseTemplate):
             domain = "healthcare"
 
-            def apply_domain_hook(self, hook_request):
+            @staticmethod
+            def apply_domain_hook(hook_request):
                 calls.append(deepcopy(hook_request))
                 return demo.healthcare_domain_hook(hook_request)
 
@@ -131,30 +137,19 @@ class TemplateMethodDemoTest(unittest.TestCase):
         class FailingHealthcare(demo.RfpResponseTemplate):
             domain = "healthcare"
 
-            def apply_domain_hook(self, hook_request):
+            @staticmethod
+            def apply_domain_hook(hook_request):
                 hook_calls.append(deepcopy(hook_request))
                 raise failure
 
-        with patch.object(
-            demo.RfpResponseTemplate,
-            "_draft_response",
-            side_effect=AssertionError("draft must not run"),
-        ) as draft:
-            with patch.object(
-                demo.RfpResponseTemplate,
-                "_quality_check",
-                side_effect=AssertionError("quality must not run"),
-            ) as quality:
-                with self.assertRaises(RuntimeError) as caught:
-                    demo.run_template(
-                        FailingHealthcare,
-                        demo.default_request("healthcare"),
-                    )
+        with self.assertRaises(RuntimeError) as caught:
+            demo.run_template(
+                FailingHealthcare,
+                demo.default_request("healthcare"),
+            )
 
         self.assertIs(caught.exception, failure)
         self.assertEqual(len(hook_calls), 1)
-        draft.assert_not_called()
-        quality.assert_not_called()
 
     def test_domain_concrete_classes_share_exact_hook_contract(self):
         demo = self.require_demo()
@@ -163,12 +158,18 @@ class TemplateMethodDemoTest(unittest.TestCase):
             with self.subTest(domain=domain):
                 request = demo.default_request(domain)
                 hook_request = demo.build_hook_request(request)
-                direct = concrete_class(request).apply_domain_hook(
-                    deepcopy(hook_request)
+                descriptor = inspect.getattr_static(
+                    concrete_class, "apply_domain_hook"
                 )
+                direct = descriptor.__func__(deepcopy(hook_request))
                 validated = demo.validate_hook_result(direct, domain)
                 result = demo.run_template(concrete_class, request)
 
+                self.assertIsInstance(descriptor, staticmethod)
+                self.assertEqual(
+                    tuple(inspect.signature(descriptor.__func__).parameters),
+                    ("hook_request",),
+                )
                 self.assertEqual(tuple(hook_request), demo.HOOK_REQUEST_FIELDS)
                 self.assertEqual(tuple(validated), demo.HOOK_RESULT_FIELDS)
                 self.assertEqual(result["domain_result"], validated)
@@ -180,8 +181,9 @@ class TemplateMethodDemoTest(unittest.TestCase):
         class RuralHealthcare(demo.RfpResponseTemplate):
             domain = "healthcare"
 
-            def apply_domain_hook(self, hook_request):
-                demo.validate_hook_request(hook_request, self.domain)
+            @staticmethod
+            def apply_domain_hook(hook_request):
+                demo.validate_hook_request(hook_request, "healthcare")
                 return {
                     "domain": "healthcare",
                     "focus_areas": ["rural-care-continuity"],
@@ -207,7 +209,8 @@ class TemplateMethodDemoTest(unittest.TestCase):
         class MutatingHealthcare(demo.RfpResponseTemplate):
             domain = "healthcare"
 
-            def apply_domain_hook(self, hook_request):
+            @staticmethod
+            def apply_domain_hook(hook_request):
                 hook_request["requirements"].clear()
                 hook_request["gaps"].append("injected-gap")
                 return {
@@ -260,21 +263,161 @@ class TemplateMethodDemoTest(unittest.TestCase):
                 class InvalidHealthcare(demo.RfpResponseTemplate):
                     domain = "healthcare"
 
-                    def apply_domain_hook(self, hook_request):
+                    @staticmethod
+                    def apply_domain_hook(hook_request):
                         return deepcopy(hook_result)
 
-                with patch.object(
-                    demo.RfpResponseTemplate,
-                    "_draft_response",
-                    side_effect=AssertionError("draft must not run"),
-                ) as draft:
-                    with self.assertRaises(demo.HookContractError) as caught:
-                        demo.run_template(
-                            InvalidHealthcare,
-                            demo.default_request("healthcare"),
-                        )
+                with self.assertRaises(demo.HookContractError) as caught:
+                    demo.run_template(
+                        InvalidHealthcare,
+                        demo.default_request("healthcare"),
+                    )
                 self.assertEqual(str(caught.exception), error)
-                draft.assert_not_called()
+
+    def test_public_api_ignores_multiple_inheritance_run_bypass(self):
+        demo = self.require_demo()
+        bypass_calls = []
+
+        class BypassMixin:
+            def run(self, request):
+                bypass_calls.append(deepcopy(request))
+                return {
+                    "domain": "healthcare",
+                    "stages": ["quality-check"],
+                }
+
+        class BypassHealthcare(BypassMixin, demo.RfpResponseTemplate):
+            domain = "healthcare"
+
+            @staticmethod
+            def apply_domain_hook(hook_request):
+                return demo.healthcare_domain_hook(hook_request)
+
+        result = demo.run_template(
+            BypassHealthcare,
+            demo.default_request("healthcare"),
+        )
+
+        self.assertEqual(bypass_calls, [])
+        self.assertEqual(result["domain"], "healthcare")
+        self.assertEqual(result["stages"], list(demo.REQUIRED_STAGES))
+
+    def test_hook_cannot_mutate_local_identity_domain_requirements_or_trace(self):
+        demo = self.require_demo()
+        request = demo.default_request("healthcare")
+        original = deepcopy(request)
+
+        class HostileHealthcare(demo.RfpResponseTemplate):
+            domain = "healthcare"
+
+            @staticmethod
+            def apply_domain_hook(hook_request):
+                hook_request["rfp_id"] = "forged-rfp"
+                hook_request["domain"] = "finance"
+                hook_request["requirements"].clear()
+                hook_request["gaps"].extend(["forged-gap"])
+                hook_request["stages"] = ["quality-check", "draft-response"]
+                HostileHealthcare.domain = "finance"
+                return {
+                    "domain": "healthcare",
+                    "focus_areas": ["bounded-hook"],
+                    "required_evidence": ["bounded-hook-evidence"],
+                }
+
+        try:
+            result = demo.run_template(HostileHealthcare, request)
+        finally:
+            HostileHealthcare.domain = "healthcare"
+
+        self.assertEqual(request, original)
+        self.assertEqual(result["rfp_id"], "rfp-healthcare-001")
+        self.assertEqual(result["domain"], "healthcare")
+        self.assertEqual(result["requirement_ids"], ["security", "continuity"])
+        self.assertEqual(result["gaps"], [])
+        self.assertEqual(result["stages"], list(demo.REQUIRED_STAGES))
+
+    def test_hook_cannot_claim_skip_repeat_or_reordered_mandatory_stages(self):
+        demo = self.require_demo()
+        claims = (
+            ("stages", ["quality-check", "draft-response"]),
+            ("skip", ["quality-check"]),
+            ("repeat", ["extract-requirements"]),
+        )
+
+        for claim_name, claim_value in claims:
+            with self.subTest(claim=claim_name):
+
+                class ClaimingHealthcare(demo.RfpResponseTemplate):
+                    domain = "healthcare"
+
+                    @staticmethod
+                    def apply_domain_hook(hook_request):
+                        result = demo.healthcare_domain_hook(hook_request)
+                        result[claim_name] = claim_value
+                        return result
+
+                with self.assertRaises(demo.HookContractError) as caught:
+                    demo.run_template(
+                        ClaimingHealthcare,
+                        demo.default_request("healthcare"),
+                    )
+                self.assertIn(f"unexpected: {claim_name}", str(caught.exception))
+
+    def test_hook_has_no_instance_or_mandatory_step_capability(self):
+        demo = self.require_demo()
+
+        for name in (
+            "_extract_requirements",
+            "_analyze_gaps",
+            "_draft_response",
+            "_quality_check",
+        ):
+            with self.subTest(name=name):
+                self.assertNotIn(name, demo.RfpResponseTemplate.__dict__)
+
+        descriptor = inspect.getattr_static(
+            demo.HealthcareRfpResponse, "apply_domain_hook"
+        )
+        self.assertIsInstance(descriptor, staticmethod)
+        self.assertEqual(
+            tuple(inspect.signature(descriptor.__func__).parameters),
+            ("hook_request",),
+        )
+
+    def test_concrete_hook_must_be_static_with_exact_single_argument(self):
+        demo = self.require_demo()
+
+        class InstanceHook(demo.RfpResponseTemplate):
+            domain = "healthcare"
+
+            def apply_domain_hook(self, hook_request):
+                return demo.healthcare_domain_hook(hook_request)
+
+        class WrongSignatureHook(demo.RfpResponseTemplate):
+            domain = "healthcare"
+
+            @staticmethod
+            def apply_domain_hook():
+                return {}
+
+        cases = (
+            (
+                InstanceHook,
+                "ConcreteClass apply_domain_hook must be a concrete staticmethod",
+            ),
+            (
+                WrongSignatureHook,
+                "ConcreteClass apply_domain_hook must accept exactly hook_request",
+            ),
+        )
+        for concrete_class, error in cases:
+            with self.subTest(error=error):
+                with self.assertRaises(demo.ValidationError) as caught:
+                    demo.run_template(
+                        concrete_class,
+                        demo.default_request("healthcare"),
+                    )
+                self.assertEqual(str(caught.exception), error)
 
     def test_separately_addressed_domain_hook_validates_nested_input(self):
         demo = self.require_demo()
@@ -504,25 +647,28 @@ class TemplateMethodDemoTest(unittest.TestCase):
 
     def test_manifest_declares_invariant_order_and_bounded_hook(self):
         self.require_demo()
-        manifest = yaml.safe_load(
-            (SAMPLE / "skillware.yaml").read_text(encoding="utf-8")
-        )
+        manifest = (SAMPLE / "skillware.yaml").read_text(encoding="utf-8")
+        order_block = """    order:
+      - extract-requirements
+      - analyze-gaps
+      - apply-domain-hook
+      - draft-response
+      - quality-check
+"""
 
-        self.assertEqual(manifest["abstract_class"]["role"], "AbstractClass")
-        self.assertEqual(
-            manifest["abstract_class"]["template_method"]["order"],
-            list(self.demo.REQUIRED_STAGES),
+        self.assertIn("  role: AbstractClass\n", manifest)
+        self.assertIn(order_block, manifest)
+        self.assertIn(
+            "  overridable_operations:\n    - apply-domain-hook\n",
+            manifest,
         )
-        self.assertEqual(
-            manifest["abstract_class"]["overridable_operations"],
-            ["apply-domain-hook"],
-        )
-        self.assertEqual(
-            {item["id"] for item in manifest["concrete_classes"]},
-            {"healthcare", "finance"},
-        )
-        self.assertTrue(
-            all(item["role"] == "ConcreteClass" for item in manifest["concrete_classes"])
+        self.assertEqual(manifest.count("  - role: ConcreteClass\n"), 2)
+        self.assertIn("    id: healthcare\n", manifest)
+        self.assertIn("    id: finance\n", manifest)
+        self.assertIn("hook_binding: staticmethod\n", manifest)
+        self.assertIn(
+            "template_dispatch: explicit-abstract-class-implementation\n",
+            manifest,
         )
 
     def test_root_and_child_skills_declare_contract_and_automatic_harness(self):
@@ -549,15 +695,21 @@ class TemplateMethodDemoTest(unittest.TestCase):
 
     def test_record_uses_only_canonical_roles_and_pinned_candidate_evidence(self):
         self.require_demo()
-        participant_map = yaml.safe_load(
-            (RECORD / "participant-map.yaml").read_text(encoding="utf-8")
+        participant_map = (RECORD / "participant-map.yaml").read_text(
+            encoding="utf-8"
         )
+        participant_section = participant_map.split("participants:\n", 1)[1].split(
+            "execution_context:\n", 1
+        )[0]
+        context_section = participant_map.split("execution_context:\n", 1)[1].split(
+            "implementation_paths:\n", 1
+        )[0]
         self.assertEqual(
-            set(participant_map["participants"]),
+            set(re.findall(r"^  ([A-Za-z]+):$", participant_section, re.MULTILINE)),
             {"AbstractClass", "ConcreteClass"},
         )
         self.assertEqual(
-            set(participant_map["execution_context"]),
+            set(re.findall(r"^  ([^:\n]+):$", context_section, re.MULTILINE)),
             {"Agent Host", "Agent Runtime"},
         )
 

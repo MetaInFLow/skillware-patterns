@@ -3,14 +3,14 @@ pattern_id: template-method
 participants:
   AbstractClass:
     role: Enterprise RFP Response root Skill and RfpResponseTemplate oracle class
-    behavior: Owns the complete invariant run-rfp skeleton, implements all mandatory operations, invokes the one overridable operation exactly once, and validates the final result.
+    behavior: Owns the complete invariant run-rfp skeleton, keeps identity and trace as local snapshots, invokes the one static overridable operation exactly once, and validates the final result through explicit AbstractClass dispatch.
     paths:
       - sample/SKILL.md
       - sample/scripts/run_demo.py
       - sample/references/rfp-domain-hook-contract.md
   ConcreteClass:
     role: Healthcare and Finance domain child Skills and oracle subclasses
-    behavior: Each implements only the bounded apply-domain-hook operation through the same contract and cannot replace or reorder the AbstractClass skeleton.
+    behavior: Each supplies only a static bounded apply-domain-hook callable through the same contract; public execution never creates an instance or dispatches an inherited replacement template method.
     implementations:
       - id: healthcare
         path: sample/child-skills/healthcare/SKILL.md

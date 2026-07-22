@@ -31,7 +31,9 @@ concrete_classes:
     path: child-skills/finance/SKILL.md
     implements: rfp-domain-hook-v1
 hook_invocation_count: exactly-once
+hook_binding: staticmethod
 hook_failure_policy: propagate-unchanged-and-stop
+template_dispatch: explicit-abstract-class-implementation
 mutation_policy: copy-at-boundaries
 maximum_nesting_depth: 64
 contract_path: references/rfp-domain-hook-contract.md

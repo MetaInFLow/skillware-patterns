@@ -2,6 +2,7 @@
 import argparse
 from abc import ABC, abstractmethod
 from copy import deepcopy
+import inspect
 import json
 from pathlib import Path
 import sys
@@ -406,69 +407,118 @@ class RfpResponseTemplate(ABC):
                 f"forbidden override: {forbidden[0]}"
             )
 
-    def __init__(self, request):
-        self._request = validate_request(request)
-        if self._request["domain"] != self.domain:
+    @staticmethod
+    def run(concrete_class, request):
+        if (
+            not isinstance(concrete_class, type)
+            or not issubclass(concrete_class, RfpResponseTemplate)
+            or inspect.isabstract(concrete_class)
+        ):
             raise ValidationError(
-                "ConcreteClass domain mismatch: "
-                f"expected '{self.domain}', found '{self._request['domain']}'"
+                "concrete_class must be a concrete RfpResponseTemplate "
+                "ConcreteClass"
             )
 
-    def run(self):
-        stages = []
+        declared_domain = inspect.getattr_static(concrete_class, "domain", None)
+        if (
+            not isinstance(declared_domain, str)
+            or declared_domain not in SUPPORTED_DOMAINS
+        ):
+            raise ValidationError(
+                "ConcreteClass domain must be a supported plain string"
+            )
+        hook_descriptor = inspect.getattr_static(
+            concrete_class, "apply_domain_hook", None
+        )
+        if (
+            not isinstance(hook_descriptor, staticmethod)
+            or getattr(hook_descriptor.__func__, "__isabstractmethod__", False)
+        ):
+            raise ValidationError(
+                "ConcreteClass apply_domain_hook must be a concrete staticmethod"
+            )
+        hook_callable = hook_descriptor.__func__
+        try:
+            hook_parameters = tuple(
+                inspect.signature(hook_callable).parameters.values()
+            )
+        except (TypeError, ValueError):
+            hook_parameters = ()
+        if (
+            len(hook_parameters) != 1
+            or hook_parameters[0].name != "hook_request"
+            or hook_parameters[0].kind
+            not in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            )
+            or hook_parameters[0].default is not inspect.Parameter.empty
+        ):
+            raise ValidationError(
+                "ConcreteClass apply_domain_hook must accept exactly hook_request"
+            )
 
-        requirement_ids = self._extract_requirements()
-        stages.append("extract-requirements")
+        canonical = validate_request(request)
+        request_snapshot = (
+            canonical["schema"],
+            canonical["rfp_id"],
+            canonical["domain"],
+            tuple(
+                (item["id"], item["text"], item["mandatory"])
+                for item in canonical["requirements"]
+            ),
+        )
+        schema_snapshot, rfp_id_snapshot, domain_snapshot, requirements_snapshot = (
+            request_snapshot
+        )
+        if domain_snapshot != declared_domain:
+            raise ValidationError(
+                "ConcreteClass domain mismatch: "
+                f"expected '{declared_domain}', found '{domain_snapshot}'"
+            )
 
-        gaps = self._analyze_gaps()
-        stages.append("analyze-gaps")
+        required_stages_snapshot = (
+            "extract-requirements",
+            "analyze-gaps",
+            "apply-domain-hook",
+            "draft-response",
+            "quality-check",
+        )
+        trace_snapshot = ()
 
-        hook_request = build_hook_request(self._request, requirement_ids, gaps)
-        domain_result = self.apply_domain_hook(deepcopy(hook_request))
-        domain_result = validate_hook_result(domain_result, self.domain)
-        stages.append("apply-domain-hook")
+        requirement_ids_snapshot = tuple(
+            item[0] for item in requirements_snapshot
+        )
+        trace_snapshot += ("extract-requirements",)
 
-        draft = self._draft_response(requirement_ids, gaps, domain_result)
-        stages.append("draft-response")
+        gaps_snapshot = tuple(
+            item[0]
+            for item in requirements_snapshot
+            if item[2] and "[gap]" in item[1]
+        )
+        trace_snapshot += ("analyze-gaps",)
 
-        quality = self._quality_check(draft)
-        stages.append("quality-check")
-
-        result = {
-            "rfp_id": self._request["rfp_id"],
-            "domain": self.domain,
-            "requirement_ids": requirement_ids,
-            "gaps": gaps,
-            "domain_result": domain_result,
-            "draft": draft,
-            "quality": quality,
-            "stages": stages,
+        hook_request = {
+            "rfp_id": rfp_id_snapshot,
+            "domain": domain_snapshot,
+            "requirements": [
+                {"id": item[0], "text": item[1], "mandatory": item[2]}
+                for item in requirements_snapshot
+            ],
+            "gaps": list(gaps_snapshot),
         }
-        return validate_result(result, self._request)
+        domain_result = hook_callable(deepcopy(hook_request))
+        domain_result = validate_hook_result(domain_result, domain_snapshot)
+        trace_snapshot += ("apply-domain-hook",)
 
-    def _extract_requirements(self):
-        return [item["id"] for item in self._request["requirements"]]
-
-    def _analyze_gaps(self):
-        return [
-            item["id"]
-            for item in self._request["requirements"]
-            if item["mandatory"] and "[gap]" in item["text"]
-        ]
-
-    @abstractmethod
-    def apply_domain_hook(self, hook_request):
-        """Implement the sole bounded primitive operation."""
-
-    def _draft_response(self, requirement_ids, gaps, domain_result):
-        return {
-            "summary": f"Drafted response for {self._request['rfp_id']}.",
-            "requirement_ids": deepcopy(requirement_ids),
+        draft = {
+            "summary": f"Drafted response for {rfp_id_snapshot}.",
+            "requirement_ids": list(requirement_ids_snapshot),
             "domain_focus": deepcopy(domain_result["focus_areas"]),
         }
+        trace_snapshot += ("draft-response",)
 
-    def _quality_check(self, draft):
-        return {
+        quality = {
             "passed": True,
             "checks": [
                 "all-requirements-covered",
@@ -476,6 +526,42 @@ class RfpResponseTemplate(ABC):
                 "mandatory-order-preserved",
             ],
         }
+        trace_snapshot += ("quality-check",)
+
+        canonical_snapshot = {
+            "schema": schema_snapshot,
+            "rfp_id": rfp_id_snapshot,
+            "domain": domain_snapshot,
+            "requirements": [
+                {"id": item[0], "text": item[1], "mandatory": item[2]}
+                for item in requirements_snapshot
+            ],
+        }
+
+        result = {
+            "rfp_id": rfp_id_snapshot,
+            "domain": domain_snapshot,
+            "requirement_ids": list(requirement_ids_snapshot),
+            "gaps": list(gaps_snapshot),
+            "domain_result": domain_result,
+            "draft": draft,
+            "quality": quality,
+            "stages": list(trace_snapshot),
+        }
+        if trace_snapshot != required_stages_snapshot:
+            raise ResultContractError(
+                "internal trace must equal the invariant Template Method order"
+            )
+        return validate_result(
+            result,
+            canonical_snapshot,
+            expected_stages=required_stages_snapshot,
+        )
+
+    @staticmethod
+    @abstractmethod
+    def apply_domain_hook(hook_request):
+        """Implement the sole bounded primitive operation."""
 
 
 class HealthcareRfpResponse(RfpResponseTemplate):
@@ -483,7 +569,8 @@ class HealthcareRfpResponse(RfpResponseTemplate):
 
     domain = "healthcare"
 
-    def apply_domain_hook(self, hook_request):
+    @staticmethod
+    def apply_domain_hook(hook_request):
         return healthcare_domain_hook(hook_request)
 
 
@@ -492,7 +579,8 @@ class FinanceRfpResponse(RfpResponseTemplate):
 
     domain = "finance"
 
-    def apply_domain_hook(self, hook_request):
+    @staticmethod
+    def apply_domain_hook(hook_request):
         return finance_domain_hook(hook_request)
 
 
@@ -502,7 +590,7 @@ CONCRETE_CLASSES = {
 }
 
 
-def validate_result(result, request):
+def validate_result(result, request, expected_stages=None):
     error_type = ResultContractError
     canonical_request = validate_request(request)
     validate_structure(result, "result", error_type)
@@ -580,7 +668,10 @@ def validate_result(result, request):
         "result.quality.checks",
         error_type,
     )
-    if result["stages"] != list(REQUIRED_STAGES):
+    stage_policy = tuple(
+        REQUIRED_STAGES if expected_stages is None else expected_stages
+    )
+    if result["stages"] != list(stage_policy):
         raise error_type("result.stages must equal the invariant Template Method order")
 
     return {
@@ -595,7 +686,7 @@ def validate_result(result, request):
             "domain_focus": draft_focus,
         },
         "quality": {"passed": quality["passed"], "checks": quality_checks},
-        "stages": list(REQUIRED_STAGES),
+        "stages": list(stage_policy),
     }
 
 
@@ -642,13 +733,7 @@ def default_request(domain):
 
 
 def run_template(concrete_class, request):
-    if not isinstance(concrete_class, type) or not issubclass(
-        concrete_class, RfpResponseTemplate
-    ):
-        raise ValidationError(
-            "concrete_class must be an RfpResponseTemplate ConcreteClass"
-        )
-    return concrete_class(request).run()
+    return RfpResponseTemplate.run(concrete_class, request)
 
 
 def run_rfp(domain, request=None):

@@ -18,7 +18,10 @@ library and performs no network or cross-pattern imports.
 
 The tests prove the literal `run_rfp("healthcare")` API, fixed order, exactly
 one hook invocation, failure stop, shared hook contract, bounded substitution,
-mandatory-stage override rejection, input/result isolation, deterministic
-outputs, duplicate-member rejection, Unicode handling, and depth/type bounds.
+explicit AbstractClass dispatch, MRO bypass resistance, static hook isolation,
+malicious identity/domain/trace mutation resistance, mandatory-stage override
+and claim rejection, deterministic outputs, duplicate-member rejection,
+Unicode handling, and depth/type bounds. Focused tests and the oracle use only
+the Python standard library.
 
 Domain findings are illustrative, not professional RFP or compliance advice.
