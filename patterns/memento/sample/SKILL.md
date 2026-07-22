@@ -27,14 +27,20 @@ Agent Host and Agent Runtime are execution context, not Memento participants.
    inputs before any write.
 2. Capture exactly one opaque Memento before mutation. The Caretaker controls
    its timing and lifecycle but never reads or alters its state.
-3. Ask the Originator to render `version + 1`, preserve `endpoint`, and replace
-   the target atomically with deterministic bounded UTF-8 JSON and captured
-   permission mode.
-4. Reread and validate the committed schema and exact rendered bytes.
-5. On any failure after capture, ask the Originator to restore the Memento
-   through atomic replacement. Re-raise the original failure only after exact
-   restore verification. If restore fails, report both failures and do not
-   claim recovery; keep the checkpoint active for a trusted retry.
+3. Ask the Originator to capability-check active ownership, target, and
+   checksum, then prepare `version + 1` and validate that the target still
+   equals the capture without writing. If preparation or conflict validation
+   fails, expire the checkpoint without restore and preserve current content.
+4. After successful preparation, begin the write attempt. Apply captured mode
+   on the open same-directory temporary file, fsync the file, atomically
+   replace, fsync the directory, then reread and validate the exact bytes.
+   A platform without descriptor-mode support may apply mode by temporary path
+   while it remains open, still before the file fsync and rename.
+5. On any write-attempt or post-write validation failure, conservatively ask
+   the Originator to restore because replacement may have occurred. Re-raise
+   the original failure only after exact restore verification. If restore
+   fails, report both failures and do not claim recovery; keep the checkpoint
+   active for a trusted retry.
 6. On successful validation, expire and discard the Memento **without** calling
    restore. Reject reused, foreign-Caretaker, or cross-target checkpoints.
 7. Return only deterministic status, old version, new version, endpoint, and
@@ -59,7 +65,9 @@ migrates a temporary fixture copy and does not modify the repository fixture.
 
 This is a single-cooperative-writer model. Atomic replacement prevents partial
 file content but is not a lock and cannot promise identical crash durability on
-every filesystem. Originator privacy and Memento opacity are trusted-code
+every filesystem. The no-write preparation check cannot close a race with an
+uncooperative writer between validation and replacement. Originator privacy and
+Memento opacity are trusted-code
 contract boundaries, not security isolation: in-process reflection,
 monkeypatching, direct file access, and memory inspection can bypass them. Mode
 preservation does not cover ACLs, ownership, extended attributes, or labels.

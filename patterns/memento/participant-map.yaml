@@ -3,7 +3,7 @@ pattern_id: memento
 participants:
   Originator:
     role: Configuration Originator child Skill and ConfigurationOriginator oracle
-    behavior: Encapsulates validated configuration state, creates an opaque exact-byte memento, renders the next version, validates the committed file, and restores only its own target.
+    behavior: Encapsulates validated configuration state; capability-checks active checkpoint ownership, integrity, target, preparation, and restore; atomically writes only after conflict-free preparation; and validates the committed file.
     paths:
       - sample/child-skills/configuration-originator/SKILL.md
       - sample/scripts/run_demo.py
@@ -16,7 +16,7 @@ participants:
       - sample/scripts/run_demo.py
   Caretaker:
     role: Configuration Migration root Skill, Migration Caretaker child Skill, and MigrationCaretaker oracle
-    behavior: Owns capture before mutation, failure restoration, successful disposal without restoration, one-live-checkpoint policy, and stale or foreign memento rejection.
+    behavior: Owns capture, pre-write discard without restoration, restoration after a write attempt or post-write failure, successful disposal without restoration, one-live-checkpoint policy, and stale or foreign memento rejection.
     paths:
       - sample/SKILL.md
       - sample/child-skills/migration-caretaker/SKILL.md

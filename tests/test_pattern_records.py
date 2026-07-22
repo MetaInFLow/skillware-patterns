@@ -972,6 +972,67 @@ class PatternRecordContractTest(unittest.TestCase):
                     self.assertNotIn("skillware-github", text)
                     self.assertNotIn("github.com/MetaInFLow/skillware", text)
 
+    def test_memento_roles_contract_evidence_and_chinese_parity(self):
+        record = PATTERNS / "memento"
+        participant_map = yaml.safe_load(
+            (record / "participant-map.yaml").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            set(participant_map["participants"]),
+            {"Originator", "Memento", "Caretaker"},
+        )
+        context = participant_map["execution_context"]
+        self.assertEqual(set(context), {"Agent Host", "Agent Runtime"})
+        for role in context.values():
+            self.assertEqual(role["evidence_status"], "not observable")
+            self.assertNotIn("path", role)
+            self.assertNotIn("evidence_path", role)
+
+        contract = yaml.safe_load(
+            (record / "sample/skillware.yaml").read_text(encoding="utf-8")
+        )
+        self.assertEqual(contract["memento_contract"], "configuration-memento-v1")
+        self.assertEqual(contract["capture"], "exact-bytes-plus-metadata")
+        self.assertEqual(contract["restore"], "atomic-replace")
+        self.assertEqual(contract["successful_commit"], "discard-without-restore")
+
+        evidence = (record / "evidence/skillopt-frozen-case.md").read_text(
+            encoding="utf-8"
+        )
+        urls = re.findall(r"https://github\.com/[^)\s]+", evidence)
+        self.assertEqual(len(urls), 1)
+        parsed = urlparse(urls[0])
+        parts = parsed.path.strip("/").split("/")
+        self.assertEqual(parsed.scheme, "https")
+        self.assertEqual(parsed.netloc, "github.com")
+        self.assertEqual(parts[:4], [
+            "microsoft",
+            "SkillOpt",
+            "blob",
+            "b860a5cf88ce75e2bd02ca981ac21fb28cffba83",
+        ])
+        self.assertEqual("/".join(parts[4:]), "skillopt_sleep/staging.py")
+        self.assertIn("**Claim status:** candidate correspondence", evidence)
+        self.assertIn("no owned restore path", evidence)
+
+        chinese = (record / "definition.zh-CN.md").read_text(encoding="utf-8")
+        for required in (
+            "完整快照会增加内存消耗",
+            "不提供并发控制、授权、加密或持久历史",
+            "恢复失败时，检查点保持活跃",
+            "报告迁移与恢复两个错误",
+            "确定性 oracle 不解释自然语言 Skill",
+            "同目录临时文件",
+            "原子替换并不保证每种文件系统都具有相同的崩溃持久性",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, chinese)
+
+        for path in record.rglob("*"):
+            if path.is_file() and path.suffix in {".md", ".yaml", ".py", ".json"}:
+                with self.subTest(path=path.relative_to(record)):
+                    self.assertNotIn("EvoZeus", path.read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()

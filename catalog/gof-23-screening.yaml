@@ -192,7 +192,7 @@
   source_intent: Capture internal state without breaking encapsulation so the object can later be restored.
   skillware_carriers: [release snapshot, checkpoint, caretaker harness]
   screening_result: strong
-  reasoning: SkillOpt backups and EvoZeus release snapshots provide partial evidence of capture, caretaker ownership, and recovery.
+  reasoning: At pinned commit b860a5cf88ce75e2bd02ca981ac21fb28cffba83, SkillOpt's skillopt_sleep/staging.py backs up live files before adoption; this is partial candidate evidence only because it exposes no owned restore path, so full Memento is unverified.
   false_positive_risk: A backup or Git commit without an owned operational restore path is not necessarily Memento.
   detailed_sample: true
 

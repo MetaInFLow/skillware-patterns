@@ -260,6 +260,27 @@ class CatalogTest(unittest.TestCase):
         self.assertEqual(actual, GOF_SCREENING)
         self.assertTrue(all(set(row) == SCREEN_FIELDS for row in self.screen))
 
+    def test_memento_screening_uses_only_pinned_skillopt_candidate(self):
+        memento = next(row for row in self.screen if row["id"] == "memento")
+        reasoning = memento["reasoning"]
+
+        self.assertNotIn("EvoZeus", reasoning)
+        self.assertIn("b860a5cf88ce75e2bd02ca981ac21fb28cffba83", reasoning)
+        self.assertIn("skillopt_sleep/staging.py", reasoning)
+        self.assertIn("backs up live files before adoption", reasoning)
+        self.assertIn("partial candidate", reasoning)
+        self.assertIn("no owned restore path", reasoning)
+        self.assertIn("full Memento is unverified", reasoning)
+
+        markdown_row = next(
+            line
+            for line in (ROOT / "catalog/gof-23-screening.md")
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.startswith("| Memento |")
+        )
+        self.assertNotIn("EvoZeus", markdown_row)
+
     def test_markdown_catalogs_are_generated_from_yaml(self):
         from scripts.render_catalog import render_gof_screen, render_pattern_index
 

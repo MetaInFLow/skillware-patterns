@@ -154,15 +154,181 @@ class MementoDemoTest(unittest.TestCase):
         other_path = Path(self.temp_dir.name) / "other.json"
         other_path.write_bytes(b'{"version":7,"endpoint":"other"}')
         first_originator = demo.ConfigurationOriginator(self.config)
-        checkpoint = demo.MigrationCaretaker(first_originator).capture()
+        caretaker = demo.MigrationCaretaker(first_originator)
+        checkpoint = caretaker.capture()
 
         with self.assertRaisesRegex(
             demo.MementoTargetError,
             r"^memento target does not match originator$",
         ):
-            demo.ConfigurationOriginator(other_path).restore(checkpoint)
+            demo.ConfigurationOriginator(other_path).restore(
+                checkpoint,
+                caretaker._owner_token,
+            )
 
         self.assertEqual(other_path.read_bytes(), b'{"version":7,"endpoint":"other"}')
+
+    def test_originator_rejects_direct_stale_memento_bypass(self):
+        demo = self.require_demo()
+        self.write_config()
+        originator = demo.ConfigurationOriginator(self.config)
+        caretaker = demo.MigrationCaretaker(originator)
+        checkpoint = caretaker.capture()
+        owner_capability = caretaker._owner_token
+        prepared = originator.prepare_migration(checkpoint, owner_capability)
+        caretaker.commit(checkpoint)
+
+        operations = (
+            lambda: originator.prepare_migration(checkpoint, owner_capability),
+            lambda: originator.write_prepared(
+                prepared,
+                checkpoint,
+                owner_capability,
+            ),
+            lambda: originator.restore(checkpoint, owner_capability),
+        )
+        for operation in operations:
+            with self.subTest(operation=operation):
+                with self.assertRaisesRegex(
+                    demo.MementoLifecycleError,
+                    r"^memento is no longer active$",
+                ):
+                    operation()
+
+    def test_originator_rejects_direct_foreign_owner_bypass(self):
+        demo = self.require_demo()
+        self.write_config()
+        originator = demo.ConfigurationOriginator(self.config)
+        caretaker = demo.MigrationCaretaker(originator)
+        checkpoint = caretaker.capture()
+        prepared = originator.prepare_migration(
+            checkpoint,
+            caretaker._owner_token,
+        )
+        foreign_capability = object()
+
+        operations = (
+            lambda: originator.prepare_migration(checkpoint, foreign_capability),
+            lambda: originator.write_prepared(
+                prepared,
+                checkpoint,
+                foreign_capability,
+            ),
+            lambda: originator.restore(checkpoint, foreign_capability),
+        )
+        for operation in operations:
+            with self.subTest(operation=operation):
+                with self.assertRaisesRegex(
+                    demo.MementoLifecycleError,
+                    r"^memento does not belong to this caretaker$",
+                ):
+                    operation()
+
+    def test_originator_rejects_corrupted_snapshot_before_migration_or_restore(self):
+        demo = self.require_demo()
+
+        for operation_name in ("prepare_migration", "write_prepared", "restore"):
+            with self.subTest(operation=operation_name):
+                path = Path(self.temp_dir.name) / f"{operation_name}.json"
+                original = b'{"version":1,"endpoint":"stable"}'
+                path.write_bytes(original)
+                originator = demo.ConfigurationOriginator(path)
+                caretaker = demo.MigrationCaretaker(originator)
+                checkpoint = caretaker.capture()
+                prepared = originator.prepare_migration(
+                    checkpoint,
+                    caretaker._owner_token,
+                )
+                checkpoint._raw = b'{"version":9,"endpoint":"tampered"}'
+
+                with self.assertRaisesRegex(
+                    demo.MementoIntegrityError,
+                    r"^memento checksum does not match captured bytes$",
+                ):
+                    if operation_name == "write_prepared":
+                        originator.write_prepared(
+                            prepared,
+                            checkpoint,
+                            caretaker._owner_token,
+                        )
+                    else:
+                        getattr(originator, operation_name)(
+                            checkpoint,
+                            caretaker._owner_token,
+                        )
+
+                self.assertEqual(path.read_bytes(), original)
+
+    def test_external_change_before_write_is_preserved_without_restore(self):
+        demo = self.require_demo()
+        self.write_config()
+        external = b'{"version":8,"endpoint":"newer"}'
+        captured = []
+        real_capture = demo.MigrationCaretaker.capture
+
+        def capture_then_change(caretaker):
+            checkpoint = real_capture(caretaker)
+            captured.append(checkpoint)
+            self.config.write_bytes(external)
+            return checkpoint
+
+        with mock.patch.object(
+            demo.MigrationCaretaker,
+            "capture",
+            autospec=True,
+            side_effect=capture_then_change,
+        ):
+            with mock.patch.object(
+                demo.ConfigurationOriginator,
+                "restore",
+                autospec=True,
+            ) as restore:
+                with self.assertRaisesRegex(
+                    demo.ConfigurationError,
+                    r"^configuration changed after checkpoint capture$",
+                ):
+                    demo.migrate(self.config)
+
+        restore.assert_not_called()
+        self.assertEqual(self.config.read_bytes(), external)
+        self.assertFalse(captured[0]._active)
+
+    def test_other_pre_write_error_discards_without_restore(self):
+        demo = self.require_demo()
+        original = self.write_config()
+        captured = []
+        real_capture = demo.MigrationCaretaker.capture
+
+        def record_capture(caretaker):
+            checkpoint = real_capture(caretaker)
+            captured.append(checkpoint)
+            return checkpoint
+
+        with mock.patch.object(
+            demo.MigrationCaretaker,
+            "capture",
+            autospec=True,
+            side_effect=record_capture,
+        ):
+            with mock.patch.object(
+                demo,
+                "render_configuration",
+                side_effect=demo.ConfigurationError("unable to prepare migration"),
+            ):
+                with mock.patch.object(
+                    demo.ConfigurationOriginator,
+                    "restore",
+                    autospec=True,
+                ) as restore:
+                    with self.assertRaisesRegex(
+                        demo.ConfigurationError,
+                        r"^unable to prepare migration$",
+                    ):
+                        demo.migrate(self.config)
+
+        restore.assert_not_called()
+        self.assertEqual(self.config.read_bytes(), original)
+        self.assertFalse(captured[0]._active)
 
     def test_initial_write_failure_rolls_back_without_partial_state(self):
         demo = self.require_demo()
@@ -183,6 +349,65 @@ class MementoDemoTest(unittest.TestCase):
         self.assertGreaterEqual(len(calls), 2)
         self.assertEqual(self.config.read_bytes(), original)
         self.assertEqual(list(self.config.parent.glob(".service.json.*.tmp")), [])
+
+    def test_post_rename_durability_failure_is_rolled_back_conservatively(self):
+        demo = self.require_demo()
+        original = self.write_config()
+        real_fsync = demo.os.fsync
+        calls = []
+
+        def fail_first_directory_fsync(descriptor):
+            calls.append(descriptor)
+            if len(calls) == 2:
+                raise OSError("directory fsync unavailable")
+            return real_fsync(descriptor)
+
+        with mock.patch.object(
+            demo.os,
+            "fsync",
+            side_effect=fail_first_directory_fsync,
+        ):
+            with self.assertRaisesRegex(
+                OSError,
+                r"^directory fsync unavailable$",
+            ):
+                demo.migrate(self.config)
+
+        self.assertGreaterEqual(len(calls), 4)
+        self.assertEqual(self.config.read_bytes(), original)
+        self.assertEqual(list(self.config.parent.glob(".service.json.*.tmp")), [])
+
+    @unittest.skipUnless(hasattr(os, "fchmod"), "file-descriptor chmod unavailable")
+    def test_mode_is_applied_before_file_fsync_then_rename_and_directory_fsync(self):
+        demo = self.require_demo()
+        self.write_config()
+        events = []
+        real_fchmod = demo.os.fchmod
+        real_fsync = demo.os.fsync
+        real_replace = demo.os.replace
+
+        def record_fchmod(descriptor, mode):
+            events.append("fchmod")
+            return real_fchmod(descriptor, mode)
+
+        def record_fsync(descriptor):
+            events.append("fsync")
+            return real_fsync(descriptor)
+
+        def record_replace(source, destination):
+            events.append("replace")
+            return real_replace(source, destination)
+
+        with mock.patch.object(demo.os, "fchmod", side_effect=record_fchmod):
+            with mock.patch.object(demo.os, "fsync", side_effect=record_fsync):
+                with mock.patch.object(
+                    demo.os,
+                    "replace",
+                    side_effect=record_replace,
+                ):
+                    demo.migrate(self.config)
+
+        self.assertEqual(events, ["fchmod", "fsync", "replace", "fsync"])
 
     def test_post_write_validation_failure_restores_exact_bytes(self):
         demo = self.require_demo()

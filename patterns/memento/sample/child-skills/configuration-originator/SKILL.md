@@ -19,10 +19,14 @@ Memento containing the precise pre-migration bytes, canonical target identity,
 portable permission mode, SHA-256 integrity value, Caretaker identity, and
 lifecycle state. Never expose those contents to the Caretaker.
 
-For migration, verify that the target still matches the captured bytes, render
-only `version + 1` with the same endpoint, atomically replace, and reread the
-exact result. For restore, accept only a checksum-valid checkpoint for this
-target, atomically replace exact bytes and permissions, and verify them.
+For preparation and restore, require the Caretaker owner capability and reject
+inactive, foreign, checksum-invalid, or cross-target checkpoints even on a
+direct Originator call. Before mutation, verify that the target still matches
+the captured bytes and render only `version + 1` with the same endpoint. A
+preparation conflict must not write or restore. For the later write attempt,
+apply mode to the open temporary file before its final fsync, atomically
+replace, fsync the directory, and reread the exact result. Restore exact bytes
+and permissions through the same durable ordering.
 
 ## Limits
 

@@ -2,8 +2,10 @@
 
 This standalone Memento sample increments a bounded JSON configuration version
 through atomic replacement. The Originator captures exact prior bytes and
-portable permissions in an opaque Memento; the Caretaker restores on every
-post-capture failure and discards the checkpoint without restore after success.
+portable permissions in an opaque Memento. A preparation or conflict error
+discards without restore, preserving newer external content. Once a write is
+attempted, the Caretaker restores conservatively on failure and discards the
+checkpoint without restore after success.
 
 Run the deterministic default demo without modifying its fixture:
 
@@ -28,3 +30,5 @@ The sample requires Python 3.10 or later, uses only the standard library, needs
 no network or account, and imports no shared pattern code. It assumes one
 trusted cooperative writer. Atomic replacement prevents partial file content;
 it does not provide locking or identical crash guarantees on every filesystem.
+Mode is applied to the open temporary file before file fsync and rename; a
+portable path-based fallback is used only where descriptor mode is unavailable.

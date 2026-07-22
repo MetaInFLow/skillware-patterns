@@ -22,10 +22,17 @@ metadata:
 write: same-directory-atomic-replace
 restore: atomic-replace
 post_write_validation: exact-rendered-bytes-and-schema
+pre_write_failure: discard-without-restore
+write_attempt_failure: restore-conservatively
 successful_commit: discard-without-restore
 checkpoint_limit: one-live-per-caretaker
 foreign_or_stale_memento: reject
 restore_failure: report-both-errors-and-keep-checkpoint-active
+mode_durability_order:
+  - apply-mode-on-open-temp-fd
+  - fsync-temp-file
+  - atomic-replace
+  - fsync-directory
 input_limit_bytes: 65536
 endpoint_limit_characters: 4096
 version_limit: 2147483647

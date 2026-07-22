@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import errno
 import hashlib
 import json
 import os
@@ -183,8 +184,8 @@ def atomic_replace(path, raw, mode):
             descriptor = None
             stream.write(raw)
             stream.flush()
+            apply_mode_before_fsync(stream.fileno(), temporary_path, mode)
             os.fsync(stream.fileno())
-        os.chmod(temporary_path, mode)
         os.replace(temporary_path, path)
         temporary_path = None
         if hasattr(os, "O_DIRECTORY"):
@@ -201,6 +202,29 @@ def atomic_replace(path, raw, mode):
                 temporary_path.unlink()
             except FileNotFoundError:
                 pass
+
+
+def apply_mode_before_fsync(descriptor, path, mode):
+    if not hasattr(os, "fchmod"):
+        os.chmod(path, mode)
+        return
+    try:
+        os.fchmod(descriptor, mode)
+    except NotImplementedError:
+        os.chmod(path, mode)
+    except OSError as exc:
+        unsupported = {
+            value
+            for value in (
+                getattr(errno, "ENOSYS", None),
+                getattr(errno, "ENOTSUP", None),
+                getattr(errno, "EOPNOTSUPP", None),
+            )
+            if value is not None
+        }
+        if exc.errno not in unsupported:
+            raise
+        os.chmod(path, mode)
 
 
 class ConfigurationMemento:
@@ -224,7 +248,13 @@ class ConfigurationMemento:
     def __repr__(self):
         return "ConfigurationMemento(<opaque>)"
 
-    def _snapshot_for(self, path):
+    def _snapshot_for(self, path, owner_token):
+        if self._owner_token is not owner_token:
+            raise MementoLifecycleError(
+                "memento does not belong to this caretaker"
+            )
+        if not self._active:
+            raise MementoLifecycleError("memento is no longer active")
         if self._target_key != target_key(path):
             raise MementoTargetError("memento target does not match originator")
         if hashlib.sha256(self._raw).digest() != self._digest:
@@ -249,10 +279,13 @@ class ConfigurationOriginator:
         self._configuration = validate_configuration(raw)
         return ConfigurationMemento(self._path, raw, mode, owner_token)
 
-    def migrate_from(self, memento):
-        prior_raw, prior_mode = memento._snapshot_for(self._path)
-        current_raw, _current_mode = read_bounded_file(self._path)
-        if current_raw != prior_raw:
+    def prepare_migration(self, memento, owner_token):
+        prior_raw, prior_mode = memento._snapshot_for(
+            self._path,
+            owner_token,
+        )
+        current_raw, current_mode = read_bounded_file(self._path)
+        if current_raw != prior_raw or current_mode != prior_mode:
             raise ConfigurationError(
                 "configuration changed after checkpoint capture"
             )
@@ -262,6 +295,15 @@ class ConfigurationOriginator:
             "endpoint": current["endpoint"],
         }
         migrated_raw = render_configuration(migrated)
+        return current, migrated, migrated_raw, prior_mode, memento
+
+    def write_prepared(self, prepared, memento, owner_token):
+        memento._snapshot_for(self._path, owner_token)
+        current, migrated, migrated_raw, prior_mode, prepared_memento = prepared
+        if prepared_memento is not memento:
+            raise MementoLifecycleError(
+                "prepared migration does not match memento"
+            )
         atomic_replace(self._path, migrated_raw, prior_mode)
         self._configuration = migrated
         return current, migrated, migrated_raw
@@ -272,8 +314,8 @@ class ConfigurationOriginator:
         if current != expected_configuration or raw != expected_raw:
             raise ConfigurationError("post-write configuration mismatch")
 
-    def restore(self, memento):
-        raw, mode = memento._snapshot_for(self._path)
+    def restore(self, memento, owner_token):
+        raw, mode = memento._snapshot_for(self._path, owner_token)
         atomic_replace(self._path, raw, mode)
         restored_raw, restored_mode = read_bounded_file(self._path)
         if restored_raw != raw:
@@ -312,7 +354,7 @@ class MigrationCaretaker:
     def restore(self, memento):
         self._require_owned_active(memento)
         try:
-            self._originator.restore(memento)
+            self._originator.restore(memento, self._owner_token)
         except Exception as exc:
             raise RestorationError(exc) from exc
         memento._retire()
@@ -323,13 +365,42 @@ class MigrationCaretaker:
         memento._retire()
         self._checkpoint = None
 
+    def discard(self, memento):
+        self._require_owned_active(memento)
+        memento._retire()
+        self._checkpoint = None
+
+    def prepare_migration(self, memento):
+        self._require_owned_active(memento)
+        return self._originator.prepare_migration(
+            memento,
+            self._owner_token,
+        )
+
+    def write_prepared(self, prepared, memento):
+        self._require_owned_active(memento)
+        return self._originator.write_prepared(
+            prepared,
+            memento,
+            self._owner_token,
+        )
+
 
 def migrate(path, fail=False):
     originator = ConfigurationOriginator(path)
     caretaker = MigrationCaretaker(originator)
     checkpoint = caretaker.capture()
     try:
-        prior, migrated, migrated_raw = originator.migrate_from(checkpoint)
+        prepared = caretaker.prepare_migration(checkpoint)
+    except Exception:
+        caretaker.discard(checkpoint)
+        raise
+
+    try:
+        prior, migrated, migrated_raw = caretaker.write_prepared(
+            prepared,
+            checkpoint,
+        )
         originator.validate_committed(migrated, migrated_raw)
         if fail:
             raise RuntimeError("migration failed")

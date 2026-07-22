@@ -19,7 +19,9 @@ The Originator owns validation and its private configuration state. It alone:
 
 - creates a Memento from exact bytes plus target, mode, checksum, owner, and
   lifecycle metadata;
-- verifies the target still matches the capture before migration;
+- requires the Caretaker owner capability and an active Memento for preparation
+  and restore, including direct Originator calls;
+- verifies the target still matches the capture during no-write preparation;
 - renders deterministic UTF-8 JSON with sorted keys, two-space indentation,
   and one final newline;
 - atomically replaces and rereads the migrated target; and
@@ -36,19 +38,27 @@ hostile-code security.
 ## Caretaker
 
 One Caretaker owns at most one live Memento. It captures before mutation,
-retains the checkpoint opaquely, requests Originator restore on failure, and
-expires it after verified restore. A successful migration expires it without a
-restore call. Foreign, stale, and second-live Mementos are controlled errors.
+retains the checkpoint opaquely, and discards it without restoration when
+preparation or conflict validation fails before any write attempt. After a
+write attempt it requests Originator restore on failure and expires only after
+verified restore. A successful migration expires it without a restore call.
+Foreign, stale, checksum-corrupted, and second-live Mementos are controlled
+errors at both Caretaker and Originator access paths.
 
 ## Atomicity and failure
 
-Migration and restoration each write and `fsync` a same-directory temporary
-file, apply the captured portable mode, and atomically replace the target.
-Temporary files are removed after failure. A post-write reread must match the
-validated configuration and exact deterministic bytes.
+Migration and restoration each write a same-directory temporary file, apply the
+captured portable mode on its open descriptor, `fsync` that file, atomically
+replace the target, then `fsync` the directory. Where descriptor-mode changes
+are unavailable, the portable fallback changes mode by temporary path while the
+file remains open and before its `fsync` and rename. Temporary files are removed
+after failure. A post-write reread must match the validated configuration and
+exact deterministic bytes.
 
-If migration fails and restore succeeds, re-raise the original migration
-error. If restore fails, raise `MigrationRollbackError` carrying both
+Any error once the atomic write is attempted is treated conservatively as a
+possible target mutation, including an error after rename during directory
+`fsync`. If migration fails and restore succeeds, re-raise the original
+migration error. If restore fails, raise `MigrationRollbackError` carrying both
 `migration_error` and `restore_error`; the file remains one complete atomic
 version but recovery is not claimed. Direct Caretaker restore failure raises
 `RestorationError` and keeps the checkpoint live for a trusted retry.
