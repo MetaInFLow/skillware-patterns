@@ -1,0 +1,1 @@
+error: cycle detected: investment-memo -> due-diligence -> risk-analysis -> investment-memo

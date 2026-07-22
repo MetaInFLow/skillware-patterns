@@ -1,0 +1,49 @@
+{
+  "id": "investment-memo",
+  "title": "Investment Memo: Northstar Analytics",
+  "content": "Recommendation: proceed to partner diligence with valuation discipline.",
+  "evidence": [
+    "fixture:company-profile",
+    "fixture:investment-thesis"
+  ],
+  "children": [
+    {
+      "id": "market-analysis",
+      "title": "Market Analysis",
+      "content": "Mid-market finance teams face fragmented forecasting workflows; a focused analytics wedge has credible demand.",
+      "evidence": [
+        "fixture:market-interviews",
+        "fixture:market-sizing"
+      ],
+      "children": []
+    },
+    {
+      "id": "financial-analysis",
+      "title": "Financial Analysis",
+      "content": "Revenue growth is promising, but the current burn profile requires milestone-based financing.",
+      "evidence": [
+        "fixture:management-accounts",
+        "fixture:cash-plan"
+      ],
+      "children": []
+    },
+    {
+      "id": "competition-analysis",
+      "title": "Competition Analysis",
+      "content": "The company differentiates through workflow integration while competing with suites and point solutions.",
+      "evidence": [
+        "fixture:competitor-matrix"
+      ],
+      "children": []
+    },
+    {
+      "id": "risk-analysis",
+      "title": "Risk Analysis",
+      "content": "Primary risks are sales-cycle length, platform dependency, and valuation; diligence gates are defined for each.",
+      "evidence": [
+        "fixture:risk-register"
+      ],
+      "children": []
+    }
+  ]
+}

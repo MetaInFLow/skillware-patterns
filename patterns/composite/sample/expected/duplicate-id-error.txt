@@ -1,0 +1,1 @@
+error: duplicate node id 'market-analysis' at nodes[1] and nodes[2]

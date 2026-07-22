@@ -1,0 +1,30 @@
+{
+  "component_contract": "memo-section-v1",
+  "root": "investment-memo",
+  "nodes": [
+    {
+      "id": "investment-memo",
+      "kind": "composite",
+      "title": "Investment Memo",
+      "content": "Root.",
+      "evidence": ["fixture:root"],
+      "children": ["due-diligence"]
+    },
+    {
+      "id": "due-diligence",
+      "kind": "composite",
+      "title": "Due Diligence",
+      "content": "Group.",
+      "evidence": ["fixture:diligence"],
+      "children": ["risk-analysis"]
+    },
+    {
+      "id": "risk-analysis",
+      "kind": "composite",
+      "title": "Risk Analysis",
+      "content": "Cycle carrier.",
+      "evidence": ["fixture:risk"],
+      "children": ["investment-memo"]
+    }
+  ]
+}

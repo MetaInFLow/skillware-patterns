@@ -1,0 +1,57 @@
+pattern: Composite
+pattern_id: composite
+participants:
+  Client:
+    role: Task caller through the root invocation
+    behavior: Invokes the investment-memo root and receives one Component record.
+    path: sample/README.md
+  Component:
+    role: Common memo-section-v1 contract
+    behavior: Defines identical id, title, content, evidence, and children fields for every node.
+    path: sample/references/section-contract.md
+  Leaf:
+    role: Independently inspectable atomic analysis Skills
+    behavior: Produces one Component record with children set to an empty list.
+    paths:
+      - sample/child-skills/market-analysis/SKILL.md
+      - sample/child-skills/financial-analysis/SKILL.md
+      - sample/child-skills/competition-analysis/SKILL.md
+      - sample/child-skills/risk-analysis/SKILL.md
+  Composite:
+    role: Root memo Skill and serialized containment workflow
+    behavior: Resolves child references recursively and returns a Component record containing child Component records.
+    paths:
+      - sample/SKILL.md
+      - sample/fixtures/valid/investment-memo.json
+execution_context:
+  Agent Host:
+    responsibility: Activates the root or an independently addressed leaf Skill.
+    evidence_status: not observable
+    note: The constructive sample supplies no Agent Host integration evidence.
+  Agent Runtime:
+    responsibility: Interprets the selected Skill behavioral source.
+    evidence_status: not observable
+    note: The deterministic builder is an oracle, not evidence of model interpretation.
+implementation_paths:
+  - sample/scripts/run_demo.py
+  - sample/fixtures/valid/investment-memo.json
+  - sample/fixtures/invalid/cycle.json
+  - sample/fixtures/invalid/missing-child.json
+  - sample/fixtures/invalid/missing-root.json
+  - sample/fixtures/invalid/duplicate-id.json
+  - sample/fixtures/invalid/malformed-node.json
+  - sample/fixtures/invalid/invalid-kind.json
+  - sample/fixtures/invalid/leaf-with-children.json
+  - sample/fixtures/invalid/invalid-json.json
+  - sample/expected/investment-memo.json
+  - sample/expected/cycle-error.txt
+  - sample/expected/missing-child-error.txt
+  - sample/expected/missing-root-error.txt
+  - sample/expected/duplicate-id-error.txt
+  - sample/expected/malformed-node-error.txt
+  - sample/expected/invalid-kind-error.txt
+  - sample/expected/leaf-with-children-error.txt
+  - sample/expected/invalid-json-error.txt
+  - sample/tests/test_demo.py
+misuse_path: misuse/SKILL.md
+evidence_path: evidence/openmontage-frozen-case.md

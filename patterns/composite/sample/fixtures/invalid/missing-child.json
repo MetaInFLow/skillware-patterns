@@ -1,0 +1,14 @@
+{
+  "component_contract": "memo-section-v1",
+  "root": "investment-memo",
+  "nodes": [
+    {
+      "id": "investment-memo",
+      "kind": "composite",
+      "title": "Investment Memo",
+      "content": "Root.",
+      "evidence": ["fixture:root"],
+      "children": ["risk-analysis"]
+    }
+  ]
+}

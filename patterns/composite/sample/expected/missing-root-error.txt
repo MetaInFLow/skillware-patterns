@@ -1,0 +1,1 @@
+error: root references missing node 'investment-memo'

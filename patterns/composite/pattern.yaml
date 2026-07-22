@@ -1,0 +1,9 @@
+id: composite
+name: Composite
+name_zh: 组合模式
+source_tradition: gang-of-four
+source_category: structural
+paper_role: main-text
+implementation_status: detailed
+scenario: Investment Memo Builder
+scenario_zh: 投资备忘录生成

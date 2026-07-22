@@ -1,0 +1,27 @@
+id: investment-memo-builder
+name: Investment Memo Builder
+name_zh: 投资备忘录生成
+pattern: composite
+entry_skill: SKILL.md
+component_contract: memo-section-v1
+contract_reference: references/section-contract.md
+workflow: fixtures/valid/investment-memo.json
+root: investment-memo
+leaves:
+  - id: market-analysis
+    skill: child-skills/market-analysis/SKILL.md
+  - id: financial-analysis
+    skill: child-skills/financial-analysis/SKILL.md
+  - id: competition-analysis
+    skill: child-skills/competition-analysis/SKILL.md
+  - id: risk-analysis
+    skill: child-skills/risk-analysis/SKILL.md
+response:
+  fields: [id, title, content, evidence, children]
+  leaf_children: []
+demo:
+  python: ">=3.10"
+  standard_library_only: true
+  network_required: false
+  default_workflow: fixtures/valid/investment-memo.json
+  command: python3 scripts/run_demo.py

@@ -1,0 +1,30 @@
+{
+  "component_contract": "memo-section-v1",
+  "root": "investment-memo",
+  "nodes": [
+    {
+      "id": "investment-memo",
+      "kind": "composite",
+      "title": "Investment Memo",
+      "content": "Root.",
+      "evidence": ["fixture:root"],
+      "children": ["market-analysis"]
+    },
+    {
+      "id": "market-analysis",
+      "kind": "leaf",
+      "title": "Market Analysis",
+      "content": "First.",
+      "evidence": ["fixture:first"],
+      "children": []
+    },
+    {
+      "id": "market-analysis",
+      "kind": "leaf",
+      "title": "Market Analysis Duplicate",
+      "content": "Second.",
+      "evidence": ["fixture:second"],
+      "children": []
+    }
+  ]
+}

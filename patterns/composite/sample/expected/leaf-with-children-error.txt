@@ -1,0 +1,1 @@
+error: leaf node 'market-analysis' must declare children as []
