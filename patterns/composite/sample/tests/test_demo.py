@@ -166,6 +166,50 @@ class CompositeDemoTest(unittest.TestCase):
         ):
             self.demo.build_memo(workflow, leaf_executors=executors)
 
+    def test_injected_leaf_result_rejects_out_of_order_contract_keys(self):
+        workflow = self.load_json("fixtures/valid/investment-memo.json")
+
+        def out_of_order_executor(request):
+            return {
+                "title": request["title"],
+                "id": request["id"],
+                "content": "invalid order",
+                "evidence": [],
+                "children": [],
+            }
+
+        executors = dict(self.demo.DEFAULT_LEAF_EXECUTORS)
+        executors[LEAF_SKILL_PATHS[0]] = out_of_order_executor
+        with self.assertRaisesRegex(
+            self.demo.ValidationError,
+            "^section 'market-analysis' field order must be: id, title, "
+            "content, evidence, children$",
+        ):
+            self.demo.build_memo(workflow, leaf_executors=executors)
+
+    def test_self_referential_leaf_children_fail_without_recursive_descent(self):
+        workflow = self.load_json("fixtures/valid/investment-memo.json")
+
+        def self_referential_executor(request):
+            section = {
+                "id": request["id"],
+                "title": request["title"],
+                "content": "invalid child",
+                "evidence": [],
+                "children": [],
+            }
+            section["children"].append(section)
+            return section
+
+        executors = dict(self.demo.DEFAULT_LEAF_EXECUTORS)
+        executors[LEAF_SKILL_PATHS[0]] = self_referential_executor
+        with self.assertRaisesRegex(
+            self.demo.ValidationError,
+            r"^leaf executor for 'child-skills/market-analysis/SKILL.md' "
+            r"must return children as \[\]$",
+        ):
+            self.demo.build_memo(workflow, leaf_executors=executors)
+
     def test_root_assembles_all_four_leaves_in_declared_order(self):
         workflow = self.load_json("fixtures/valid/investment-memo.json")
         declared = workflow["nodes"][0]["children"]

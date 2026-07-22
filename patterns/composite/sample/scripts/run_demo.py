@@ -38,6 +38,10 @@ def validate_exact_fields(value, expected_fields, label):
     missing = [field for field in expected_fields if field not in actual]
     unexpected = sorted(actual - expected)
     if not missing and not unexpected:
+        if tuple(value) != tuple(expected_fields):
+            raise ValidationError(
+                f"{label} field order must be: {', '.join(expected_fields)}"
+            )
         return
 
     details = []
@@ -289,7 +293,7 @@ def validate_tree(workflow, registry):
         )
 
 
-def validate_section_record(section):
+def validate_section_record(section, recursive=True):
     if not isinstance(section, dict):
         raise ValidationError("section must be a JSON object")
     section_id = section.get("id", "<unknown>")
@@ -313,8 +317,9 @@ def validate_section_record(section):
         raise ValidationError(
             f"section '{section_id}'.children must be a list of section records"
         )
-    for child in section["children"]:
-        validate_section_record(child)
+    if recursive:
+        for child in section["children"]:
+            validate_section_record(child)
     return section
 
 
@@ -329,7 +334,7 @@ def execute_leaf(node, leaf_executors):
         "skill": skill,
         "input": deepcopy(node["input"]),
     }
-    section = validate_section_record(executor(request))
+    section = validate_section_record(executor(request), recursive=False)
     if section["id"] != node["id"]:
         raise ValidationError(
             f"leaf executor for '{skill}' returned id '{section['id']}', "
