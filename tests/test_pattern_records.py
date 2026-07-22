@@ -1178,6 +1178,11 @@ class PatternRecordContractTest(unittest.TestCase):
         )
         self.assertEqual(contract["normalization_policy"], "casefold-then-nfc")
         self.assertEqual(contract["input_limit_bytes"], 65536)
+        self.assertEqual(contract["serialized_input_limit_bytes"], 394240)
+        self.assertGreaterEqual(
+            contract["serialized_input_limit_bytes"],
+            contract["input_limit_bytes"] * 6 + len(b'{"text":""}'),
+        )
         self.assertEqual(contract["pipe_validation"], "before-and-after-every-filter")
         self.assertEqual(contract["mutation_policy"], "deep-copy-at-every-pipe-transfer")
         self.assertEqual(contract["failure_policy"], "stop-with-stage-attribution")

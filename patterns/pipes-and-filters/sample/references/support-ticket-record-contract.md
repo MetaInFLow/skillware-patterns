@@ -22,6 +22,12 @@ Source copies it into this versioned record:
 No other field is permitted. Category is one of `unclassified`, `access`,
 `billing`, or `general`; priority is one of `low`, `normal`, or `high`.
 
+The CLI separately limits the serialized JSON file to 394,240 bytes before
+decoding. This safety cap allows six serialized `\uXXXX` bytes for every byte
+of maximum decoded text plus 1,024 bytes for the JSON envelope. After parsing,
+the CLI calls the same request validator as the direct API, so both surfaces
+enforce the identical 65,536-byte decoded-text limit.
+
 ## Filter
 
 Every Filter must accept and return the same `support-ticket.v1` record. The

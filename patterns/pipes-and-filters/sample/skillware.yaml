@@ -44,6 +44,7 @@ duplicate_filters: reject
 missing_filters: reject
 unknown_filters: reject
 input_limit_bytes: 65536
+serialized_input_limit_bytes: 394240
 maximum_json_depth: 32
 oracle_scope: local-sequential-in-process
 outside_oracle:

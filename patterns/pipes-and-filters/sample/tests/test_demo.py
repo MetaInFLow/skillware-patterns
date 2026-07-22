@@ -58,24 +58,90 @@ class PipesAndFiltersDemoTest(unittest.TestCase):
 
     def test_public_api_enforces_utf8_text_byte_limit(self):
         demo = self.require_demo()
-        at_limit = "x" * demo.MAX_INPUT_BYTES
+        at_limit = "x" * demo.MAX_TEXT_BYTES
 
         result = demo.run_pipeline({"text": at_limit})
 
         self.assertEqual(
             len(result["record"]["text"].encode("utf-8")),
-            demo.MAX_INPUT_BYTES,
+            demo.MAX_TEXT_BYTES,
         )
         with self.assertRaisesRegex(
             demo.PipelineInputError,
             "^request.text exceeds 65536 UTF-8 bytes$",
         ):
-            demo.validate_request({"text": "é" * (demo.MAX_INPUT_BYTES // 2 + 1)})
+            demo.validate_request({"text": "é" * (demo.MAX_TEXT_BYTES // 2 + 1)})
         with self.assertRaisesRegex(
             demo.PipelineInputError,
             "^request.text exceeds 65536 UTF-8 bytes$",
         ):
-            demo.run_pipeline({"text": "x" * (demo.MAX_INPUT_BYTES + 1)})
+            demo.run_pipeline({"text": "x" * (demo.MAX_TEXT_BYTES + 1)})
+
+    def test_cli_accepts_text_limit_and_rejects_one_byte_more(self):
+        demo = self.require_demo()
+        with TemporaryDirectory() as temp_dir:
+            accepted = Path(temp_dir) / "accepted.json"
+            rejected = Path(temp_dir) / "rejected.json"
+            accepted.write_text(
+                json.dumps({"text": "x" * demo.MAX_TEXT_BYTES}),
+                encoding="utf-8",
+            )
+            rejected.write_text(
+                json.dumps({"text": "x" * (demo.MAX_TEXT_BYTES + 1)}),
+                encoding="utf-8",
+            )
+
+            accepted_run = subprocess.run(
+                [sys.executable, str(DEMO_PATH), str(accepted)],
+                cwd=SAMPLE,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            rejected_run = subprocess.run(
+                [sys.executable, str(DEMO_PATH), str(rejected)],
+                cwd=SAMPLE,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertEqual(accepted_run.returncode, 0, accepted_run.stderr)
+        self.assertEqual(
+            len(json.loads(accepted_run.stdout)["record"]["text"].encode("utf-8")),
+            demo.MAX_TEXT_BYTES,
+        )
+        self.assertEqual(rejected_run.returncode, 2)
+        self.assertEqual(rejected_run.stdout, "")
+        self.assertEqual(
+            rejected_run.stderr,
+            "ERROR: request.text exceeds 65536 UTF-8 bytes\n",
+        )
+
+    def test_cli_rejects_serialized_input_over_safety_cap(self):
+        demo = self.require_demo()
+        self.assertGreaterEqual(
+            demo.MAX_SERIALIZED_INPUT_BYTES,
+            demo.MAX_TEXT_BYTES * 6 + len(b'{"text":""}'),
+        )
+        with TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "oversized.json"
+            path.write_bytes(b" " * (demo.MAX_SERIALIZED_INPUT_BYTES + 1))
+
+            completed = subprocess.run(
+                [sys.executable, str(DEMO_PATH), str(path)],
+                cwd=SAMPLE,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertEqual(completed.returncode, 2)
+        self.assertEqual(completed.stdout, "")
+        self.assertEqual(
+            completed.stderr,
+            f"ERROR: ticket input exceeds {demo.MAX_SERIALIZED_INPUT_BYTES} serialized bytes\n",
+        )
 
     def test_normalize_restores_nfc_after_casefold(self):
         demo = self.require_demo()
@@ -459,7 +525,10 @@ class PipesAndFiltersDemoTest(unittest.TestCase):
         for fixture, expected in cases:
             with self.subTest(fixture=fixture):
                 fixture_path = SAMPLE / "fixtures/invalid" / fixture
-                self.assertLess(fixture_path.stat().st_size, self.demo.MAX_INPUT_BYTES)
+                self.assertLess(
+                    fixture_path.stat().st_size,
+                    self.demo.MAX_SERIALIZED_INPUT_BYTES,
+                )
                 completed = subprocess.run(
                     [sys.executable, str(DEMO_PATH), str(fixture_path)],
                     cwd=SAMPLE,

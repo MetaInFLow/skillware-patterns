@@ -26,7 +26,9 @@ execution context, not pattern participants.
 ## Agent mode
 
 1. Admit exactly one non-blank Unicode `text` value of at most 65,536 UTF-8
-   bytes and create a fresh `support-ticket.v1` record.
+   bytes and create a fresh `support-ticket.v1` record. For CLI files, first
+   enforce the separate 394,240-byte serialized JSON safety cap; after parsing,
+   enforce the same decoded-text cap used by the direct API.
 2. Require exactly one independently addressable Filter for each of normalize,
    redact, classify, prioritize, and draft. Reject duplicate, missing, unknown,
    or invalid Filters before running any stage. Freeze ordinary descriptor

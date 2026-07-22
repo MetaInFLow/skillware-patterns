@@ -17,7 +17,8 @@ RESULT_FIELDS = ("record", "trace")
 RECORD_SCHEMA = "support-ticket.v1"
 CATEGORIES = ("unclassified", "access", "billing", "general")
 PRIORITIES = ("low", "normal", "high")
-MAX_INPUT_BYTES = 65_536
+MAX_TEXT_BYTES = 65_536
+MAX_SERIALIZED_INPUT_BYTES = MAX_TEXT_BYTES * 6 + 1_024
 MAX_JSON_DEPTH = 32
 EMAIL_PATTERN = re.compile(
     r"(?<![\w.+-])[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}(?![\w.-])",
@@ -147,9 +148,9 @@ def validate_request(request):
     _require_valid_unicode(text, "request.text", PipelineInputError)
     if not text.strip():
         raise PipelineInputError("request.text must not be blank")
-    if len(text.encode("utf-8")) > MAX_INPUT_BYTES:
+    if len(text.encode("utf-8")) > MAX_TEXT_BYTES:
         raise PipelineInputError(
-            f"request.text exceeds {MAX_INPUT_BYTES} UTF-8 bytes"
+            f"request.text exceeds {MAX_TEXT_BYTES} UTF-8 bytes"
         )
     return {"text": text}
 
@@ -413,8 +414,11 @@ def load_request(path):
         data = path.read_bytes()
     except OSError as exc:
         raise PipelineInputError(f"unable to read ticket input: {exc}") from exc
-    if len(data) > MAX_INPUT_BYTES:
-        raise PipelineInputError(f"ticket input exceeds {MAX_INPUT_BYTES} bytes")
+    if len(data) > MAX_SERIALIZED_INPUT_BYTES:
+        raise PipelineInputError(
+            "ticket input exceeds "
+            f"{MAX_SERIALIZED_INPUT_BYTES} serialized bytes"
+        )
     try:
         text = data.decode("utf-8", errors="strict")
     except UnicodeDecodeError as exc:
