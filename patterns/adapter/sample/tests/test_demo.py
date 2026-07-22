@@ -3,11 +3,10 @@ from copy import deepcopy
 import importlib.util
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 import unittest
-
-import yaml
 
 
 SAMPLE = Path(__file__).resolve().parents[1]
@@ -360,23 +359,23 @@ class AdapterDemoTest(unittest.TestCase):
                 )
 
     def test_participant_and_evidence_paths_resolve_locally(self):
-        participant_map = yaml.safe_load(
-            (RECORD / "participant-map.yaml").read_text(encoding="utf-8")
+        participant_map = (RECORD / "participant-map.yaml").read_text(
+            encoding="utf-8"
         )
 
-        self.assertEqual(
-            set(participant_map["participants"]),
-            {"Client", "Target", "Adaptee", "Adapter"},
+        for participant in ("Client", "Target", "Adaptee", "Adapter"):
+            self.assertIn(f"  {participant}:\n", participant_map)
+        self.assertIn(
+            "path: sample/references/tracker-contracts.md", participant_map
         )
-        self.assertEqual(
-            participant_map["participants"]["Target"]["path"],
-            "sample/references/tracker-contracts.md",
+        declared_paths = re.findall(
+            r"^\s+(?:path|evidence_path): ([^\s]+)$",
+            participant_map,
+            flags=re.MULTILINE,
         )
-        for implementation in participant_map["participants"]["Adapter"][
-            "implementations"
-        ]:
-            self.assertTrue((RECORD / implementation["path"]).is_file())
-        self.assertTrue((RECORD / participant_map["evidence_path"]).is_file())
+        self.assertTrue(declared_paths)
+        for declared_path in declared_paths:
+            self.assertTrue((RECORD / declared_path).is_file(), declared_path)
 
     def test_tracker_contract_cites_official_vendor_documentation(self):
         reference = self.load_text("references/tracker-contracts.md")

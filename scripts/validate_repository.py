@@ -1,5 +1,7 @@
 import ast
+import os
 from pathlib import Path
+import re
 import sys
 
 import yaml
@@ -12,6 +14,8 @@ CATALOGS = (
     ("catalog/pattern-index.yaml", 12, "detailed"),
 )
 LOAD_FAILED = object()
+SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+MAX_YAML_DEPTH = 64
 
 INDEX_FIELDS = {
     "id",
@@ -96,8 +100,13 @@ ENGLISH_DEFINITION_HEADINGS = (
     "Collaboration",
     "Consequences",
     "Skillware Mapping",
+    "Applicability",
+    "Non-Applicability",
+    "Positive Evidence",
+    "Counter-Evidence",
     "False Positives",
     "Open-Source Correspondence",
+    "Verification",
     "Limitations",
 )
 CHINESE_DEFINITION_HEADINGS = (
@@ -107,8 +116,13 @@ CHINESE_DEFINITION_HEADINGS = (
     ("协作（Collaboration）",),
     ("后果（Consequences）", "结果（Consequences）"),
     ("Skillware 映射（Skillware Mapping）",),
+    ("适用性（Applicability）",),
+    ("不适用性（Non-Applicability）",),
+    ("正向证据（Positive Evidence）", "正面证据（Positive Evidence）"),
+    ("反向证据（Counter-Evidence）", "反证与边界（Counter-Evidence）"),
     ("误判（False Positives）", "假阳性（False Positives）"),
     ("开源对应（Open-Source Correspondence）",),
+    ("验证（Verification）",),
     ("局限（Limitations）",),
 )
 FINAL_ONTOLOGY = " -> ".join(
@@ -123,6 +137,16 @@ FINAL_ONTOLOGY = " -> ".join(
     )
 )
 OBSOLETE_ONTOLOGY_TERM = "Agent Execution Core"
+FORBIDDEN_DEMO_MODULES = {
+    "ctypes",
+    "http",
+    "importlib",
+    "multiprocessing",
+    "socket",
+    "subprocess",
+    "urllib",
+}
+FORBIDDEN_DYNAMIC_CALLS = {"__import__", "eval", "exec"}
 
 
 def load(path: str):
@@ -196,6 +220,10 @@ def _validate_rows(
         if not isinstance(pattern_id, str) or not pattern_id.strip():
             errors.append(f"{path}: row {row_number} id must be a non-empty string")
             continue
+        if SLUG_PATTERN.fullmatch(pattern_id) is None:
+            errors.append(
+                f"{path}: row {row_number} id '{pattern_id}' must be a lowercase slug"
+            )
 
         first_row = first_row_by_id.get(pattern_id)
         if first_row is not None:
@@ -318,19 +346,61 @@ def _validate_catalog_contract(screen: list[dict], index: list[dict]) -> list[st
     return errors
 
 
-def _participant_paths(value, key=""):
-    if isinstance(value, dict):
-        for child_key, child_value in value.items():
-            yield from _participant_paths(child_value, child_key)
-    elif isinstance(value, list):
-        if key == "paths" or key.endswith("_paths"):
-            for child in value:
-                yield child
-        else:
-            for child in value:
-                yield from _participant_paths(child, key)
-    elif key == "path" or key.endswith("_path"):
-        yield value
+def _participant_paths(value, display: str, errors: list[str]) -> list[str]:
+    paths = []
+    active = set()
+    reported = set()
+
+    def report(message: str) -> None:
+        if message not in reported:
+            errors.append(f"{display}: {message}")
+            reported.add(message)
+
+    def walk(node, key: str | None, depth: int) -> None:
+        if depth > MAX_YAML_DEPTH:
+            report(f"YAML nesting exceeds {MAX_YAML_DEPTH}")
+            return
+
+        if key is not None and (key == "path" or key.endswith("_path")):
+            if isinstance(node, str):
+                paths.append(node)
+            else:
+                report(f"{key} must be a string")
+            return
+
+        if key is not None and (key == "paths" or key.endswith("_paths")):
+            if not isinstance(node, list):
+                report(f"{key} must be a list of strings")
+                return
+            for child in node:
+                if isinstance(child, str):
+                    paths.append(child)
+                else:
+                    report(f"{key} entries must be strings")
+            return
+
+        if isinstance(node, (dict, list)):
+            identity = id(node)
+            if identity in active:
+                report("YAML alias cycle detected")
+                return
+            active.add(identity)
+            try:
+                if isinstance(node, dict):
+                    for child_key, child_value in node.items():
+                        if not isinstance(child_key, str):
+                            report("mapping keys must be strings")
+                            walk(child_value, None, depth + 1)
+                            continue
+                        walk(child_value, child_key, depth + 1)
+                else:
+                    for child in node:
+                        walk(child, key, depth + 1)
+            finally:
+                active.remove(identity)
+
+    walk(value, None, 0)
+    return paths
 
 
 def _validate_participant_map(
@@ -344,7 +414,7 @@ def _validate_participant_map(
         errors.append(f"{display}: expected a mapping")
         return
 
-    paths = list(_participant_paths(participant_map))
+    paths = _participant_paths(participant_map, display, errors)
     if not paths:
         errors.append(f"{display}: no participant artifact paths declared")
         return
@@ -385,28 +455,81 @@ def _validate_definition_headings(
     english = _read_text_file(record / "definition.md", errors)
     chinese = _read_text_file(record / "definition.zh-CN.md", errors)
     if english is not None:
-        headings = {
-            line.removeprefix("## ")
-            for line in english.splitlines()
-            if line.startswith("## ")
-        }
+        headings = _level_two_headings(english)
         for heading in ENGLISH_DEFINITION_HEADINGS:
             if heading not in headings:
                 errors.append(
                     f"{pattern_id}: definition.md missing heading {heading}"
                 )
     if chinese is not None:
-        headings = {
-            line.removeprefix("## ")
-            for line in chinese.splitlines()
-            if line.startswith("## ")
-        }
+        headings = _level_two_headings(chinese)
         for alternatives in CHINESE_DEFINITION_HEADINGS:
             if not headings.intersection(alternatives):
                 errors.append(
                     f"{pattern_id}: definition.zh-CN.md missing heading "
                     f"{alternatives[0]}"
                 )
+
+
+def _level_two_headings(markdown: str) -> set[str]:
+    headings = set()
+    for line in markdown.splitlines():
+        match = re.fullmatch(r"\s*##\s+(.+?)(?:\s+#+)?\s*", line)
+        if match:
+            headings.add(match.group(1))
+    return headings
+
+
+def _visible_markdown(markdown: str) -> str:
+    without_comments = re.sub(r"<!--.*?-->", "", markdown, flags=re.DOTALL)
+    visible_lines = []
+    fence = None
+    for line in without_comments.splitlines():
+        marker = re.match(r"^\s*(`{3,}|~{3,})", line)
+        if marker:
+            token = marker.group(1)[0]
+            if fence is None:
+                fence = token
+            elif fence == token:
+                fence = None
+            continue
+        if fence is None:
+            visible_lines.append(line)
+    return "\n".join(visible_lines)
+
+
+def _ontology_section(markdown: str) -> str | None:
+    visible = _visible_markdown(markdown)
+    lines = visible.splitlines()
+    for index, line in enumerate(lines):
+        match = re.fullmatch(r"\s*##\s+(.+?)(?:\s+#+)?\s*", line)
+        if not match:
+            continue
+        heading = match.group(1)
+        if not (re.search(r"\bOntology\b", heading, re.IGNORECASE) or "本体" in heading):
+            continue
+        body = []
+        for child in lines[index + 1 :]:
+            if re.match(r"\s*#{1,2}\s+", child):
+                break
+            body.append(child)
+        return "\n".join(body)
+    return None
+
+
+def _call_name(node: ast.Call) -> str | None:
+    if isinstance(node.func, ast.Name):
+        return node.func.id
+    if isinstance(node.func, ast.Attribute):
+        parts = [node.func.attr]
+        owner = node.func.value
+        while isinstance(owner, ast.Attribute):
+            parts.append(owner.attr)
+            owner = owner.value
+        if isinstance(owner, ast.Name):
+            parts.append(owner.id)
+            return ".".join(reversed(parts))
+    return None
 
 
 def _validate_demo_imports(pattern_id: str, demo_path: Path, errors: list[str]) -> None:
@@ -419,6 +542,8 @@ def _validate_demo_imports(pattern_id: str, demo_path: Path, errors: list[str]) 
         errors.append(f"{pattern_id}: sample demo has invalid Python: {exc.msg}")
         return
     imported_modules = set()
+    forbidden_calls = set()
+    hard_coded_paths = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             imported_modules.update(
@@ -429,18 +554,91 @@ def _validate_demo_imports(pattern_id: str, demo_path: Path, errors: list[str]) 
                 imported_modules.add("relative import")
             elif node.module:
                 imported_modules.add(node.module.partition(".")[0])
+        elif isinstance(node, ast.Call):
+            call_name = _call_name(node)
+            if (
+                call_name is not None
+                and call_name.rsplit(".", 1)[-1] in FORBIDDEN_DYNAMIC_CALLS
+            ) or (
+                call_name is not None and call_name.startswith("importlib.")
+            ):
+                forbidden_calls.add(call_name)
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+            value = node.value
+            if (
+                "../" in value
+                or "..\\" in value
+                or re.search(r"(?:^|[\\/])patterns[\\/]", value)
+                or str(ROOT) in value
+            ):
+                hard_coded_paths.append(value)
     external = sorted(imported_modules - sys.stdlib_module_names)
     if external:
         errors.append(
             f"{pattern_id}: sample demo imports non-stdlib modules: "
             + ", ".join(external)
         )
+    forbidden_modules = sorted(imported_modules.intersection(FORBIDDEN_DEMO_MODULES))
+    if forbidden_modules:
+        errors.append(
+            f"{pattern_id}: sample demo imports forbidden modules: "
+            + ", ".join(forbidden_modules)
+        )
+    if forbidden_calls:
+        errors.append(
+            f"{pattern_id}: sample demo uses forbidden dynamic calls: "
+            + ", ".join(sorted(forbidden_calls))
+        )
+    if hard_coded_paths:
+        errors.append(
+            f"{pattern_id}: sample demo contains a hard-coded repository or "
+            "sibling-pattern path"
+        )
+
+
+def _validate_record_tree(pattern_id: str, record: Path, errors: list[str]) -> bool:
+    patterns_root = (ROOT / "patterns").resolve()
+    if record.is_symlink():
+        errors.append(
+            f"{pattern_id}: pattern record directory must not be a symbolic link"
+        )
+        return False
+    try:
+        record_root = record.resolve().relative_to(patterns_root)
+    except ValueError:
+        errors.append(f"{pattern_id}: resolved pattern record leaves patterns root")
+        return False
+    if record_root != Path(pattern_id):
+        errors.append(f"{pattern_id}: resolved pattern record path does not match id")
+        return False
+
+    valid = True
+    for directory, directory_names, filenames in os.walk(record, followlinks=False):
+        directory_path = Path(directory)
+        for name in directory_names + filenames:
+            path = directory_path / name
+            relative = path.relative_to(record).as_posix()
+            if path.is_symlink():
+                errors.append(
+                    f"{pattern_id}: symbolic link is not allowed: {relative}"
+                )
+                valid = False
+            try:
+                path.resolve().relative_to(record.resolve())
+            except ValueError:
+                errors.append(
+                    f"{pattern_id}: resolved path leaves its pattern record: {relative}"
+                )
+                valid = False
+    return valid
 
 
 def _validate_record(row: dict, errors: list[str]) -> None:
     pattern_id = row["id"]
     record = ROOT / "patterns" / pattern_id
     if not record.is_dir():
+        return
+    if not _validate_record_tree(pattern_id, record, errors):
         return
 
     for relative_path in REQUIRED_RECORD_FILES:
@@ -494,8 +692,18 @@ def _validate_record(row: dict, errors: list[str]) -> None:
 
     skill_text = _read_text_file(record / "sample/SKILL.md", errors)
     if skill_text is not None:
-        if FINAL_ONTOLOGY not in skill_text:
-            errors.append(f"{pattern_id}: sample/SKILL.md missing final ontology")
+        ontology = _ontology_section(skill_text)
+        if ontology is None:
+            errors.append(
+                f"{pattern_id}: sample/SKILL.md missing visible Ontology section"
+            )
+        elif not any(
+            line.strip() == FINAL_ONTOLOGY for line in ontology.splitlines()
+        ):
+            errors.append(
+                f"{pattern_id}: sample/SKILL.md ontology section missing visible "
+                "final ontology"
+            )
         if OBSOLETE_ONTOLOGY_TERM in skill_text:
             errors.append(
                 f"{pattern_id}: sample/SKILL.md contains obsolete term "
@@ -530,6 +738,12 @@ def _validate_records(index: list[dict]) -> list[str]:
     expected_ids = {row["id"] for row in index}
     if not patterns_root.is_dir():
         return ["missing patterns directory"]
+    if patterns_root.is_symlink():
+        return ["patterns directory must not be a symbolic link"]
+    try:
+        patterns_root.resolve().relative_to(ROOT.resolve())
+    except ValueError:
+        return ["resolved patterns directory leaves repository root"]
 
     actual_ids = {path.name for path in patterns_root.iterdir() if path.is_dir()}
     for pattern_id in sorted(expected_ids - actual_ids):

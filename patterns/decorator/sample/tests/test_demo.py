@@ -7,7 +7,6 @@ import sys
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
-import yaml
 
 
 SAMPLE = Path(__file__).resolve().parents[1]
@@ -297,16 +296,14 @@ class DecoratorDemoTest(unittest.TestCase):
 
     def test_manifest_default_composition_uses_executable_canonical_ids(self):
         demo = self.require_demo()
-        manifest = yaml.safe_load(
-            (SAMPLE / "skillware.yaml").read_text(encoding="utf-8")
-        )
-        decorator_ids = manifest["default_composition"]["inside_to_outside"]
+        manifest = (SAMPLE / "skillware.yaml").read_text(encoding="utf-8")
+        decorator_ids = ("privacy-check", "citation-check")
 
-        self.assertEqual(manifest["component_contract"], demo.COMPONENT_CONTRACT)
-        self.assertEqual(
-            tuple(item["id"] for item in manifest["decorators"]),
-            demo.DECORATOR_IDS,
-        )
+        self.assertIn(f"component_contract: {demo.COMPONENT_CONTRACT}", manifest)
+        for decorator_id in demo.DECORATOR_IDS:
+            self.assertIn(f"  - id: {decorator_id}", manifest)
+        self.assertIn("inside_to_outside: [privacy-check, citation-check]", manifest)
+        self.assertIn("finding_order: [privacy, citation]", manifest)
 
         result = demo.compose_review(decorator_ids)(
             {"text": "Email a@example.com cites [missing]."}
@@ -314,7 +311,7 @@ class DecoratorDemoTest(unittest.TestCase):
 
         self.assertEqual(
             [item["type"] for item in result["findings"]],
-            manifest["default_composition"]["finding_order"],
+            ["privacy", "citation"],
         )
         self.assertTrue(
             set(decorator_ids).issubset(demo.DECORATORS),

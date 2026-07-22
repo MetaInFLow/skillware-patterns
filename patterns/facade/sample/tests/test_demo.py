@@ -2,11 +2,10 @@ import ast
 import importlib.util
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 import unittest
-
-import yaml
 
 
 SAMPLE = Path(__file__).resolve().parents[1]
@@ -148,19 +147,18 @@ class FacadeDemoTest(unittest.TestCase):
         self.assertIn("service and signal are required", completed.stderr)
 
     def test_participant_map_resolves_root_and_child_skills(self):
-        participant_map = yaml.safe_load(
-            (RECORD / "participant-map.yaml").read_text(encoding="utf-8")
+        participant_map = (RECORD / "participant-map.yaml").read_text(
+            encoding="utf-8"
         )
 
-        self.assertEqual(
-            participant_map["participants"]["Client"]["role"],
-            "Operator or task-level agent execution",
+        self.assertIn("role: Operator or task-level agent execution", participant_map)
+        self.assertIn("  Facade:\n", participant_map)
+        self.assertIn("path: sample/SKILL.md", participant_map)
+        subsystem_paths = re.findall(
+            r"^\s+- (sample/child-skills/[^\s]+/SKILL\.md)$",
+            participant_map,
+            flags=re.MULTILINE,
         )
-        self.assertEqual(
-            participant_map["participants"]["Facade"]["path"],
-            "sample/SKILL.md",
-        )
-        subsystem_paths = participant_map["participants"]["Subsystem"]["paths"]
         self.assertEqual(len(subsystem_paths), 3)
         for path in subsystem_paths:
             self.assertTrue((RECORD / path).is_file(), path)

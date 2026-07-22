@@ -2,6 +2,7 @@ from copy import deepcopy
 import importlib.util
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
@@ -638,30 +639,20 @@ class StrategyDemoTest(unittest.TestCase):
         )
 
     def test_participant_and_evidence_paths_resolve_locally(self):
-        try:
-            import yaml
-        except ImportError:
-            self.skipTest("PyYAML is only required for record verification")
-
-        participant_map = yaml.safe_load(
-            (RECORD / "participant-map.yaml").read_text(encoding="utf-8")
+        participant_map = (RECORD / "participant-map.yaml").read_text(
+            encoding="utf-8"
         )
-        self.assertEqual(
-            set(participant_map["participants"]),
-            {"Context", "Strategy", "ConcreteStrategy"},
+        for participant in ("Context", "Strategy", "ConcreteStrategy"):
+            self.assertIn(f"  {participant}:\n", participant_map)
+        self.assertIn("      - id: fast-scan\n", participant_map)
+        self.assertIn("      - id: deep-review\n", participant_map)
+        self.assertIn("  Agent Host:\n", participant_map)
+        self.assertIn("  Agent Runtime:\n", participant_map)
+        evidence = re.search(
+            r"^evidence_path: ([^\s]+)$", participant_map, flags=re.MULTILINE
         )
-        concrete_ids = {
-            item["id"]
-            for item in participant_map["participants"]["ConcreteStrategy"][
-                "implementations"
-            ]
-        }
-        self.assertEqual(concrete_ids, {"fast-scan", "deep-review"})
-        self.assertEqual(
-            set(participant_map["execution_context"]),
-            {"Agent Host", "Agent Runtime"},
-        )
-        self.assertTrue((RECORD / participant_map["evidence_path"]).is_file())
+        self.assertIsNotNone(evidence)
+        self.assertTrue((RECORD / evidence.group(1)).is_file())
 
     def test_demo_uses_only_the_standard_library_and_no_network(self):
         self.require_demo()

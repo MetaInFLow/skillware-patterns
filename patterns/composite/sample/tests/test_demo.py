@@ -9,8 +9,6 @@ import sys
 import unittest
 from urllib.parse import urlparse
 
-import yaml
-
 
 SAMPLE = Path(__file__).resolve().parents[1]
 RECORD = SAMPLE.parent
@@ -555,35 +553,30 @@ class CompositeDemoTest(unittest.TestCase):
                 self.assert_cli_error(fixture, expectation)
 
     def test_participant_and_evidence_paths_resolve_locally(self):
-        participant_map = yaml.safe_load(
-            (RECORD / "participant-map.yaml").read_text(encoding="utf-8")
+        participant_map = (RECORD / "participant-map.yaml").read_text(
+            encoding="utf-8"
         )
 
-        self.assertEqual(
-            set(participant_map["participants"]),
-            {"Client", "Component", "Leaf", "Composite"},
+        for participant in ("Client", "Component", "Leaf", "Composite"):
+            self.assertIn(f"  {participant}:\n", participant_map)
+        self.assertIn("path: sample/references/section-contract.md", participant_map)
+        leaf_paths = [
+            "sample/child-skills/market-analysis/SKILL.md",
+            "sample/child-skills/financial-analysis/SKILL.md",
+            "sample/child-skills/competition-analysis/SKILL.md",
+            "sample/child-skills/risk-analysis/SKILL.md",
+        ]
+        for leaf_path in leaf_paths:
+            self.assertIn(f"- {leaf_path}", participant_map)
+            self.assertTrue((RECORD / leaf_path).is_file())
+        self.assertIn("  Agent Host:\n", participant_map)
+        self.assertIn("  Agent Runtime:\n", participant_map)
+        self.assertEqual(participant_map.count("evidence_status: not observable"), 2)
+        evidence = re.search(
+            r"^evidence_path: ([^\s]+)$", participant_map, flags=re.MULTILINE
         )
-        self.assertEqual(
-            participant_map["participants"]["Component"]["path"],
-            "sample/references/section-contract.md",
-        )
-        self.assertEqual(
-            participant_map["participants"]["Leaf"]["paths"],
-            [
-                "sample/child-skills/market-analysis/SKILL.md",
-                "sample/child-skills/financial-analysis/SKILL.md",
-                "sample/child-skills/competition-analysis/SKILL.md",
-                "sample/child-skills/risk-analysis/SKILL.md",
-            ],
-        )
-        self.assertEqual(
-            set(participant_map["execution_context"]),
-            {"Agent Host", "Agent Runtime"},
-        )
-        for role in participant_map["execution_context"].values():
-            self.assertEqual(role["evidence_status"], "not observable")
-            self.assertNotIn("path", role)
-        self.assertTrue((RECORD / participant_map["evidence_path"]).is_file())
+        self.assertIsNotNone(evidence)
+        self.assertTrue((RECORD / evidence.group(1)).is_file())
 
     def test_openmontage_record_preserves_candidate_claim_boundary(self):
         evidence = (RECORD / "evidence/openmontage-frozen-case.md").read_text(

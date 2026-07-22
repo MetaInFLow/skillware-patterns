@@ -33,8 +33,13 @@ ENGLISH_DEFINITION_HEADINGS = (
     "## Collaboration",
     "## Consequences",
     "## Skillware Mapping",
+    "## Applicability",
+    "## Non-Applicability",
+    "## Positive Evidence",
+    "## Counter-Evidence",
     "## False Positives",
     "## Open-Source Correspondence",
+    "## Verification",
     "## Limitations",
 )
 
@@ -45,8 +50,13 @@ CHINESE_DEFINITION_HEADINGS = (
     ("## 协作（Collaboration）",),
     ("## 后果（Consequences）", "## 结果（Consequences）"),
     ("## Skillware 映射（Skillware Mapping）",),
+    ("## 适用性（Applicability）",),
+    ("## 不适用性（Non-Applicability）",),
+    ("## 正向证据（Positive Evidence）", "## 正面证据（Positive Evidence）"),
+    ("## 反向证据（Counter-Evidence）", "## 反证与边界（Counter-Evidence）"),
     ("## 误判（False Positives）", "## 假阳性（False Positives）"),
     ("## 开源对应（Open-Source Correspondence）",),
+    ("## 验证（Verification）",),
     ("## 局限（Limitations）",),
 )
 

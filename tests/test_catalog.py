@@ -384,6 +384,43 @@ class ValidatorTest(unittest.TestCase):
             errors,
         )
 
+    def test_catalog_ids_must_be_safe_lowercase_slugs(self):
+        for unsafe_id in ("../facade", "/facade", "facade/./child", "Facade"):
+            with self.subTest(pattern_id=unsafe_id):
+                index = deepcopy(self.valid_index)
+                index[0]["id"] = unsafe_id
+                self.write_yaml("pattern-index.yaml", index)
+
+                self.assertIn(
+                    f"catalog/pattern-index.yaml: row 1 id '{unsafe_id}' must be "
+                    "a lowercase slug",
+                    validate_repository.validate(),
+                )
+
+    def test_record_directories_and_files_must_not_be_symlinks(self):
+        facade = self.root / "patterns/facade"
+        outside = self.root / "outside-facade"
+        shutil.move(facade, outside)
+        facade.symlink_to(outside, target_is_directory=True)
+
+        self.assertIn(
+            "facade: pattern record directory must not be a symbolic link",
+            validate_repository.validate(),
+        )
+
+        facade.unlink()
+        shutil.move(outside, facade)
+        skill = facade / "sample/SKILL.md"
+        skill.unlink()
+        skill.symlink_to(self.root / "patterns/adapter/sample/SKILL.md")
+
+        errors = validate_repository.validate()
+        self.assertIn("facade: symbolic link is not allowed: sample/SKILL.md", errors)
+        self.assertIn(
+            "facade: resolved path leaves its pattern record: sample/SKILL.md",
+            errors,
+        )
+
     def test_pattern_metadata_must_exactly_match_the_catalog(self):
         metadata = deepcopy(self.valid_index[0])
         metadata["scenario"] = "Different Scenario"
@@ -452,6 +489,49 @@ class ValidatorTest(unittest.TestCase):
             validate_repository.validate(),
         )
 
+    def test_participant_yaml_traversal_rejects_bad_keys_cycles_and_shapes(self):
+        path = self.root / "patterns/facade/participant-map.yaml"
+        path.write_text(
+            "participants:\n"
+            "  7:\n"
+            "    path: sample/SKILL.md\n"
+            "  Cycle: &cycle\n"
+            "    child: *cycle\n"
+            "  WrongShape:\n"
+            "    path: [sample/SKILL.md]\n",
+            encoding="utf-8",
+        )
+
+        errors = validate_repository.validate()
+
+        self.assertIn(
+            "patterns/facade/participant-map.yaml: mapping keys must be strings",
+            errors,
+        )
+        self.assertIn(
+            "patterns/facade/participant-map.yaml: YAML alias cycle detected",
+            errors,
+        )
+        self.assertIn(
+            "patterns/facade/participant-map.yaml: path must be a string",
+            errors,
+        )
+
+    def test_participant_yaml_traversal_has_a_depth_limit(self):
+        nested = {"path": "sample/SKILL.md"}
+        for depth in range(80):
+            nested = {f"level-{depth}": nested}
+        path = self.root / "patterns/facade/participant-map.yaml"
+        path.write_text(
+            yaml.safe_dump(nested, allow_unicode=True, sort_keys=False),
+            encoding="utf-8",
+        )
+
+        self.assertIn(
+            "patterns/facade/participant-map.yaml: YAML nesting exceeds 64",
+            validate_repository.validate(),
+        )
+
     def test_repository_relative_participant_path_may_target_its_own_record(self):
         path = self.root / "patterns/facade/participant-map.yaml"
         participant_map = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -499,6 +579,24 @@ class ValidatorTest(unittest.TestCase):
             validate_repository.validate(),
         )
 
+    def test_definition_headings_accept_optional_trailing_hashes(self):
+        english = self.root / "patterns/facade/definition.md"
+        english.write_text(
+            english.read_text(encoding="utf-8").replace(
+                "## Intent", "## Intent ###", 1
+            ),
+            encoding="utf-8",
+        )
+        chinese = self.root / "patterns/facade/definition.zh-CN.md"
+        chinese.write_text(
+            chinese.read_text(encoding="utf-8").replace(
+                "## 意图（Intent）", "## 意图（Intent） ##", 1
+            ),
+            encoding="utf-8",
+        )
+
+        self.assertEqual(validate_repository.validate(), [])
+
     def test_catalog_traditions_and_detailed_gof_set_are_cross_checked(self):
         index = deepcopy(self.valid_index)
         row = next(item for item in index if item["id"] == "pipes-and-filters")
@@ -530,12 +628,86 @@ class ValidatorTest(unittest.TestCase):
 
         errors = validate_repository.validate()
 
-        self.assertIn("specification: sample/SKILL.md missing final ontology", errors)
+        self.assertIn(
+            "specification: sample/SKILL.md ontology section missing visible "
+            "final ontology",
+            errors,
+        )
         self.assertIn(
             "specification: sample/SKILL.md contains obsolete term "
             "'Agent Execution Core'",
             errors,
         )
+
+    def test_ontology_chain_must_be_visible_inside_an_ontology_section(self):
+        chain = validate_repository.FINAL_ONTOLOGY
+        path = self.root / "patterns/facade/sample/SKILL.md"
+        original = path.read_text(encoding="utf-8")
+
+        path.write_text(
+            original.replace(chain, f"<!-- {chain} -->", 1), encoding="utf-8"
+        )
+        self.assertIn(
+            "facade: sample/SKILL.md ontology section missing visible final ontology",
+            validate_repository.validate(),
+        )
+
+        path.write_text(
+            original.replace(chain, f"```text\n{chain}\n```", 1),
+            encoding="utf-8",
+        )
+        self.assertIn(
+            "facade: sample/SKILL.md ontology section missing visible final ontology",
+            validate_repository.validate(),
+        )
+
+        path.write_text(
+            original.replace("## Ontology boundary", "## Notes", 1),
+            encoding="utf-8",
+        )
+        self.assertIn(
+            "facade: sample/SKILL.md missing visible Ontology section",
+            validate_repository.validate(),
+        )
+
+        path.write_text(
+            original.replace(chain, f"Do not use this outdated example: {chain}", 1),
+            encoding="utf-8",
+        )
+        self.assertIn(
+            "facade: sample/SKILL.md ontology section missing visible final ontology",
+            validate_repository.validate(),
+        )
+
+    def test_demo_ast_rejects_escape_hatches_and_shared_paths(self):
+        demo = self.root / "patterns/facade/sample/scripts/run_demo.py"
+        demo.write_text(
+            demo.read_text(encoding="utf-8")
+            + "\nimport subprocess, multiprocessing, ctypes, importlib\n"
+            + "__import__('socket')\n"
+            + "exec('value = 1')\n"
+            + "eval('1 + 1')\n"
+            + "SHARED = '../../patterns/adapter/sample/scripts/run_demo.py'\n",
+            encoding="utf-8",
+        )
+
+        errors = validate_repository.validate()
+
+        for token in (
+            "ctypes",
+            "importlib",
+            "multiprocessing",
+            "subprocess",
+            "__import__",
+            "exec",
+            "eval",
+            "hard-coded repository or sibling-pattern path",
+        ):
+            with self.subTest(token=token):
+                self.assertTrue(
+                    any(token in error for error in errors),
+                    f"missing AST rejection for {token}: {errors}",
+                )
 
     def test_missing_catalog_file_is_actionable(self):
         (self.root / "catalog/gof-23-screening.yaml").unlink()
