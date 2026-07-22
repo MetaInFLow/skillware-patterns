@@ -181,6 +181,39 @@ MAIN_TEXT_RELATIONS_ZH = {
     "Strategy": "一个请求/结果契约在可互换过程之间进行选择。",
 }
 
+SUPPLEMENT_RELATIONS_EN = {
+    "Decorator": "Optional review Skills wrap one shared component contract.",
+    "Template Method": (
+        "A root Skill owns invariant workflow order and bounded specialization "
+        "hooks."
+    ),
+    "Memento": (
+        "A caretaker captures and restores an originator's opaque configuration "
+        "state."
+    ),
+    "Mediator": (
+        "A coordinator centralizes interaction among deployment-readiness Skills."
+    ),
+    "Pipes and Filters": (
+        "Ordered Filters transform one versioned ticket record through explicit "
+        "Pipes."
+    ),
+    "Specification": (
+        "Named, composable rules evaluate one bounded expense candidate."
+    ),
+}
+
+SUPPLEMENT_RELATIONS_ZH = {
+    "Decorator": "可选审查 Skill 围绕同一个组件契约逐层包装。",
+    "Template Method": "根 Skill 固定工作流顺序，并开放有边界的特化钩子。",
+    "Memento": "Caretaker 捕获并恢复 Originator 的不透明配置状态。",
+    "Mediator": "协调器集中管理部署就绪 Skill 之间的交互。",
+    "Pipes and Filters": (
+        "有序 Filter 通过显式 Pipe 转换同一个带版本工单记录。"
+    ),
+    "Specification": "具名且可组合的规则评估一个有边界的费用候选对象。",
+}
+
 TABLE5_TRACEABILITY = {
     "Facade": (
         "Entry Skill exposes one stable access contract over specialist Skills",
@@ -279,6 +312,16 @@ def assert_exact_pattern_names(rows, expected_names: tuple[str, ...]) -> None:
         raise AssertionError(f"duplicate pattern rows: {names}")
     if names != expected_names:
         raise AssertionError(f"expected ordered rows {expected_names}, found {names}")
+
+
+def assert_exact_row_widths(rows, expected_width: int) -> None:
+    invalid = {
+        name: len(cells) for name, cells in rows if len(cells) != expected_width
+    }
+    if invalid:
+        raise AssertionError(
+            f"expected {expected_width} cells in every row, found {invalid}"
+        )
 
 
 def assert_exact_participant_relations(rows, expected_relations) -> None:
@@ -419,6 +462,7 @@ class MethodologyDocsTest(unittest.TestCase):
         rows = markdown_data_rows(readme_section(text, "Table 5 traceability"))
 
         assert_exact_pattern_names(rows, MAIN_TEXT_PATTERNS)
+        assert_exact_row_widths(rows, 8)
         self.assertEqual(
             {name: cells[1:] for name, cells in rows}, TABLE5_TRACEABILITY
         )
@@ -535,10 +579,12 @@ class ReadmeContractTest(unittest.TestCase):
         heading,
         expected_names,
         paper_heading,
+        paper_width,
         expected_relations=None,
     ):
         rows = markdown_data_rows(readme_section(text, heading))
         assert_exact_pattern_names(rows, expected_names)
+        assert_exact_row_widths(rows, 6)
         if expected_relations is not None:
             assert_exact_participant_relations(rows, expected_relations)
 
@@ -546,6 +592,7 @@ class ReadmeContractTest(unittest.TestCase):
             readme_section(self.paper_map, paper_heading)
         )
         assert_exact_pattern_names(paper_row_list, expected_names)
+        assert_exact_row_widths(paper_row_list, paper_width)
         paper_rows = dict(paper_row_list)
 
         for name, cells in rows:
@@ -584,18 +631,20 @@ class ReadmeContractTest(unittest.TestCase):
                 )
 
     def test_main_text_and_supplement_tables_match_catalog_and_paper_map(self):
-        for text, main_heading, supplement_heading, relations in (
+        for text, main_heading, supplement_heading, main_relations, supplement_relations in (
             (
                 self.english,
                 "Main-text mappings",
                 "Repository supplement",
                 MAIN_TEXT_RELATIONS_EN,
+                SUPPLEMENT_RELATIONS_EN,
             ),
             (
                 self.chinese,
                 "正文映射",
                 "仓库补充实现",
                 MAIN_TEXT_RELATIONS_ZH,
+                SUPPLEMENT_RELATIONS_ZH,
             ),
         ):
             self.assert_readme_pattern_table(
@@ -603,13 +652,16 @@ class ReadmeContractTest(unittest.TestCase):
                 main_heading,
                 MAIN_TEXT_PATTERNS,
                 "Table 5 traceability",
-                relations,
+                8,
+                main_relations,
             )
             self.assert_readme_pattern_table(
                 text,
                 supplement_heading,
                 SUPPLEMENT_PATTERNS,
                 "Repository supplement",
+                7,
+                supplement_relations,
             )
 
     def test_exact_table_guard_rejects_invented_and_duplicate_rows(self):
@@ -644,6 +696,33 @@ class ReadmeContractTest(unittest.TestCase):
         rows = markdown_data_rows(readme_section(incorrect, "Main-text mappings"))
         with self.assertRaisesRegex(AssertionError, "participant relations differ"):
             assert_exact_participant_relations(rows, MAIN_TEXT_RELATIONS_EN)
+
+    def test_supplement_relation_guard_rejects_incorrect_decorator_mapping(self):
+        incorrect = self.english.replace(
+            SUPPLEMENT_RELATIONS_EN["Decorator"],
+            "Decorator has an intentionally incorrect participant relation.",
+            1,
+        )
+
+        rows = markdown_data_rows(readme_section(incorrect, "Repository supplement"))
+        with self.assertRaisesRegex(AssertionError, "participant relations differ"):
+            assert_exact_participant_relations(rows, SUPPLEMENT_RELATIONS_EN)
+
+    def test_row_width_guard_rejects_extra_trailing_facade_cell(self):
+        section = readme_section(self.english, "Main-text mappings")
+        facade_line = next(
+            line for line in section.splitlines() if line.startswith("| [Facade]")
+        )
+        with_extra_cell = section.replace(
+            facade_line,
+            facade_line.removesuffix("|") + "| unexpected trailing cell |",
+            1,
+        )
+
+        rows = markdown_data_rows(with_extra_cell)
+        self.assertEqual(len(rows[0][1]), 7)
+        with self.assertRaisesRegex(AssertionError, "expected 6 cells"):
+            assert_exact_row_widths(rows, 6)
 
     def test_facade_walkthrough_links_real_artifacts_and_exact_commands(self):
         required_paths = (
