@@ -1,5 +1,31 @@
 # Software Release Notification
 
+> **This directory is the mock sample.** It demonstrates the Observer idea
+> using release notifications; it is not the ECC hook implementation.
+
+## Evidence at a glance
+
+```mermaid
+flowchart LR
+    E[release.published.v1] --> S[Mock Subject\nSKILL.md]
+    S --> A[audit]
+    S --> C[changelog]
+    S --> T[team-notification]
+    A --> R[Receipt]
+    C --> R
+    T --> R
+```
+
+| Evidence layer | Open this | What proves the Observer relation |
+| --- | --- | --- |
+| **Upstream case** | [ECC continuous-learning-v2](https://github.com/affaan-m/ECC/blob/2bc924faf2f8e893bfe0af86b1931283693c30ae/skills/continuous-learning-v2/SKILL.md) + [hooks](https://github.com/affaan-m/ECC/blob/2bc924faf2f8e893bfe0af86b1931283693c30ae/hooks/hooks.json) | Lifecycle events are routed to an observation Skill (candidate correspondence). |
+| **Mock Subject** | [`SKILL.md#agent-mode`](SKILL.md#agent-mode) | The root owns registration, order, event copies, and delivery accounting. |
+| **Observer Skills** | [`child-skills/`](child-skills/) · [`references/release-event-contract.md`](references/release-event-contract.md) | Each consumer accepts the same event and returns an isolated receipt. |
+| **Executable proof** | [`scripts/run_demo.py`](scripts/run_demo.py) · [`tests/test_demo.py`](tests/test_demo.py) | Tests cover registration, unregistration, failure isolation, and re-entry. |
+
+**The pattern-bearing line is:** one Subject event → registered independent
+Observers → one delivery receipt per Observer.
+
 ## Scenario
 
 After version `1.2.0` is published, audit, changelog, and team-notification

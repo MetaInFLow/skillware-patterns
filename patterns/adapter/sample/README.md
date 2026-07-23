@@ -1,5 +1,31 @@
 # Multi-Tracker Issue Publisher
 
+> **This directory is the mock sample.** It demonstrates the Adapter idea
+> offline; it is not the upstream gstack implementation.
+
+## Evidence at a glance
+
+```mermaid
+flowchart LR
+    C[Canonical issue] --> A[Mock Adapter\nSKILL.md]
+    A --> G[GitHub binding]
+    A --> J[Jira binding]
+    A --> L[Linear binding]
+    G --> O[Vendor request]
+    J --> O
+    L --> O
+```
+
+| Evidence layer | Open this | What proves the Adapter relation |
+| --- | --- | --- |
+| **Upstream case Skill** | [gstack `SKILL.md.tmpl`](https://github.com/garrytan/gstack/blob/11de390be1be6849eb9a15f91ff4922dd16c589a/SKILL.md.tmpl) + [Host bindings](https://github.com/garrytan/gstack/tree/11de390be1be6849eb9a15f91ff4922dd16c589a/hosts) | One canonical Skill surface is translated for different Host contracts. |
+| **Mock Adapter** | [`SKILL.md#target-bindings`](SKILL.md#target-bindings) | Canonical issue identity and severity stay unchanged while target shape changes. |
+| **Target contracts** | [`references/tracker-contracts.md`](references/tracker-contracts.md) | GitHub REST, Jira REST/ADF, and Linear GraphQL are explicit targets. |
+| **Executable proof** | [`scripts/run_demo.py`](scripts/run_demo.py) · [`tests/test_demo.py`](tests/test_demo.py) | Three bindings produce offline descriptors without network calls. |
+
+**The pattern-bearing line is:** one canonical issue → one selected binding →
+one target-specific request. That translation is the Adapter evidence.
+
 ## Scenario
 
 A triage Skill has one canonical issue (`id`, `title`, `description`, and

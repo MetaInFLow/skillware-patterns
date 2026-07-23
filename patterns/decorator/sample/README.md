@@ -1,5 +1,28 @@
 # Contract Review Enhancers
 
+> **This directory is the mock sample.** It demonstrates the Decorator idea
+> with contract review wrappers; it is not the Caveman activation hook.
+
+## Evidence at a glance
+
+```mermaid
+flowchart LR
+    C[Caller] --> P[Privacy wrapper]
+    P --> Q[Citation wrapper]
+    Q --> B[Base review Skill]
+    B --> O[Same summary + findings]
+```
+
+| Evidence layer | Open this | What proves the Decorator relation |
+| --- | --- | --- |
+| **Upstream case** | [Caveman Skill](https://github.com/JuliusBrussee/caveman/blob/25d22f864ad68cc447a4cb93aefde918aa4aec9f/skills/caveman/SKILL.md) + [activation hook](https://github.com/JuliusBrussee/caveman/blob/25d22f864ad68cc447a4cb93aefde918aa4aec9f/src/hooks/caveman-activate.js) | Activation adds behavior around the existing Host surface (candidate correspondence). |
+| **Mock Component** | [`SKILL.md#agent-mode`](SKILL.md#agent-mode) | The root composes wrappers without replacing the base review contract. |
+| **Decorators** | [`child-skills/`](child-skills/) · [`references/contract-review-component.md`](references/contract-review-component.md) | Each wrapper delegates once and appends only its own finding. |
+| **Executable proof** | [`scripts/run_demo.py`](scripts/run_demo.py) · [`tests/test_demo.py`](tests/test_demo.py) | Tests prove order, interface preservation, and idempotency. |
+
+**The pattern-bearing line is:** wrapper → wrapped Component → same interface +
+one added responsibility.
+
 ## Scenario
 
 A base contract review should remain unchanged while a caller optionally adds

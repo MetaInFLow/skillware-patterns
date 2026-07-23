@@ -1,5 +1,27 @@
 # Configuration Migration
 
+> **This directory is the mock sample.** It demonstrates the Memento idea with
+> configuration rollback; it is not the SkillOpt staging implementation.
+
+## Evidence at a glance
+
+```mermaid
+flowchart LR
+    O[Originator\nconfiguration] -->|capture| M[Opaque Memento]
+    C[Caretaker\nmigration Skill] -->|commit / restore| M
+    M -->|exact old bytes| O
+```
+
+| Evidence layer | Open this | What proves the Memento relation |
+| --- | --- | --- |
+| **Upstream case** | [SkillOpt `staging.py`](https://github.com/microsoft/SkillOpt/blob/b860a5cf88ce75e2bd02ca981ac21fb28cffba83/skillopt_sleep/staging.py) | Adoption creates a backup before changing a Skill configuration (candidate correspondence). |
+| **Mock Originator/Caretaker** | [`SKILL.md#agent-mode`](SKILL.md#agent-mode) | The workflow captures before mutation and restores only after a write attempt fails. |
+| **Memento contract** | [`child-skills/`](child-skills/) · [`references/configuration-memento-contract.md`](references/configuration-memento-contract.md) | Checkpoint bytes are opaque, owned, checksummed, and one-use. |
+| **Executable proof** | [`scripts/run_demo.py`](scripts/run_demo.py) · [`tests/test_demo.py`](tests/test_demo.py) | `--fail` exercises exact-byte rollback and failed-restore reporting. |
+
+**The pattern-bearing line is:** Originator state → opaque checkpoint →
+Caretaker restore/discard decision.
+
 ## Scenario
 
 A service configuration must move from version `n` to `n+1` atomically. If the

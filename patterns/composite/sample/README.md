@@ -1,5 +1,34 @@
 # Investment Memo Builder
 
+> **This directory is the mock sample.** It demonstrates the Composite idea
+> with a deterministic memo tree; it is not the OpenMontage pipeline.
+
+## Evidence at a glance
+
+```mermaid
+flowchart TB
+    C[Caller] --> R[Mock Composite\nSKILL.md]
+    R --> M[Market Leaf]
+    R --> F[Financial Leaf]
+    R --> X[Competition Leaf]
+    R --> K[Risk Leaf]
+    M --> S[memo-section-v1]
+    F --> S
+    X --> S
+    K --> S
+    R --> S
+```
+
+| Evidence layer | Open this | What proves the Composite relation |
+| --- | --- | --- |
+| **Upstream case** | [OpenMontage pipeline](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/pipeline_defs/animation.yaml) | Multiple stage Skills are assembled by a pipeline loader (candidate correspondence). |
+| **Mock Composite** | [`SKILL.md#agent-mode`](SKILL.md#agent-mode) | The root validates a tree, invokes Leaves, and returns the same Component shape. |
+| **Leaf Skills** | [`child-skills/`](child-skills/) · [`references/section-contract.md`](references/section-contract.md) | Every atomic analysis returns `memo-section-v1` with `children: []`. |
+| **Executable proof** | [`scripts/run_demo.py`](scripts/run_demo.py) · [`tests/test_demo.py`](tests/test_demo.py) | Tree validation rejects cycles, shared children, and invalid results. |
+
+**The pattern-bearing line is:** root Component → validated child tree → child
+Components with the same result contract.
+
 ## Scenario
 
 An investment team needs one memo with market, financial, competition, and

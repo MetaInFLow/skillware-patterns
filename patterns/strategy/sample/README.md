@@ -1,5 +1,29 @@
 # Risk-Aware Code Review
 
+> **This directory is the mock sample.** It demonstrates the Strategy idea
+> with two interchangeable review procedures; it is not UI/UX Pro Max.
+
+## Evidence at a glance
+
+```mermaid
+flowchart LR
+    Q[Review request] --> C[Mock Context\nSKILL.md]
+    C -->|low risk| F[Fast Scan]
+    C -->|security / large| D[Deep Review]
+    F --> O[Same result contract]
+    D --> O
+```
+
+| Evidence layer | Open this | What proves the Strategy relation |
+| --- | --- | --- |
+| **Upstream case** | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/blob/8a81ed60272d21d4b8808f7308d49a0b1b000555/.claude/skills/ui-ux-pro-max/SKILL.md) + [router](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/blob/8a81ed60272d21d4b8808f7308d49a0b1b000555/scripts/search.py) | One router selects among domain/stack procedures (candidate correspondence). |
+| **Mock Context** | [`SKILL.md#agent-mode`](SKILL.md#agent-mode) | The root selects exactly one child procedure and validates its shared result. |
+| **ConcreteStrategies** | [`child-skills/`](child-skills/) · [`references/review-strategy-contract.md`](references/review-strategy-contract.md) | Fast Scan and Deep Review are substitutable under one contract. |
+| **Executable proof** | [`scripts/run_demo.py`](scripts/run_demo.py) · [`tests/test_demo.py`](tests/test_demo.py) | Tests prove the unselected strategy is not called. |
+
+**The pattern-bearing line is:** one request → one policy selection → one of
+two interchangeable procedures → the same result shape.
+
 ## Scenario
 
 A changed-file review should be fast for ordinary low-risk work and deeper for

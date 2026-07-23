@@ -1154,10 +1154,29 @@ class CurrentReadmeContractTest(unittest.TestCase):
                 self.assertIn("```mermaid", text)
                 self.assertIn("Case Skill（上游案例）", text)
                 self.assertIn("Mock sample（本仓库构造）", text)
-                self.assertIn("sample/SKILL.md", text)
+                self.assertIn("SKILL.md", text)
                 self.assertIn("participant-map.yaml", text)
                 self.assertRegex(text, r"upstream evidence\s+record|evidence\s+record")
                 self.assertIn("python3 sample/scripts/run_demo.py", text)
+
+    def test_every_mock_sample_has_visual_evidence_map(self):
+        pattern_ids = (
+            "facade", "adapter", "composite", "observer", "state", "strategy",
+            "decorator", "template-method", "memento", "mediator",
+        )
+        for pattern_id in pattern_ids:
+            text = (
+                ROOT / "patterns" / pattern_id / "sample" / "README.md"
+            ).read_text(encoding="utf-8")
+            with self.subTest(pattern=pattern_id):
+                self.assertIn("> **This directory is the mock sample.**", text)
+                self.assertIn("## Evidence at a glance", text)
+                self.assertIn("```mermaid", text)
+                self.assertIn("Evidence layer", text)
+                self.assertIn("Upstream case", text)
+                self.assertIn("Executable proof", text)
+                self.assertIn("SKILL.md", text)
+                self.assertIn("scripts/run_demo.py", text)
 
     def test_facade_demo_and_reproducibility_commands(self):
         required_paths = (

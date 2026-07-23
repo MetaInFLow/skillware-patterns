@@ -1,5 +1,30 @@
 # Production Incident Response
 
+> **This directory is the mock sample.** It demonstrates how the Facade idea
+> is implemented in Skillware; it is not the upstream Superpowers Skill.
+
+## Evidence at a glance
+
+```mermaid
+flowchart LR
+    C[Caller] --> F[Mock Facade\nSKILL.md]
+    F --> D[diagnose]
+    F --> I[assess-impact]
+    F --> M[draft-communication]
+    F --> R[One public result]
+```
+
+| Evidence layer | Open this | What proves the Facade relation |
+| --- | --- | --- |
+| **Upstream case Skill** | [Superpowers `using-superpowers`](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/skills/using-superpowers/SKILL.md) | One entry policy discovers and invokes specialist Skills. |
+| **Mock Facade** | [`SKILL.md#orchestration`](SKILL.md#orchestration) | One public incident operation owns the specialist sequence and fallback. |
+| **Subsystem Skills** | [`child-skills/`](child-skills/) | Diagnosis, impact, and communication are separate callable responsibilities. |
+| **Executable proof** | [`scripts/run_demo.py`](scripts/run_demo.py) · [`tests/test_demo.py`](tests/test_demo.py) | The oracle and tests verify call order, one result contract, and fallback. |
+
+**The pattern-bearing line is:** caller → root `SKILL.md` → three child Skills →
+one stable result. That is the implementation evidence; the incident topic is
+only the concrete scenario.
+
 ## Scenario
 
 An on-call operator sees a `5xx spike` for `checkout-api` and wants one

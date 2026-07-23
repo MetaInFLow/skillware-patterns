@@ -1,5 +1,30 @@
 # Enterprise RFP Response
 
+> **This directory is the mock sample.** It demonstrates the Template Method
+> idea with an RFP workflow; it is not the Superpowers implementation.
+
+## Evidence at a glance
+
+```mermaid
+flowchart LR
+    R[Root template Skill] --> A[Extract]
+    A --> B[Analyze gaps]
+    B --> H[Domain hook]
+    H --> D[Draft]
+    D --> Q[Quality check]
+    H -.-> S[Healthcare / Finance child Skill]
+```
+
+| Evidence layer | Open this | What proves the Template Method relation |
+| --- | --- | --- |
+| **Upstream case** | [Superpowers brainstorming](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/skills/brainstorming/SKILL.md) + [TDD](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/skills/test-driven-development/SKILL.md) | Ordered workflow guidance with task-specific content (candidate correspondence). |
+| **Mock AbstractClass** | [`SKILL.md#agent-mode`](SKILL.md#agent-mode) | The root owns the five-stage sequence and calls one bounded hook. |
+| **ConcreteClasses** | [`child-skills/`](child-skills/) · [`references/rfp-domain-hook-contract.md`](references/rfp-domain-hook-contract.md) | Healthcare and Finance vary only `apply-domain-hook`. |
+| **Executable proof** | [`scripts/run_demo.py`](scripts/run_demo.py) · [`tests/test_demo.py`](tests/test_demo.py) | Tests prove fixed order, one hook call, and failure stop. |
+
+**The pattern-bearing line is:** fixed root sequence → one overridable hook →
+fixed remaining sequence.
+
 ## Scenario
 
 Every enterprise RFP response must extract requirements, analyze gaps, apply a

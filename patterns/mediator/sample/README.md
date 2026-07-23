@@ -1,5 +1,29 @@
 # Deployment Coordinator
 
+> **This directory is the mock sample.** It demonstrates the Mediator idea
+> with deployment readiness; it is not the financial-services cookbook.
+
+## Evidence at a glance
+
+```mermaid
+flowchart TB
+    B[Build] --> M[Mediator\ndeployment-coordinator]
+    S[Security] --> M
+    D[Docs] --> M
+    A[Approval] --> M
+    M --> O[release / blocked]
+```
+
+| Evidence layer | Open this | What proves the Mediator relation |
+| --- | --- | --- |
+| **Upstream case** | [GL reconciler coordinator](https://github.com/anthropics/financial-services/blob/4aa51ed3d379731f8f9beff498d749580372699c/managed-agent-cookbooks/gl-reconciler/agent.yaml) + [subagents](https://github.com/anthropics/financial-services/tree/4aa51ed3d379731f8f9beff498d749580372699c/managed-agent-cookbooks/gl-reconciler/subagents) | A central cookbook coordinates isolated workers (candidate correspondence). |
+| **Mock Mediator** | [`SKILL.md#agent-mode`](SKILL.md#agent-mode) | The coordinator binds, addresses, and isolates Colleagues, then decides readiness. |
+| **Colleagues** | [`child-skills/`](child-skills/) · [`references/deployment-readiness-contract.md`](references/deployment-readiness-contract.md) | Each specialist reports through one shared boundary and has no peer reference. |
+| **Executable proof** | [`scripts/run_demo.py`](scripts/run_demo.py) · [`tests/test_demo.py`](tests/test_demo.py) | Tests prove canonical order, failure isolation, and all-pass policy. |
+
+**The pattern-bearing line is:** isolated Colleagues → one Mediator report
+boundary → one release decision.
+
 ## Scenario
 
 A release is ready only when build, security, documentation, and approval checks

@@ -1,5 +1,28 @@
 # Vendor Onboarding Workflow
 
+> **This directory is the mock sample.** It demonstrates the State idea with
+> vendor onboarding; it is not the OpenMontage checkpoint implementation.
+
+## Evidence at a glance
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft
+    Draft --> Verified: verify
+    Verified --> Approved: approve
+    Approved --> Activated: activate
+```
+
+| Evidence layer | Open this | What proves the State relation |
+| --- | --- | --- |
+| **Upstream case** | [OpenMontage checkpoint protocol](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/skills/meta/checkpoint-protocol.md) + [checkpoint.py](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/lib/checkpoint.py) | Persisted stage status controls resume behavior (candidate correspondence). |
+| **Mock Context** | [`SKILL.md#agent-mode`](SKILL.md#agent-mode) | The workflow reloads state and delegates the action to the current State. |
+| **ConcreteState Skills** | [`child-skills/`](child-skills/) · [`references/vendor-state-contract.md`](references/vendor-state-contract.md) | Each state owns legal actions and successors. |
+| **Executable proof** | [`scripts/run_demo.py`](scripts/run_demo.py) · [`tests/test_demo.py`](tests/test_demo.py) | Tests cover illegal transitions, atomic persistence, and restart recovery. |
+
+**The pattern-bearing line is:** persisted current state → state-owned action →
+persisted successor state.
+
 ## Scenario
 
 A vendor moves through `draft`, `verified`, `approved`, and `activated`. The
