@@ -43,6 +43,40 @@ extract -> analyze-gaps -> apply-domain-hook -> draft -> quality-check
                          └── healthcare or finance child Skill
 ```
 
+## Learn the pattern
+
+### Before: each domain Skill copies the whole workflow
+
+```text
+healthcare Skill: extract -> gaps -> hook -> draft -> quality
+finance Skill:    extract -> gaps -> hook -> draft -> quality
+```
+
+The copies drift, and a domain specialization can accidentally reorder a
+mandatory step.
+
+### After: root fixes the skeleton and exposes one hook
+
+```text
+root: extract -> gaps -> [domain hook] -> draft -> quality
+                         ^ healthcare / finance Skill
+```
+
+### Use it when
+
+| Use Template Method when | Keep it simple when |
+| --- | --- |
+| stage order is invariant across variants | variants change the whole algorithm |
+| only bounded operations vary | every stage is optional or reorderable |
+| the root must enforce quality gates | a shared sequence adds no value |
+
+### Skill-author recipe
+
+1. Write the invariant sequence in the root Skill.
+2. Define each hook's exact input and output.
+3. Let child Skills provide hook content only.
+4. Test that children cannot skip, add, or reorder root stages.
+
 ## Scenario
 
 Every enterprise RFP response must extract requirements, analyze gaps, apply a
@@ -74,9 +108,6 @@ Hook failure stops the template before drafting and quality checking.
 - [Root Skill](SKILL.md) defines the invariant sequence and hook boundary.
 - [Hook contract](references/rfp-domain-hook-contract.md) defines the only specialization point.
 - `scripts/run_demo.py` and the healthcare/finance fixtures show substitution without reordering.
-
-This standalone sample constructs Template Method with an invariant
-five-operation RFP skeleton and two bounded domain ConcreteClasses.
 
 Run from this directory with Python 3.10 or newer:
 

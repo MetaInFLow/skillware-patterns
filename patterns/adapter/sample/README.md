@@ -47,6 +47,39 @@ Linear -> issueCreate GraphQL mutation
 Identity and severity stay in every offline descriptor; no network call occurs.
 ```
 
+## Learn the pattern
+
+### Before: copy the issue workflow per target
+
+```text
+publish-to-github(issue)  # GitHub-specific fields mixed with issue meaning
+publish-to-jira(issue)    # duplicated validation and severity rules
+publish-to-linear(issue)  # another incompatible request shape
+```
+
+The same business meaning drifts as each target implementation evolves.
+
+### After: one canonical Skill plus thin bindings
+
+```text
+canonical issue -> selected Adapter -> target request descriptor
+```
+
+### Use it when
+
+| Use Adapter when | Keep it simple when |
+| --- | --- |
+| one intent must reach incompatible Host/vendor contracts | targets already share one contract |
+| target differences are representational | target differences change business meaning |
+| semantic identity must survive translation | each target needs a separate domain workflow |
+
+### Skill-author recipe
+
+1. Write canonical input/output meaning first.
+2. Treat each target format as an explicit binding.
+3. Preserve identity, units, severity, and error meaning.
+4. Test every binding with the same canonical fixtures.
+
 ## Scenario
 
 A triage Skill has one canonical issue (`id`, `title`, `description`, and
@@ -78,11 +111,6 @@ GraphQL descriptor. No request is sent and no vendor acceptance is claimed.
 - [Root Skill](SKILL.md) defines the canonical contract and target rules.
 - [Participant map](../participant-map.yaml) shows the four Adapter roles.
 - `scripts/run_demo.py` contains the three deterministic bindings; fixtures cover all targets and failures.
-
-This standalone Adapter sample accepts a canonical issue, a target of
-`github`, `jira`, or `linear`, and exact target location context. Each thin
-binding builds a documented REST or GraphQL request descriptor while preserving
-canonical identity and severity.
 
 From this directory, run the default GitHub fixture:
 

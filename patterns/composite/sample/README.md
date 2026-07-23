@@ -48,6 +48,41 @@ Root:  {id, title, content, evidence, children: [validated Leaves]}
 The root validates the tree before any Leaf executes.
 ```
 
+## Learn the pattern
+
+### Before: the root knows every section shape
+
+```text
+root -> market() -> special market result
+root -> finance() -> different finance result
+root -> risk() -> another wrapper shape
+```
+
+The root becomes coupled to every section and cannot treat a nested memo as one
+section.
+
+### After: Leaves and Composite share one Component contract
+
+```text
+memo-section-v1(root)
+  └── memo-section-v1(leaf)
+```
+
+### Use it when
+
+| Use Composite when | Keep it simple when |
+| --- | --- |
+| a real part-whole tree exists | the workflow is a flat sequence of different stages |
+| callers should handle leaf and tree uniformly | child outputs cannot share a meaningful contract |
+| nested composition is expected | a graph has shared children or cross-links |
+
+### Skill-author recipe
+
+1. Define one Component result before writing any Leaf.
+2. Make each Leaf independently invocable.
+3. Make the root validate the tree before execution.
+4. Reject cycles, shared children, and incompatible result shapes.
+
 ## Scenario
 
 An investment team needs one memo with market, financial, competition, and
@@ -80,10 +115,6 @@ results fail before an invalid memo is returned.
 - [Root Skill](SKILL.md) explains tree validation and child invocation.
 - [Section contract](references/section-contract.md) is the common Component interface.
 - `scripts/run_demo.py` is the oracle; `child-skills/` contains the four Leaf Skills.
-
-This standalone Composite sample assembles an investment memo by invoking
-market, financial, competition, and risk Leaves. Atomic sections and the root
-memo use the same `memo-section-v1` result contract.
 
 Run the default valid workflow from this directory:
 

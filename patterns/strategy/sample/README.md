@@ -44,6 +44,39 @@ else:
 validate the same review result after either procedure
 ```
 
+## Learn the pattern
+
+### Before: one Skill owns every algorithm branch
+
+```text
+if security_sensitive: run_deep_rules()
+else: run_fast_rules()
+```
+
+The selection policy, review procedure, and result formatting become one
+large branch that is difficult to replace or test independently.
+
+### After: select one interchangeable Strategy Skill
+
+```text
+request -> selection policy -> fast-scan OR deep-review -> same result
+```
+
+### Use it when
+
+| Use Strategy when | Keep it simple when |
+| --- | --- |
+| the procedure should vary at runtime | there is only one procedure |
+| alternatives share a meaningful request/result contract | alternatives return incompatible results |
+| alternatives need independent tests or injection | the branch is one short local condition |
+
+### Skill-author recipe
+
+1. Define the shared Strategy contract first.
+2. Keep selection policy in the Context Skill.
+3. Invoke exactly one selected child Skill.
+4. Validate the shared result after delegation.
+
 ## Scenario
 
 A changed-file review should be fast for ordinary low-risk work and deeper for
@@ -74,12 +107,6 @@ Review for security-sensitive or four-plus-file requests, otherwise Fast Scan.
 - [Root Skill](SKILL.md) defines selection and shared validation.
 - [Strategy contract](references/review-strategy-contract.md) defines substitutability.
 - `scripts/run_demo.py` supports injected strategies and direct strategy addressing.
-
-This standalone sample realizes Strategy with a code-review Context, one exact
-request/result Strategy contract, and two interchangeable ConcreteStrategies.
-Fast Scan applies high-signal rules; Deep Review adds contextual rules. The
-Context selects Deep Review for security-sensitive requests or at least four
-files and Fast Scan otherwise.
 
 Run:
 

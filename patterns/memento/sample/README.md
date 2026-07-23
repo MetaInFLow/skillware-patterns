@@ -40,6 +40,40 @@ capture exact bytes -> prepare migration -> write atomically
   -> verified success: discard checkpoint
 ```
 
+## Learn the pattern
+
+### Before: rollback data is exposed to the workflow
+
+```text
+caretaker reads old_config
+caretaker edits new_config
+caretaker tries to reconstruct old_config on failure
+```
+
+The caretaker knows too much about Originator state, and reconstruction can
+lose bytes, permissions, or ownership information.
+
+### After: capture an opaque Memento
+
+```text
+Originator -> opaque checkpoint -> Caretaker chooses restore/discard
+```
+
+### Use it when
+
+| Use Memento when | Keep it simple when |
+| --- | --- |
+| exact prior state must be restored | only a semantic audit log is needed |
+| the owner should hide internal state | a database already owns snapshots and restore |
+| checkpoint lifecycle needs explicit failure rules | a normal versioned file is sufficient |
+
+### Skill-author recipe
+
+1. Let Originator create and validate the checkpoint.
+2. Give Caretaker an opaque handle, never raw state.
+3. Define when capture, restore, and discard occur.
+4. Test stale, foreign, reused, and corrupted checkpoints.
+
 ## Scenario
 
 A service configuration must move from version `n` to `n+1` atomically. If the
@@ -70,20 +104,6 @@ owner, target, and lifecycle checks reject stale or foreign checkpoints.
 - [Root Skill](SKILL.md) defines preparation, write-attempt, restore, and discard phases.
 - [Memento contract](references/configuration-memento-contract.md) defines opacity and admission checks.
 - `scripts/run_demo.py --fail` exercises the rollback path without modifying repository fixtures.
-
-This standalone Memento sample increments a bounded JSON configuration version
-through atomic replacement. The Originator captures exact prior bytes and
-portable permissions in an opaque Memento. A preparation or conflict error
-discards without restore, preserving newer external content. Once a write is
-attempted, the Caretaker restores conservatively on failure and discards the
-checkpoint without restore after success.
-
-The Originator retains every immutable prepared payload privately and returns
-only a sealed opaque one-use token. Commit and discard validate checkpoint
-checksum, ownership, active lifecycle, and identity before retirement.
-During rollback, those admission checks are inside the restoration-error
-boundary. A failed admission preserves both errors and may leave the complete
-migrated file in place because the checkpoint cannot safely be applied.
 
 Run the deterministic default demo without modifying its fixture:
 

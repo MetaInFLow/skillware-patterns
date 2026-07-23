@@ -42,6 +42,37 @@ build + security + docs + approval
               -> release only when all reports are `pass`
 ```
 
+## Learn the pattern
+
+### Before: specialists form a peer mesh
+
+```text
+build <-> security <-> docs <-> approval
+```
+
+Each new specialist adds peer knowledge and creates more coordination paths.
+
+### After: specialists report through one Mediator
+
+```text
+build + security + docs + approval -> coordinator -> release decision
+```
+
+### Use it when
+
+| Use Mediator when | Keep it simple when |
+| --- | --- |
+| many Skills need coordinated interaction | there are only two independent Skills |
+| policy must be centralized | the coordinator would perform every specialist task |
+| peers should remain isolated | direct composition is clearer and stable |
+
+### Skill-author recipe
+
+1. Define one report contract.
+2. Bind Colleagues only after validating the complete set.
+3. Prohibit peer references and peer calls.
+4. Keep the coordination policy in the Mediator Skill.
+
 ## Scenario
 
 A release is ready only when build, security, documentation, and approval checks
@@ -72,13 +103,6 @@ cannot be mistaken for readiness.
 - [Root Skill](SKILL.md) defines binding, ordering, isolation, and policy.
 - [Readiness contract](references/deployment-readiness-contract.md) defines the report boundary.
 - `scripts/run_demo.py` and the security-failure fixture show centralized coordination.
-
-This standalone Mediator sample coordinates build, security, documentation,
-and approval Colleagues through one Deployment Coordinator. Every participant
-is addressed once in canonical order and reports only to the Mediator. The
-ConcreteMediator isolates callable failures, applies the all-pass policy, and
-returns a deterministic release or blocked decision without doing specialist
-work.
 
 Run the deterministic default release-ready demo:
 

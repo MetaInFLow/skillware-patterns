@@ -41,6 +41,40 @@ load persisted state -> invoke current state's action
   -> atomically persist successor on success
 ```
 
+## Learn the pattern
+
+### Before: one root Skill grows a state switch
+
+```text
+if state == "draft": verify()
+elif state == "verified": approve()
+elif state == "approved": activate()
+```
+
+The root accumulates every state-specific rule and becomes the only place that
+can be changed safely.
+
+### After: the current State Skill owns its behavior
+
+```text
+persisted state -> current State Skill -> legal action + successor
+```
+
+### Use it when
+
+| Use State when | Keep it simple when |
+| --- | --- |
+| the same action changes meaning by lifecycle state | state is only display metadata |
+| transitions and illegal actions need ownership | a small immutable enum is enough |
+| state must survive restart | a workflow engine already owns transitions |
+
+### Skill-author recipe
+
+1. Define the State contract and legal actions.
+2. Give each ConcreteState its own transition behavior.
+3. Make Context load state before every action.
+4. Persist a successful successor before reporting success.
+
 ## Scenario
 
 A vendor moves through `draft`, `verified`, `approved`, and `activated`. The
@@ -70,10 +104,6 @@ actions and corrupted records fail without silently recreating `draft`.
 - [Root Skill](SKILL.md) defines reload, delegation, and atomic persistence.
 - [State contract](references/vendor-state-contract.md) defines `handle-action`.
 - `scripts/run_demo.py` and `fixtures/valid/recover-approved.json` show restart recovery.
-
-This standalone State sample advances a vendor through persisted draft,
-verified, approved, and activated states. Each ConcreteState owns its accepted
-action and successor; the Context reloads and validates state before delegation.
 
 Run the default full workflow from this directory:
 

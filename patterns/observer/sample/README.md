@@ -45,6 +45,41 @@ register observers -> freeze order -> publish release.published.v1
   -> team-notification receipt
 ```
 
+## Learn the pattern
+
+### Before: the publisher hardcodes every consumer
+
+```text
+publish_release():
+  call audit()
+  call changelog()
+  call team_notification()
+```
+
+Adding a consumer changes the publisher, and one consumer failure can silently
+change delivery behavior.
+
+### After: the Subject publishes to registered Observers
+
+```text
+release event -> registration snapshot -> independent Observer updates
+```
+
+### Use it when
+
+| Use Observer when | Keep it simple when |
+| --- | --- |
+| consumers can be added or removed independently | every step is mandatory and ordered |
+| one event should reach multiple Skills | a single downstream result is required |
+| delivery needs receipts or failure isolation | polling is enough and no subscription state exists |
+
+### Skill-author recipe
+
+1. Define a typed event contract.
+2. Make the Subject own registration and delivery policy.
+3. Freeze the subscription snapshot per event.
+4. Record each Observer attempt and specify retry behavior explicitly.
+
 ## Scenario
 
 After version `1.2.0` is published, audit, changelog, and team-notification
@@ -75,9 +110,6 @@ retry are rejected.
 - [Root Skill](SKILL.md) defines registration and delivery policy.
 - [Event contract](references/release-event-contract.md) defines the shared Observer interface.
 - `scripts/run_demo.py` demonstrates order, failure isolation, and re-entry protection.
-
-This standalone Observer sample publishes one typed software release event to
-explicitly registered audit, changelog, and team-notification consumer Skills.
 
 Run the default valid workflow from this directory:
 

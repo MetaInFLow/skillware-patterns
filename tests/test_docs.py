@@ -1180,6 +1180,11 @@ class CurrentReadmeContractTest(unittest.TestCase):
                 self.assertIn("## Mock Skill source", text)
                 self.assertIn("sample/", text)
                 self.assertRegex(text, r"(?s)```(?:markdown|text)\n.*<!--")
+                self.assertIn("## Learn the pattern", text)
+                self.assertIn("### Before", text)
+                self.assertIn("### After", text)
+                self.assertIn("Skill-author recipe", text)
+                self.assertIn("Use it when", text)
 
     def test_facade_demo_and_reproducibility_commands(self):
         required_paths = (

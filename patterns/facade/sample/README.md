@@ -47,6 +47,40 @@ sample/
 Unknown signals return `request-human-triage` without changing the output shape.
 ```
 
+## Learn the pattern
+
+### Before: callers own the workflow
+
+```text
+caller -> diagnose
+caller -> assess-impact
+caller -> draft-communication
+```
+
+Every caller must know the order, pass intermediate results correctly, and
+invent its own fallback behavior.
+
+### After: one Skill owns the workflow
+
+```text
+caller -> incident-response-facade -> specialist Skills -> one result
+```
+
+### Use it when
+
+| Use Facade when | Keep it simple when |
+| --- | --- |
+| callers repeat the same multi-Skill orchestration | there is only one operation and one child |
+| you need one stable public request/result contract | callers genuinely need different workflows |
+| internal Skills should remain replaceable | exposing child operations is the goal |
+
+### Skill-author recipe
+
+1. Define the smallest public request and result contract.
+2. Give each child Skill one responsibility.
+3. Put ordering, context passing, and fallback in the root Skill.
+4. Test the public contract and child call order from the outside.
+
 ## Scenario
 
 An on-call operator sees a `5xx spike` for `checkout-api` and wants one
@@ -78,11 +112,6 @@ inventing a diagnosis.
 - [Root Skill](SKILL.md) defines the public operation and orchestration.
 - [Participant map](../participant-map.yaml) records the Client, Facade, and Subsystem roles.
 - `scripts/run_demo.py` is the deterministic oracle; `tests/test_demo.py` verifies call order and fallback.
-
-This standalone Facade sample accepts `service` and `signal` through one root
-Skill. It coordinates independently inspectable diagnosis, impact, and
-communication Skills while returning only `summary`, `impact`, `actions`, and
-`communication`.
 
 From this directory, run the known-signal fixture:
 

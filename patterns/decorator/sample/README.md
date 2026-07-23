@@ -42,6 +42,41 @@ base_review(text)
   -> same summary + ordered findings
 ```
 
+## Learn the pattern
+
+### Before: optional checks are tangled into the base review
+
+```text
+base_review(text):
+  review contract
+  if privacy_enabled: check privacy
+  if citation_enabled: check citations
+  if compliance_enabled: check compliance
+```
+
+Every new concern changes the base Skill and increases its branching surface.
+
+### After: wrap one Component with additive Skills
+
+```text
+base review -> privacy wrapper -> citation wrapper -> same interface
+```
+
+### Use it when
+
+| Use Decorator when | Keep it simple when |
+| --- | --- |
+| responsibilities are optional and composable | every request always needs the same fixed checks |
+| wrappers can preserve one interface | a wrapper must replace the base result |
+| order of additions matters | the concern needs a separate workflow and lifecycle |
+
+### Skill-author recipe
+
+1. Define the Component contract.
+2. Make each wrapper delegate exactly once.
+3. Add only its own bounded result or behavior.
+4. Test wrapper order, failure propagation, and duplicate application.
+
 ## Scenario
 
 A base contract review should remain unchanged while a caller optionally adds
@@ -72,13 +107,6 @@ enhancement order. Wrapped failures propagate without partial results.
 - [Root Skill](SKILL.md) defines composition and preservation rules.
 - [Component contract](references/contract-review-component.md) defines the shared interface.
 - `scripts/run_demo.py` and `--decorators` make wrapper composition observable.
-
-This standalone sample realizes Decorator with one exact
-`contract-review-v1` Component interface. Base Contract Review is the
-ConcreteComponent. Privacy Check and Citation Check are composable
-ConcreteDecorators. Optional Compliance Check is a third ConcreteDecorator.
-Every participant accepts exactly `text` and returns exactly `summary` and
-`findings`.
 
 Run:
 
