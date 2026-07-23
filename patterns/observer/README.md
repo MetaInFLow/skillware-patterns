@@ -34,29 +34,17 @@ patterns/observer/sample/
 
 ## 3. 这个模式解决了什么
 
-### 没有 Observer
+| 没有 Observer | 使用 Observer |
+| --- | --- |
+| `publish_release()`<br>`  call audit()`<br>`  call changelog()`<br>`  call team_notification()`<br><br>增加消费者需要修改发布 Skill，失败处理也被写死。 | `release.published.v1`<br>`  -> audit Observer`<br>`  -> changelog Observer`<br>`  -> team-notification Observer`<br><br>发布 Skill 维护事件和订阅关系，消费者独立维护行为。 |
 
-```text
-publish_release():
-  call audit()
-  call changelog()
-  call team_notification()
-```
-
-增加一个消费者就要修改发布 Skill；消费者之间的失败处理也被写死在发布 Skill 里。
-
-### 使用 Observer
-
-```text
-release.published.v1
-  -> audit Observer
-  -> changelog Observer
-  -> team-notification Observer
-```
-
-发布 Skill 只维护事件和订阅关系，消费者各自维护自己的行为。
+**变化点：** 发布者只发布事件，消费者通过注册关系接收事件。
 
 ## 4. 市面上的 Skill 案例
+
+| 上游 Case Skill | 本地 Mock Skill |
+| --- | --- |
+| [ECC lifecycle hooks](https://github.com/affaan-m/ECC/blob/2bc924faf2f8e893bfe0af86b1931283693c30ae/hooks/hooks.json)<br>生命周期事件被路由给观察 Skill。<br>`candidate correspondence` | [`software-release-notification`](sample/SKILL.md)<br>发布事件通知 audit、changelog、team-notification。<br>`constructive` |
 
 **Case Skill：** [Everything Claude Code lifecycle hooks](https://github.com/affaan-m/ECC/blob/2bc924faf2f8e893bfe0af86b1931283693c30ae/hooks/hooks.json) 和 [continuous-learning observer hook](https://github.com/affaan-m/ECC/blob/2bc924faf2f8e893bfe0af86b1931283693c30ae/skills/continuous-learning-v2/hooks/observe.sh)。
 

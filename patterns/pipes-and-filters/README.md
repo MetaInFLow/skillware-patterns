@@ -30,23 +30,17 @@ Stop at the first invalid result and identify its stage.
 
 ## 3. 这个模式解决了什么
 
-### 没有 Pipes and Filters
+| 没有 Pipes and Filters | 使用 Pipes and Filters |
+| --- | --- |
+| `caller -> one large triage Skill`<br><br>所有步骤共享内部状态，替换、测试和失败定位都很困难。 | `ticket -> normalize -> redact -> classify -> prioritize -> draft -> final record`<br><br>每一步接收和返回 `support-ticket.v1`，Pipe 负责边界校验和数据交接。 |
 
-```text
-caller -> one large triage Skill
-```
-
-所有步骤共享内部状态，替换、测试和失败定位都很困难。
-
-### 使用 Pipes and Filters
-
-```text
-ticket -> normalize -> redact -> classify -> prioritize -> draft -> final record
-```
-
-每一步接收和返回同一个 `support-ticket.v1`，Pipe 负责边界校验和数据交接。
+**变化点：** 一个大 Skill 被拆成有序、可替换、可验证的 Filter 链。
 
 ## 4. 市面上的 Skill 案例
+
+| 上游 Case Skill | 本地 Mock Skill |
+| --- | --- |
+| [OpenMontage animated-explainer pipeline](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/pipeline_defs/animated-explainer.yaml)<br>manifest 声明有序 stage Skill。<br>`candidate correspondence` | [`support-ticket-triage`](sample/SKILL.md)<br>五个 Filter 共享 `support-ticket.v1`，边界可校验。<br>`constructive` |
 
 **Case Skill：** [OpenMontage animated-explainer pipeline](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/pipeline_defs/animated-explainer.yaml) 和 [pipeline loader](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/lib/pipeline_loader.py)。
 

@@ -50,23 +50,9 @@ The root validates the tree before any Leaf executes.
 
 ## Learn the pattern
 
-### Before: the root knows every section shape
-
-```text
-root -> market() -> special market result
-root -> finance() -> different finance result
-root -> risk() -> another wrapper shape
-```
-
-The root becomes coupled to every section and cannot treat a nested memo as one
-section.
-
-### After: Leaves and Composite share one Component contract
-
-```text
-memo-section-v1(root)
-  └── memo-section-v1(leaf)
-```
+| Before: the root knows every section shape | After: Leaves and Composite share one Component contract |
+| --- | --- |
+| `root -> market() -> special market result`<br>`root -> finance() -> different finance result`<br>`root -> risk() -> another wrapper shape`<br><br>The root is coupled to every section and cannot treat a nested memo uniformly. | `memo-section-v1(root)`<br>`  └── memo-section-v1(leaf)`<br><br>One contract works for both a node and the tree containing it. |
 
 ### Use it when
 

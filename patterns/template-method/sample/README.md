@@ -45,22 +45,9 @@ extract -> analyze-gaps -> apply-domain-hook -> draft -> quality-check
 
 ## Learn the pattern
 
-### Before: each domain Skill copies the whole workflow
-
-```text
-healthcare Skill: extract -> gaps -> hook -> draft -> quality
-finance Skill:    extract -> gaps -> hook -> draft -> quality
-```
-
-The copies drift, and a domain specialization can accidentally reorder a
-mandatory step.
-
-### After: root fixes the skeleton and exposes one hook
-
-```text
-root: extract -> gaps -> [domain hook] -> draft -> quality
-                         ^ healthcare / finance Skill
-```
+| Before: each domain Skill copies the whole workflow | After: root fixes the skeleton and exposes one hook |
+| --- | --- |
+| `healthcare Skill: extract -> gaps -> hook -> draft -> quality`<br>`finance Skill:    extract -> gaps -> hook -> draft -> quality`<br><br>Copies can drift in order and quality gates. | `root: extract -> gaps -> [domain hook] -> draft -> quality`<br>`                         ^ healthcare / finance Skill`<br><br>The root owns the invariant skeleton. |
 
 ### Use it when
 

@@ -49,21 +49,9 @@ Identity and severity stay in every offline descriptor; no network call occurs.
 
 ## Learn the pattern
 
-### Before: copy the issue workflow per target
-
-```text
-publish-to-github(issue)  # GitHub-specific fields mixed with issue meaning
-publish-to-jira(issue)    # duplicated validation and severity rules
-publish-to-linear(issue)  # another incompatible request shape
-```
-
-The same business meaning drifts as each target implementation evolves.
-
-### After: one canonical Skill plus thin bindings
-
-```text
-canonical issue -> selected Adapter -> target request descriptor
-```
+| Before: copy the issue workflow per target | After: one canonical Skill plus thin bindings |
+| --- | --- |
+| `publish-to-github(issue)`<br>`publish-to-jira(issue)`<br>`publish-to-linear(issue)`<br><br>Validation and severity rules are duplicated, so business meaning can drift. | `canonical issue -> selected Adapter -> target request descriptor`<br><br>One canonical Skill owns meaning; bindings own target syntax. |
 
 ### Use it when
 

@@ -35,28 +35,17 @@ Return the decision together with a structured explanation trace.
 
 ## 3. 这个模式解决了什么
 
-### 没有 Specification
+| 没有 Specification | 使用 Specification |
+| --- | --- |
+| `caller -> eligible(expense)`<br><br>收据、预算、授权和部门判断全部藏在一个函数里，规则无法单独命名、复用、组合或解释。 | `Candidate`<br>`  -> HasReceipt`<br>`  -> WithinBudget`<br>`  -> AuthorizedAmount`<br>`  -> NOT Department(restricted)`<br>`  -> decision + explanation`<br><br>每条规则独立测试，再通过 `AND / OR / NOT` 组成政策。 |
 
-```text
-caller -> eligible(expense)
-           收据、预算、授权和部门判断全部藏在一个函数里
-```
-
-规则无法单独命名、复用、组合或解释。
-
-### 使用 Specification
-
-```text
-Candidate -> HasReceipt
-          -> WithinBudget
-          -> AuthorizedAmount
-          -> NOT Department(restricted)
-          -> decision + explanation
-```
-
-每条规则都可以独立测试，再通过 `AND / OR / NOT` 组成政策。
+**变化点：** 业务判断从一个黑盒函数变成可命名、可组合的规则 Skill。
 
 ## 4. 市面上的 Skill 案例
+
+| 上游 Case Skill | 本地 Mock Skill |
+| --- | --- |
+| 本 release 没有纳入可验证的公开 Specification Skill。<br>`not observable` | [`expense-approval-policy`](sample/SKILL.md)<br>具名规则通过 `AND / OR / NOT` 组合，并返回解释。<br>`constructive` |
 
 **Case Skill:** 本记录没有纳入公开的上游 Skill 案例，状态是 `not observable`。这个空位需要保留，避免把普通的规则代码强行包装成 Skillware 生态证据。
 

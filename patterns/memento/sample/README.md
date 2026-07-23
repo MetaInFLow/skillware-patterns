@@ -42,22 +42,9 @@ capture exact bytes -> prepare migration -> write atomically
 
 ## Learn the pattern
 
-### Before: rollback data is exposed to the workflow
-
-```text
-caretaker reads old_config
-caretaker edits new_config
-caretaker tries to reconstruct old_config on failure
-```
-
-The caretaker knows too much about Originator state, and reconstruction can
-lose bytes, permissions, or ownership information.
-
-### After: capture an opaque Memento
-
-```text
-Originator -> opaque checkpoint -> Caretaker chooses restore/discard
-```
+| Before: rollback data is exposed to the workflow | After: capture an opaque Memento |
+| --- | --- |
+| `caretaker reads old_config`<br>`caretaker edits new_config`<br>`caretaker reconstructs old_config on failure`<br><br>The caretaker knows internal state and can lose exact bytes or permissions. | `Originator -> opaque checkpoint -> Caretaker chooses restore/discard`<br><br>The Originator owns state; the Caretaker owns checkpoint lifetime. |
 
 ### Use it when
 

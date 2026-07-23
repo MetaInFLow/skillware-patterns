@@ -46,21 +46,9 @@ validate the same review result after either procedure
 
 ## Learn the pattern
 
-### Before: one Skill owns every algorithm branch
-
-```text
-if security_sensitive: run_deep_rules()
-else: run_fast_rules()
-```
-
-The selection policy, review procedure, and result formatting become one
-large branch that is difficult to replace or test independently.
-
-### After: select one interchangeable Strategy Skill
-
-```text
-request -> selection policy -> fast-scan OR deep-review -> same result
-```
+| Before: one Skill owns every algorithm branch | After: select one interchangeable Strategy Skill |
+| --- | --- |
+| `if security_sensitive: run_deep_rules()`<br>`else: run_fast_rules()`<br><br>Selection, procedure, and result formatting become one large branch. | `request -> selection policy -> fast-scan OR deep-review -> same result`<br><br>Each procedure can be replaced and tested under the shared contract. |
 
 ### Use it when
 

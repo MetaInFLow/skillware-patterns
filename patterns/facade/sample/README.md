@@ -49,22 +49,9 @@ Unknown signals return `request-human-triage` without changing the output shape.
 
 ## Learn the pattern
 
-### Before: callers own the workflow
-
-```text
-caller -> diagnose
-caller -> assess-impact
-caller -> draft-communication
-```
-
-Every caller must know the order, pass intermediate results correctly, and
-invent its own fallback behavior.
-
-### After: one Skill owns the workflow
-
-```text
-caller -> incident-response-facade -> specialist Skills -> one result
-```
+| Before: callers own the workflow | After: one Skill owns the workflow |
+| --- | --- |
+| `caller -> diagnose`<br>`caller -> assess-impact`<br>`caller -> draft-communication`<br><br>Every caller must know order, intermediate results, and fallback behavior. | `caller -> incident-response-facade`<br>`  -> specialist Skills -> one result`<br><br>The root Skill owns orchestration and the public result. |
 
 ### Use it when
 

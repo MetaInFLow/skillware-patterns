@@ -36,26 +36,17 @@ return the same `summary` and `findings` fields
 
 ## 3. 这个模式解决了什么
 
-### 没有 Decorator
+| 没有 Decorator | 使用 Decorator |
+| --- | --- |
+| `base review:`<br>`  if privacy: check privacy`<br>`  if citation: check citation`<br>`  if compliance: check compliance`<br><br>基础 Skill 持续膨胀，组合数量随之增加。 | `base review`<br>`  -> privacy wrapper`<br>`  -> citation wrapper`<br>`  -> same result contract`<br><br>每个 wrapper 增加自己的行为并传递 Component 契约。 |
 
-```text
-base review:
-  if privacy: check privacy
-  if citation: check citation
-  if compliance: check compliance
-```
-
-每增加一种检查，基础 Skill 都要继续膨胀，组合数量也会增加。
-
-### 使用 Decorator
-
-```text
-base review -> privacy wrapper -> citation wrapper -> same result contract
-```
-
-每个 wrapper 只增加自己的行为，同时把基础 Component 的契约传下去。
+**变化点：** 可选能力通过包装叠加，基础 Skill 保持稳定。
 
 ## 4. 市面上的 Skill 案例
+
+| 上游 Case Skill | 本地 Mock Skill |
+| --- | --- |
+| [Caveman Skill + activation hook](https://github.com/JuliusBrussee/caveman/blob/25d22f864ad68cc447a4cb93aefde918aa4aec9f/skills/caveman/SKILL.md)<br>激活时在已有交互表面外增加行为。<br>`candidate correspondence` | [`contract-review-enhancers`](sample/SKILL.md)<br>按需叠加 privacy、citation、compliance wrapper。<br>`constructive` |
 
 **Case Skill：** [Caveman Skill](https://github.com/JuliusBrussee/caveman/blob/25d22f864ad68cc447a4cb93aefde918aa4aec9f/skills/caveman/SKILL.md) 和它的 [activation hook](https://github.com/JuliusBrussee/caveman/blob/25d22f864ad68cc447a4cb93aefde918aa4aec9f/src/hooks/caveman-activate.js)。
 

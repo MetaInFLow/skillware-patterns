@@ -43,28 +43,17 @@ patterns/adapter/sample/
 
 ## 3. 这个模式解决了什么
 
-### 没有 Adapter
+| 没有 Adapter | 使用 Adapter |
+| --- | --- |
+| `GitHub Skill: 自己定义 issue 语义`<br>`Jira Skill:   再定义一套 issue 语义`<br>`Linear Skill: 继续复制一套 issue 语义`<br><br>多份实现逐渐产生语义漂移。 | `canonical issue`<br>`  -> GitHub Adapter -> REST descriptor`<br>`  -> Jira Adapter   -> REST + ADF descriptor`<br>`  -> Linear Adapter -> GraphQL descriptor`<br><br>规范 Skill 只维护一份，差异集中在边界绑定。 |
 
-```text
-GitHub Skill: 自己定义 issue 语义
-Jira Skill:   再定义一套 issue 语义
-Linear Skill: 继续复制一套 issue 语义
-```
-
-多个实现逐渐产生语义漂移。
-
-### 使用 Adapter
-
-```text
-canonical issue
-  -> GitHub Adapter -> GitHub REST descriptor
-  -> Jira Adapter   -> Jira REST + ADF descriptor
-  -> Linear Adapter -> Linear GraphQL descriptor
-```
-
-规范 Skill 只维护一份，平台差异集中在边界绑定中。
+**变化点：** 核心任务语义保持一份，目标系统格式由 Adapter 局部翻译。
 
 ## 4. 市面上的 Skill 案例
+
+| 上游 Case Skill | 本地 Mock Skill |
+| --- | --- |
+| [`gstack` template](https://github.com/garrytan/gstack/blob/11de390be1be6849eb9a15f91ff4922dd16c589a/SKILL.md.tmpl)<br>同一模板生成不同 Host binding。<br>`confirmed correspondence` | [`multi-tracker-issue-publisher`](sample/SKILL.md)<br>同一 canonical issue 生成 GitHub/Jira/Linear 请求描述。<br>`constructive` |
 
 **Case Skill：** [gstack `SKILL.md.tmpl`](https://github.com/garrytan/gstack/blob/11de390be1be6849eb9a15f91ff4922dd16c589a/SKILL.md.tmpl)、[生成器](https://github.com/garrytan/gstack/blob/11de390be1be6849eb9a15f91ff4922dd16c589a/scripts/gen-skill-docs.ts) 和 [Host bindings](https://github.com/garrytan/gstack/tree/11de390be1be6849eb9a15f91ff4922dd16c589a/hosts)。
 

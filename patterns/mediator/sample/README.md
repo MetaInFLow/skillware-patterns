@@ -44,19 +44,9 @@ build + security + docs + approval
 
 ## Learn the pattern
 
-### Before: specialists form a peer mesh
-
-```text
-build <-> security <-> docs <-> approval
-```
-
-Each new specialist adds peer knowledge and creates more coordination paths.
-
-### After: specialists report through one Mediator
-
-```text
-build + security + docs + approval -> coordinator -> release decision
-```
+| Before: specialists form a peer mesh | After: specialists report through one Mediator |
+| --- | --- |
+| `build <-> security <-> docs <-> approval`<br><br>Each new specialist adds peer knowledge and coordination paths. | `build + security + docs + approval -> coordinator -> release decision`<br><br>Specialists know the center report contract only. |
 
 ### Use it when
 

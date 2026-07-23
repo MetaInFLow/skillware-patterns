@@ -33,27 +33,17 @@ patterns/memento/sample/
 
 ## 3. 这个模式解决了什么
 
-### 没有 Memento
+| 没有 Memento | 使用 Memento |
+| --- | --- |
+| `caretaker reads old_config`<br>`caretaker writes new_config`<br>`caretaker reconstructs old_config after failure`<br><br>协调者暴露内部字段，恢复可能丢失精确内容。 | `Originator -> opaque snapshot -> Caretaker`<br>`                         failure -> restore`<br>`                         success -> discard`<br><br>Originator 管状态，Caretaker 只管理快照生命周期。 |
 
-```text
-caretaker reads old_config
-caretaker writes new_config
-caretaker reconstructs old_config after failure
-```
-
-协调者知道太多内部字段，恢复过程可能丢失字节、权限或所有权信息。
-
-### 使用 Memento
-
-```text
-Originator -> opaque snapshot -> Caretaker
-                         failure -> restore
-                         success -> discard
-```
-
-状态的创建和恢复仍由 Originator 负责，Caretaker 只管理快照生命周期。
+**变化点：** 快照由状态拥有者创建和恢复，管理者只能持有不透明快照。
 
 ## 4. 市面上的 Skill 案例
+
+| 上游 Case Skill | 本地 Mock Skill |
+| --- | --- |
+| [Microsoft SkillOpt staging](https://github.com/microsoft/SkillOpt/blob/b860a5cf88ce75e2bd02ca981ac21fb28cffba83/skillopt_sleep/staging.py)<br>采用候选配置前先备份 manifest。<br>`candidate correspondence` | [`configuration-migration`](sample/SKILL.md)<br>捕获不透明快照，失败恢复，成功销毁。<br>`constructive` |
 
 **Case Skill：** [Microsoft SkillOpt staging](https://github.com/microsoft/SkillOpt/blob/b860a5cf88ce75e2bd02ca981ac21fb28cffba83/skillopt_sleep/staging.py)。
 

@@ -40,27 +40,17 @@ For a `5xx spike`:
 
 ## 3. 这个模式解决了什么
 
-### 没有 Facade
+| 没有 Facade | 使用 Facade |
+| --- | --- |
+| `caller -> diagnose`<br>`caller -> assess-impact`<br>`caller -> draft-communication`<br><br>每个调用者都要知道顺序、中间结果和失败回退。 | `caller -> incident-response-facade`<br>`  -> diagnose -> assess-impact -> draft-communication`<br>`  -> one stable incident result`<br><br>入口 Skill 隐藏内部协作，维护稳定的输入和输出契约。 |
 
-```text
-caller -> diagnose
-caller -> assess-impact
-caller -> draft-communication
-```
-
-每个调用者都要知道内部顺序、如何传递中间结果、失败时返回什么。
-
-### 使用 Facade
-
-```text
-caller -> incident-response-facade
-           -> diagnose -> assess-impact -> draft-communication
-           -> one stable incident result
-```
-
-入口 Skill 把内部协作藏起来，同时维护一个稳定的输入和输出契约。
+**变化点：** 调用者从“编排三个 Skill”变成“调用一个入口 Skill”。
 
 ## 4. 市面上的 Skill 案例
+
+| 上游 Case Skill | 本地 Mock Skill |
+| --- | --- |
+| [`using-superpowers`](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/skills/using-superpowers/SKILL.md)<br>入口策略发现、选择并调用专家 Skill。<br>`confirmed correspondence` | [`incident-response-facade`](sample/SKILL.md)<br>根 Skill 编排诊断、影响评估和通知三个子 Skill。<br>`constructive` |
 
 **Case Skill：** [Superpowers `using-superpowers`](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/skills/using-superpowers/SKILL.md)，由固定版本的 [session-start hook](https://github.com/obra/superpowers/tree/896224c4b1879920ab573417e68fd51d2ccc9072/hooks/session-start) 激活。
 

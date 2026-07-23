@@ -47,23 +47,9 @@ register observers -> freeze order -> publish release.published.v1
 
 ## Learn the pattern
 
-### Before: the publisher hardcodes every consumer
-
-```text
-publish_release():
-  call audit()
-  call changelog()
-  call team_notification()
-```
-
-Adding a consumer changes the publisher, and one consumer failure can silently
-change delivery behavior.
-
-### After: the Subject publishes to registered Observers
-
-```text
-release event -> registration snapshot -> independent Observer updates
-```
+| Before: the publisher hardcodes every consumer | After: the Subject publishes to registered Observers |
+| --- | --- |
+| `publish_release()`<br>`  call audit()`<br>`  call changelog()`<br>`  call team_notification()`<br><br>Adding a consumer changes the publisher, and one failure changes delivery behavior. | `release event -> registration snapshot -> independent Observer updates`<br><br>Consumers own their behavior and delivery receipts. |
 
 ### Use it when
 

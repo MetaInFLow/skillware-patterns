@@ -49,23 +49,9 @@ sample/
 
 ## Learn the pattern
 
-### Before: one opaque triage function
-
-```text
-caller -> triage(ticket)
-           normalize + redact + classify + prioritize + draft
-```
-
-The caller cannot replace one stage, inspect a boundary, or identify which
-stage rejected a record.
-
-### After: explicit Filters and Pipes
-
-```text
-caller -> support-ticket-triage
-           -> normalize -> redact -> classify -> prioritize -> draft
-           -> record + canonical trace
-```
+| Before: one opaque triage function | After: explicit Filters and Pipes |
+| --- | --- |
+| `caller -> triage(ticket)`<br>`  normalize + redact + classify + prioritize + draft`<br><br>The caller cannot replace one stage or identify its boundary failure. | `caller -> support-ticket-triage`<br>`  -> normalize -> redact -> classify -> prioritize -> draft`<br>`  -> record + canonical trace`<br><br>Each Filter is independently replaceable. |
 
 ### Use it when
 

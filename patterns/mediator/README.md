@@ -39,25 +39,17 @@ patterns/mediator/sample/
 
 ## 3. 这个模式解决了什么
 
-### 没有 Mediator
+| 没有 Mediator | 使用 Mediator |
+| --- | --- |
+| `build -> security -> docs -> approval`<br>`security -> build`<br>`docs -> security`<br><br>每个专家都需要了解其他专家，协作关系迅速变复杂。 | `build + security + docs + approval`<br>`  -> deployment-coordinator`<br>`  -> release decision`<br><br>专家只知道中心报告契约，协调规则集中在 Mediator Skill。 |
 
-```text
-build -> security -> docs -> approval
-security -> build
-docs -> security
-```
-
-每个专家都需要了解其他专家，协作关系迅速变复杂。
-
-### 使用 Mediator
-
-```text
-build + security + docs + approval -> deployment-coordinator -> release decision
-```
-
-专家只知道中心的报告契约，协调规则集中在 Mediator Skill 中。
+**变化点：** 同伴关系收敛为“专家 ↔ 中心协调器”，新增专家无需建立完整的同伴网络。
 
 ## 4. 市面上的 Skill 案例
+
+| 上游 Case Skill | 本地 Mock Skill |
+| --- | --- |
+| [Anthropic GL reconciler](https://github.com/anthropics/financial-services/blob/4aa51ed3d379731f8f9beff498d749580372699c/managed-agent-cookbooks/gl-reconciler/agent.yaml)<br>中心 coordinator 收集专家报告。<br>`candidate correspondence` | [`deployment-coordinator`](sample/SKILL.md)<br>build/security/docs/approval 只向中心报告。<br>`constructive` |
 
 **Case Skill：** [Anthropic GL reconciler coordinator](https://github.com/anthropics/financial-services/blob/4aa51ed3d379731f8f9beff498d749580372699c/managed-agent-cookbooks/gl-reconciler/agent.yaml) 和 [reader/critic/resolver subagents](https://github.com/anthropics/financial-services/tree/4aa51ed3d379731f8f9beff498d749580372699c/managed-agent-cookbooks/gl-reconciler/subagents)。
 

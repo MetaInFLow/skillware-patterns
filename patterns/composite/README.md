@@ -33,29 +33,17 @@ Root -> {id, title, content, evidence, children: [validated leaves]}
 
 ## 3. 这个模式解决了什么
 
-### 没有 Composite
+| 没有 Composite | 使用 Composite |
+| --- | --- |
+| `root -> market()  -> market-specific result`<br>`root -> finance() -> finance-specific result`<br>`root -> risk()    -> risk-specific result`<br><br>根 Skill 必须分别处理每种结果格式。 | `memo-section-v1(root)`<br>`  ├── memo-section-v1(market)`<br>`  ├── memo-section-v1(finance)`<br>`  ├── memo-section-v1(competition)`<br>`  └── memo-section-v1(risk)`<br><br>叶子和整体共享一种节点格式。 |
 
-```text
-root -> market()  -> market-specific result
-root -> finance() -> finance-specific result
-root -> risk()   -> risk-specific result
-```
-
-根 Skill 必须知道每种结果的特殊格式，嵌套组合会越来越难处理。
-
-### 使用 Composite
-
-```text
-memo-section-v1(root)
-  ├── memo-section-v1(market)
-  ├── memo-section-v1(finance)
-  ├── memo-section-v1(competition)
-  └── memo-section-v1(risk)
-```
-
-调用者只需要理解一种节点格式。
+**变化点：** 调用者可以用同一种方式读取、校验和继续组合叶子与整体。
 
 ## 4. 市面上的 Skill 案例
+
+| 上游 Case Skill | 本地 Mock Skill |
+| --- | --- |
+| [OpenMontage pipeline](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/pipeline_defs/animation.yaml)<br>pipeline 组织多个 stage Skill。<br>`candidate correspondence` | [`investment-memo-builder`](sample/SKILL.md)<br>root 和四个 analysis Skill 共享 `memo-section-v1`。<br>`constructive` |
 
 **Case Skill：** [OpenMontage animation pipeline](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/pipeline_defs/animation.yaml) 和由 [pipeline loader](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/lib/pipeline_loader.py) 加载的 stage Skills。
 

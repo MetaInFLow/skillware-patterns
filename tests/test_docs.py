@@ -1161,6 +1161,9 @@ class CurrentReadmeContractTest(unittest.TestCase):
                 self.assertEqual(positions, sorted(positions))
                 self.assertIn("**Case Skill", text)
                 self.assertIn("Mock Skill", text)
+                self.assertIn("| 没有 ", text)
+                self.assertIn("| 使用 ", text)
+                self.assertIn("| 上游 Case Skill | 本地 Mock Skill |", text)
                 self.assertIn("SKILL.md", text)
                 self.assertIn("participant-map.yaml", text)
                 self.assertIn("python3 sample/scripts/run_demo.py", text)
@@ -1190,6 +1193,9 @@ class CurrentReadmeContractTest(unittest.TestCase):
                     self.assertIn(heading, text)
                 self.assertIn("**Case Skill", text)
                 self.assertIn("Mock Skill", text)
+                self.assertIn("| 没有 ", text)
+                self.assertIn("| 使用 ", text)
+                self.assertIn("| 上游 Case Skill | 本地 Mock Skill |", text)
 
                 sample = (ROOT / "patterns" / pattern_id / "sample" / "README.md").read_text(
                     encoding="utf-8"
@@ -1201,8 +1207,8 @@ class CurrentReadmeContractTest(unittest.TestCase):
                 self.assertIn("Executable proof", sample)
                 self.assertIn("## Mock Skill source", sample)
                 self.assertIn("## Learn the pattern", sample)
-                self.assertIn("### Before", sample)
-                self.assertIn("### After", sample)
+                self.assertIn("| Before:", sample)
+                self.assertIn("| After:", sample)
                 self.assertIn("### Use it when", sample)
                 self.assertIn("### Skill-author recipe", sample)
                 self.assertRegex(sample, r"(?s)```(?:markdown|text)\n.*<!--")
@@ -1230,8 +1236,8 @@ class CurrentReadmeContractTest(unittest.TestCase):
                 self.assertIn("sample/", text)
                 self.assertRegex(text, r"(?s)```(?:markdown|text)\n.*<!--")
                 self.assertIn("## Learn the pattern", text)
-                self.assertIn("### Before", text)
-                self.assertIn("### After", text)
+                self.assertIn("| Before:", text)
+                self.assertIn("| After:", text)
                 self.assertIn("Skill-author recipe", text)
                 self.assertIn("Use it when", text)
 

@@ -43,22 +43,9 @@ load persisted state -> invoke current state's action
 
 ## Learn the pattern
 
-### Before: one root Skill grows a state switch
-
-```text
-if state == "draft": verify()
-elif state == "verified": approve()
-elif state == "approved": activate()
-```
-
-The root accumulates every state-specific rule and becomes the only place that
-can be changed safely.
-
-### After: the current State Skill owns its behavior
-
-```text
-persisted state -> current State Skill -> legal action + successor
-```
+| Before: one root Skill grows a state switch | After: the current State Skill owns its behavior |
+| --- | --- |
+| `if state == "draft": verify()`<br>`elif state == "verified": approve()`<br>`elif state == "approved": activate()`<br><br>The root accumulates every state-specific rule. | `persisted state -> current State Skill -> legal action + successor`<br><br>The current state owns its action and next state. |
 
 ### Use it when
 

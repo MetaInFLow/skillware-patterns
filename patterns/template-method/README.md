@@ -34,24 +34,17 @@ patterns/template-method/sample/
 
 ## 3. 这个模式解决了什么
 
-### 没有 Template Method
+| 没有 Template Method | 使用 Template Method |
+| --- | --- |
+| `healthcare Skill: extract -> gaps -> hook -> draft -> quality`<br>`finance Skill:    extract -> gaps -> hook -> draft -> quality`<br><br>两套流程可能出现顺序和质量门槛差异。 | `root workflow: extract -> gaps -> [domain hook] -> draft -> quality`<br><br>根 Skill 管顺序，领域 Skill 只提供被允许的变化点。 |
 
-```text
-healthcare Skill: extract -> gaps -> hook -> draft -> quality
-finance Skill:    extract -> gaps -> hook -> draft -> quality
-```
-
-两套流程很容易逐渐出现顺序和质量门槛差异。
-
-### 使用 Template Method
-
-```text
-root workflow: extract -> gaps -> [domain hook] -> draft -> quality
-```
-
-根 Skill 管顺序，领域 Skill 只提供被允许的变化点。
+**变化点：** 不同领域共享一个固定流程骨架，只替换明确的 hook。
 
 ## 4. 市面上的 Skill 案例
+
+| 上游 Case Skill | 本地 Mock Skill |
+| --- | --- |
+| [Superpowers brainstorming](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/skills/brainstorming/SKILL.md) + TDD<br>有序工作步骤和任务特化空间。<br>`candidate correspondence` | [`enterprise-rfp-response`](sample/SKILL.md)<br>固定五步流程，只开放 healthcare/finance hook。<br>`constructive` |
 
 **Case Skill：** [Superpowers brainstorming](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/skills/brainstorming/SKILL.md) 和 [test-driven-development](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/skills/test-driven-development/SKILL.md)。
 

@@ -35,26 +35,17 @@ patterns/state/sample/
 
 ## 3. 这个模式解决了什么
 
-### 没有 State
+| 没有 State | 使用 State |
+| --- | --- |
+| `root Skill:`<br>`  if draft: verify rules`<br>`  if verified: approve rules`<br>`  if approved: activate rules`<br><br>所有阶段规则集中在一个入口。 | `persisted state`<br>`  -> current State Skill`<br>`  -> legal action`<br>`  -> successor state`<br><br>入口恢复状态和保存转换，阶段 Skill 拥有阶段行为。 |
 
-```text
-root Skill:
-  if draft: verify rules
-  if verified: approve rules
-  if approved: activate rules
-```
-
-所有阶段规则集中在一个越来越大的入口里。
-
-### 使用 State
-
-```text
-persisted state -> current State Skill -> legal action -> successor state
-```
-
-入口只负责恢复状态和保存转换结果，阶段行为放在对应的 State Skill 中。
+**变化点：** 当前状态决定合法动作，根 Skill 不再维护一张不断膨胀的条件表。
 
 ## 4. 市面上的 Skill 案例
+
+| 上游 Case Skill | 本地 Mock Skill |
+| --- | --- |
+| [OpenMontage checkpoint](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/skills/meta/checkpoint-protocol.md)<br>保存阶段状态并支持恢复。<br>`candidate correspondence` | [`vendor-onboarding-workflow`](sample/SKILL.md)<br>`draft → verified → approved → activated`，每个状态拥有合法动作。<br>`constructive` |
 
 **Case Skill：** [OpenMontage checkpoint protocol](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/skills/meta/checkpoint-protocol.md) 和 [checkpoint implementation](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/lib/checkpoint.py)。
 

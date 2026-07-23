@@ -53,22 +53,9 @@ structured explanation trace without mutating the Candidate.
 
 ## Learn the pattern
 
-### Before: one opaque eligibility function
-
-```text
-caller -> eligible(expense)
-           receipt + budget + authority + department rules hidden inside
-```
-
-The caller cannot name, reuse, combine, or explain one rule independently.
-
-### After: named composable Specifications
-
-```text
-caller -> expense-approval-policy
-           -> HasReceipt & WithinBudget & AuthorizedAmount & NOT Department
-           -> decision + explanation trace
-```
+| Before: one opaque eligibility function | After: named composable Specifications |
+| --- | --- |
+| `caller -> eligible(expense)`<br>`  receipt + budget + authority + department rules hidden inside`<br><br>The caller cannot name or explain one rule independently. | `caller -> expense-approval-policy`<br>`  -> HasReceipt & WithinBudget & AuthorizedAmount & NOT Department`<br>`  -> decision + explanation trace`<br><br>Each rule can be named, tested, and composed. |
 
 ### Use it when
 

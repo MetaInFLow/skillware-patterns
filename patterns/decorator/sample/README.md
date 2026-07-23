@@ -44,23 +44,9 @@ base_review(text)
 
 ## Learn the pattern
 
-### Before: optional checks are tangled into the base review
-
-```text
-base_review(text):
-  review contract
-  if privacy_enabled: check privacy
-  if citation_enabled: check citations
-  if compliance_enabled: check compliance
-```
-
-Every new concern changes the base Skill and increases its branching surface.
-
-### After: wrap one Component with additive Skills
-
-```text
-base review -> privacy wrapper -> citation wrapper -> same interface
-```
+| Before: optional checks are tangled into the base review | After: wrap one Component with additive Skills |
+| --- | --- |
+| `base_review(text)`<br>`  review contract`<br>`  if privacy_enabled: check privacy`<br>`  if citation_enabled: check citations`<br><br>Every new concern changes the base Skill. | `base review -> privacy wrapper -> citation wrapper -> same interface`<br><br>Each wrapper adds one bounded responsibility. |
 
 ### Use it when
 

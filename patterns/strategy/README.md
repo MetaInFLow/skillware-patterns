@@ -34,25 +34,17 @@ Validate the same `review.v1` result after either Skill.
 
 ## 3. 这个模式解决了什么
 
-### 没有 Strategy
+| 没有 Strategy | 使用 Strategy |
+| --- | --- |
+| `review Skill:`<br>`  if risky: run all deep-review rules`<br>`  else: run all fast-scan rules`<br><br>选择条件和审查算法纠缠在一个大 Skill。 | `review request`<br>`  -> selector`<br>`  -> fast-scan OR deep-review`<br>`  -> review.v1`<br><br>Context 负责选择，Strategy Skill 负责执行。 |
 
-```text
-review Skill:
-  if risky: run all deep-review rules
-  else: run all fast-scan rules
-```
-
-选择条件和具体审查算法纠缠在一个大 Skill 里。
-
-### 使用 Strategy
-
-```text
-review request -> selector -> fast-scan OR deep-review -> review.v1
-```
-
-Context 负责选择，Strategy Skill 负责执行，两种 Strategy 可以分别替换和测试。
+**变化点：** 选择规则可以变化，候选执行方案仍共享同一个结果契约。
 
 ## 4. 市面上的 Skill 案例
+
+| 上游 Case Skill | 本地 Mock Skill |
+| --- | --- |
+| [UI/UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/blob/8a81ed60272d21d4b8808f7308d49a0b1b000555/.claude/skills/ui-ux-pro-max/SKILL.md)<br>router 按 domain/stack 选择 procedure。<br>`candidate correspondence` | [`risk-aware-code-review`](sample/SKILL.md)<br>按风险选择 `fast-scan` 或 `deep-review`，共享 `review.v1`。<br>`constructive` |
 
 **Case Skill：** [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/blob/8a81ed60272d21d4b8808f7308d49a0b1b000555/.claude/skills/ui-ux-pro-max/SKILL.md) 和它的 [router](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/blob/8a81ed60272d21d4b8808f7308d49a0b1b000555/scripts/search.py)。
 
