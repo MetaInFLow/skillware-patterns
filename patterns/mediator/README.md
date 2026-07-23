@@ -1,126 +1,107 @@
-# 中介者模式（Mediator）
+# 中介者模式 / Mediator
 
-## 先看实际 Skill / Start here
+> **Scenario / 场景:** Deployment Coordinator / 部署协调
 
-**Case Skill（规范化片段）：**
+## 1. 先看问题 / The problem
 
-```text
-# upstream financial-services behavior sketch
-GL coordinator -> reader / critic / resolver workers
-```
-
-**Mock Skill（本仓库）：**
-
-```markdown
-<!-- sample/SKILL.md: Colleagues report to one center. -->
-build + security + docs + approval -> deployment-coordinator
-all-pass policy is decided only by the coordinator
-```
+Build, security, documentation, and approval checks all contribute to one
+release decision. Peer-to-peer calls make every check depend on every other
+check:
 
 ```text
-sample/
-├── SKILL.md
-├── child-skills/{build,security,docs,approval}/SKILL.md
-├── references/deployment-readiness-contract.md
-└── tests/test_demo.py
+build <-> security <-> docs <-> approval
 ```
 
-## 一眼看懂 / At a glance
+Adding a fifth check multiplies coordination paths.
 
-**一句话：** 多个专家 Skill 不互相调用，统一向一个协调 Skill 报告。
+## 2. 模式一句话 / Pattern in one sentence
+
+**A central coordinator carries communication among specialist Skills so the
+specialists do not call one another.**
 
 ```mermaid
 flowchart TB
-    B[Build] --> M[Mediator\ndeployment-coordinator]
-    S[Security] --> M
-    D[Docs] --> M
-    A[Approval] --> M
-    M --> O[release / blocked]
+    C[Deployment Coordinator\nMediator] --> B[Build Colleague]
+    C --> S[Security Colleague]
+    C --> D[Docs Colleague]
+    C --> A[Approval Colleague]
+    B --> C
+    S --> C
+    D --> C
+    A --> C
+    C --> O[all-pass decision]
 ```
 
-| | Case Skill（上游案例） | Mock sample（本仓库构造） |
-| --- | --- | --- |
-| **是哪一个** | [GL reconciler coordinator](https://github.com/anthropics/financial-services/blob/4aa51ed3d379731f8f9beff498d749580372699c/managed-agent-cookbooks/gl-reconciler/agent.yaml) + [reader/critic/resolver](https://github.com/anthropics/financial-services/tree/4aa51ed3d379731f8f9beff498d749580372699c/managed-agent-cookbooks/gl-reconciler/subagents) | [`deployment-coordinator`](sample/SKILL.md) |
-| **哪里体现模式** | 一个中心 cookbook 协调多个 leaf workers（候选对应） | 四个 Colleague 只向 Coordinator 报告，Coordinator 独立做 all-pass 决策 |
-| **怎么运行** | 由 cookbook coordinator 驱动 | `python3 sample/scripts/run_demo.py` |
+## 3. 现实中的 Skill / Existing Skill case
 
-**看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/deployment-readiness-contract.md`。
+**Case Skill:** [Anthropic GL reconciler coordinator](https://github.com/anthropics/financial-services/blob/4aa51ed3d379731f8f9beff498d749580372699c/managed-agent-cookbooks/gl-reconciler/agent.yaml) and its [reader/critic/resolver subagents](https://github.com/anthropics/financial-services/tree/4aa51ed3d379731f8f9beff498d749580372699c/managed-agent-cookbooks/gl-reconciler/subagents). **Status: candidate correspondence.**
 
-## 直接看实现 / Direct evidence
-
-### Case Skill：上游实现的关键行为
-
-下面是根据固定版本 financial-services GL reconciler cookbook 整理的**规范化行为片段**，不是上游原文复制：
+What the case does: a coordinator assigns work to specialist agents and
+collects their reports for reconciliation.
 
 ```text
-# normalized Case Skill behavior
-GL reconciler coordinator
-  -> reader worker
-  -> critic worker
-  -> resolver worker
+coordinator -> reader / critic / resolver
+reader / critic / resolver -> coordinator
 ```
 
-模式信号：多个 worker 通过中心 coordinator 协作，而不是互相调用。本案例没有充分证明共享 Colleague 契约，因此保持 candidate correspondence。
+The source shows centralized coordination. A complete shared Colleague
+contract remains unverified.
 
-### Mock sample：本仓库实际 Skill
+## 4. 本仓库的 Mock Skill / Mock Skill
+
+Our concrete example is `deployment-coordinator`:
 
 ```text
 patterns/mediator/sample/
-├── SKILL.md                         # ConcreteMediator + all-pass policy
+├── SKILL.md                                  # Mediator
 ├── child-skills/
-│   ├── build/SKILL.md                # Colleague
-│   ├── security/SKILL.md             # Colleague
-│   ├── docs/SKILL.md                 # Colleague
-│   └── approval/SKILL.md             # Colleague
+│   ├── build/SKILL.md                         # Colleague
+│   ├── security/SKILL.md
+│   ├── docs/SKILL.md
+│   └── approval/SKILL.md
 ├── references/deployment-readiness-contract.md
-└── scripts/run_demo.py               # binding + isolation oracle
+├── scripts/run_demo.py
+└── tests/test_demo.py
 ```
+
+The important part of [`sample/SKILL.md`](sample/SKILL.md) is:
 
 ```markdown
-<!-- Mediator: Colleagues report to the center; they do not call peers. -->
-1. Bind all four Colleagues after validating the complete set.
-2. Address them once in `build, security, docs, approval` order.
-3. Collect reports through the Mediator boundary.
-4. Apply the all-pass release policy in the coordinator only.
+<!-- Mediator: Colleagues report to the center; they never call peers. -->
+1. invoke build, security, docs, and approval once
+2. collect one readiness report from each Colleague
+3. isolate a failed report
+4. apply one all-pass release policy
 ```
 
-这段 mock Skill 直接对应 Mediator 的核心：中心协调、同伴隔离、集中决策。
+## 5. 角色对应 / Role mapping
 
-This record transfers the canonical Gang of Four Mediator pattern to Skillware.
-It maps the coordination interface to **Mediator**, the central deployment
-policy owner to **ConcreteMediator**, and the four isolated specialist Skills to
-**Colleague**.
+| GoF role | Skillware carrier in this example |
+| --- | --- |
+| Mediator | root deployment coordinator Skill |
+| ConcreteMediator | all-pass readiness policy |
+| Colleague | build, security, docs, and approval Skills |
 
-The standalone sample is **Deployment Coordinator / 部署协调**. Build,
-security, documentation, and approval colleagues report one status each to the
-central coordinator. They never invoke peers. The coordinator alone applies
-the all-pass release policy and returns either `release` or `blocked`.
+## 6. 什么时候使用 / When to use
 
-Start with [`definition.md`](definition.md), inspect the exact role mapping in
-[`participant-map.yaml`](participant-map.yaml), then run the [`sample`](sample/).
-The public correspondence remains candidate-only because the inspected
-financial-services cookbook shows central orchestration and leaf workers but
-does not establish a shared Colleague contract or runtime decision behavior.
+| Use Mediator when | Keep it simple when |
+| --- | --- |
+| many specialists need coordinated interaction | two Skills have one direct call |
+| peer coupling is growing with each new participant | the coordinator would absorb all domain logic |
+| one policy should collect and reconcile reports | participants truly need direct collaboration |
 
-## Case Skill: upstream implementation
+## 7. 运行与验证 / Run and inspect
 
-**Case Skill:** the GL reconciler coordinator in
-`anthropics/financial-services/managed-agent-cookbooks/gl-reconciler/agent.yaml`.
+```bash
+python3 sample/scripts/run_demo.py
+python3 -m unittest discover -s sample/tests -v
+```
 
-The high-star comparison is [anthropics/financial-services](https://github.com/anthropics/financial-services):
-`managed-agent-cookbooks/gl-reconciler/agent.yaml` coordinates the isolated
-`subagents/reader.yaml`, `subagents/critic.yaml`, and `subagents/resolver.yaml`
-workers, with a reproducible check in `scripts/test-cookbooks.sh`. The exact
-revision and candidate boundary are documented in the [upstream evidence
-record](../../docs/upstream-skill-evidence.md#mediator--中介者模式). The local
-demo makes the central status contract and no-peer rule executable.
+Read the [complete sample](sample/), [participant map](participant-map.yaml),
+[definition](definition.md), and [misuse case](misuse/explanation.md).
 
-## Mock sample Skill: this repository
+## 8. 证据边界 / Evidence boundary
 
-**Mock Skill:** [`sample/SKILL.md`](sample/SKILL.md), named
-`deployment-coordinator`. It addresses `build`, `security`, `docs`, and
-`approval` child Skills and alone applies the all-pass release policy.
-
-The Mediator idea is implemented by a single report boundary and no peer-to-peer
-calls. Run `python3 sample/scripts/run_demo.py`; the mapping is in
-[`participant-map.yaml`](participant-map.yaml).
+The local sample verifies central dispatch, isolated failures, and the all-pass
+decision. The Anthropic cookbook remains candidate correspondence and does not
+establish a complete GoF Colleague interface.

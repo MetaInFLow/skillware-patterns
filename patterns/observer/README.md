@@ -1,140 +1,102 @@
-# Observer / 观察者模式
+# 观察者模式 / Observer
 
-## 先看实际 Skill / Start here
+> **Scenario / 场景:** Software Release Notification / 软件发布通知
 
-**Case Skill（规范化片段）：**
+## 1. 先看问题 / The problem
 
-```text
-# upstream ECC behavior sketch
-lifecycle event -> hook router -> observation Skill -> observation handler
-```
-
-**Mock Skill（本仓库）：**
-
-```markdown
-<!-- sample/SKILL.md: Subject owns registration and delivery. -->
-register observers -> freeze order -> publish typed event
-  -> audit / changelog / team-notification receipts
-```
+After a release, audit, changelog, and team-notification Skills all need the
+same event. A direct chain makes the release Skill own every consumer and lets
+one failing consumer block the others:
 
 ```text
-sample/
-├── SKILL.md
-├── child-skills/{audit,changelog,team-notification}/SKILL.md
-├── references/release-event-contract.md
-└── tests/test_demo.py
+release Skill -> audit -> changelog -> team notification
 ```
 
-## 一眼看懂 / At a glance
+## 2. 模式一句话 / Pattern in one sentence
 
-**一句话：** 一个事件源维护订阅者列表，把同一个事件通知给多个独立 Skill。
+**A Subject publishes a typed event to independently registered Observer Skills
+without embedding their responsibilities in the Subject.**
 
 ```mermaid
 flowchart LR
-    E[Release event] --> S[Subject Skill\nsoftware-release-notification]
-    S --> A[Audit Observer]
-    S --> C[Changelog Observer]
-    S --> T[Team notification Observer]
-    A --> R[Receipt]
+    P[Release Subject] --> E[release.published.v1]
+    E --> A[Audit Observer]
+    E --> C[Changelog Observer]
+    E --> T[Team Notification Observer]
+    A --> R[per-observer receipt]
     C --> R
     T --> R
 ```
 
-| | Case Skill（上游案例） | Mock sample（本仓库构造） |
-| --- | --- | --- |
-| **是哪一个** | [ECC continuous-learning-v2](https://github.com/affaan-m/ECC/blob/2bc924faf2f8e893bfe0af86b1931283693c30ae/skills/continuous-learning-v2/SKILL.md) + [hooks](https://github.com/affaan-m/ECC/blob/2bc924faf2f8e893bfe0af86b1931283693c30ae/hooks/hooks.json) | [`software-release-notification`](sample/SKILL.md) |
-| **哪里体现模式** | lifecycle/tool event 被路由到 observation Skill（候选对应） | Subject 显式注册、按顺序通知三个 Observer，并记录 receipts |
-| **怎么运行** | 由 Host lifecycle hook 触发 | `python3 sample/scripts/run_demo.py` |
+Observers can be registered, removed, and isolated from one another.
 
-**看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/release-event-contract.md`。
+## 3. 现实中的 Skill / Existing Skill case
 
-## 直接看实现 / Direct evidence
+**Case Skill:** [Everything Claude Code lifecycle hooks](https://github.com/affaan-m/ECC/blob/2bc924faf2f8e893bfe0af86b1931283693c30ae/hooks/hooks.json) and the [continuous-learning observer hook](https://github.com/affaan-m/ECC/blob/2bc924faf2f8e893bfe0af86b1931283693c30ae/skills/continuous-learning-v2/hooks/observe.sh). **Status: candidate correspondence.**
 
-### Case Skill：上游实现的关键行为
-
-下面是根据固定版本 ECC hooks、`run-with-flags.js` 和 continuous-learning Skill 整理的**规范化行为片段**，不是上游原文复制：
+What the case does: Host lifecycle events are routed to independent hook
+consumers. The files show event routing, while complete Observer registration
+and delivery semantics remain unverified.
 
 ```text
-# normalized Case Skill behavior
-hook event
-  -> run-with-flags.js
-  -> continuous-learning-v2 observation Skill
-  -> observe.sh
+Host lifecycle event -> hook router -> observation Skill
 ```
 
-模式信号：Host/lifecycle event 被发送给独立的观察处理 Skill。本案例的完整注册、注销和失败记账仍不可见。
+## 4. 本仓库的 Mock Skill / Mock Skill
 
-### Mock sample：本仓库实际 Skill
+Our concrete example is `software-release-notification`:
 
 ```text
 patterns/observer/sample/
-├── SKILL.md                         # Subject + delivery policy
+├── SKILL.md                                  # Subject
 ├── child-skills/
-│   ├── audit/SKILL.md                # Observer 1
-│   ├── changelog/SKILL.md            # Observer 2
-│   └── team-notification/SKILL.md    # Observer 3
+│   ├── audit/SKILL.md                         # Observer 1
+│   ├── changelog/SKILL.md                     # Observer 2
+│   └── team-notification/SKILL.md             # Observer 3
 ├── references/release-event-contract.md
-└── scripts/run_demo.py               # registration + notification oracle
+├── scripts/run_demo.py
+└── tests/test_demo.py
 ```
+
+The important part of [`sample/SKILL.md`](sample/SKILL.md) is:
 
 ```markdown
-<!-- Observer: Subject owns registration and notifies independent consumers. -->
-## Agent mode
-
-1. Validate the `release.published.v1` event.
-2. Apply explicit `register` / `unregister` operations.
-3. Freeze registration order when publication begins.
-4. Invoke every active Observer once with an isolated event copy.
-5. Record one receipt per attempt and continue after failures.
+<!-- Observer: consumers register for one typed release event. -->
+1. validate `release.published.v1`
+2. freeze the active registration order
+3. invoke each registered consumer once
+4. record each receipt and isolate consumer failures
 ```
 
-这段 mock Skill 直接对应 Observer 的核心：Subject 管订阅，Observer 各自处理，同一事件可独立交付。
+## 5. 角色对应 / Role mapping
 
-This record transfers the canonical Gang of Four Observer pattern to
-Skillware. The Subject is the ordered release subscription and event contract;
-the root Software Release Notification Skill plus deterministic publisher is
-the ConcreteSubject. Audit, changelog, and team-notification Skills are
-ConcreteObservers implementing one `release-observer-v1` update operation.
+| GoF role | Skillware carrier in this example |
+| --- | --- |
+| Subject | root release-notification Skill |
+| Observer | audit, changelog, and team-notification Skills |
+| ConcreteSubject | the published release event source |
+| ConcreteObserver | each registered consumer implementation |
 
-The sample publishes a typed `release.published.v1` event after a successful
-release. It supports explicit registration and unregistration, deterministic
-registration-order delivery, isolated event copies, per-observer receipts,
-failure isolation, and publication re-entry rejection.
+## 6. 什么时候使用 / When to use
 
-- [English definition](definition.md)
-- [中文定义](definition.zh-CN.md)
-- [Participant map](participant-map.yaml)
-- [Open-source correspondence](correspondence.md)
-- [Runnable sample](sample/)
-- [Misuse discriminator](misuse/explanation.md)
+| Use Observer when | Keep it simple when |
+| --- | --- |
+| new consumers should subscribe without editing the Subject | there is one fixed recipient |
+| consumers need independent failure and lifecycle management | the event is only an internal function call |
+| an explicit typed event contract can be shared | ordering and transaction coupling dominate |
 
-## Case Skill: upstream implementation
+## 7. 运行与验证 / Run and inspect
 
-**Case Skill:** ECC's `skills/continuous-learning-v2/SKILL.md`, activated by
-the lifecycle hook configuration.
+```bash
+python3 sample/scripts/run_demo.py
+python3 -m unittest discover -s sample/tests -v
+```
 
-The high-star comparison is [affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code):
-`hooks/hooks.json` and `scripts/hooks/run-with-flags.js` route lifecycle/tool
-events to the `skills/continuous-learning-v2/SKILL.md` observation workflow,
-including `skills/continuous-learning-v2/hooks/observe.sh`. It is candidate-only
-because registration and delivery accounting are not fully visible; see the
-[pinned evidence record](../../docs/upstream-skill-evidence.md#observer--观察者模式).
-The local sample supplies those contracts in [`sample/SKILL.md`](sample/SKILL.md).
+Read the [complete sample](sample/), [participant map](participant-map.yaml),
+[definition](definition.md), and [misuse case](misuse/explanation.md).
 
-## Mock sample Skill: this repository
+## 8. 证据边界 / Evidence boundary
 
-**Mock Skill:** [`sample/SKILL.md`](sample/SKILL.md), named
-`software-release-notification`. The root publishes one typed release event to
-the `audit`, `changelog`, and `team-notification` child Skills.
-
-The Observer idea is implemented by explicit registration, a frozen delivery
-snapshot, isolated event copies, and per-observer receipts. Run
-`python3 sample/scripts/run_demo.py`; the mapping is in
-[`participant-map.yaml`](participant-map.yaml).
-
-The local sample is **constructive** evidence. ECC hook artifacts are only a
-**candidate correspondence** because pinned source shows event-to-handler
-configuration and continuous-learning observation, but does not establish the
-complete GoF registration, unregistration, deterministic delivery, and
-failure-accounting relation. Neither claim establishes ecosystem frequency,
-cross-Host equivalence, or comparative benefit.
+The local sample verifies registration, publication order, receipts,
+unsubscription, and failure isolation. The ECC paths remain candidate-level
+correspondence and do not establish production delivery guarantees.

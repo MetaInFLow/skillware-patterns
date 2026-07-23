@@ -1,120 +1,102 @@
-# Pipes and Filters / 管道-过滤器模式
+# 管道-过滤器模式 / Pipes and Filters
 
-## 先看实际 Skill / Start here
+> **Scenario / 场景:** Support Ticket Triage / 客服工单分流
 
-**Case Skill（规范化片段）：**
+## 1. 先看问题 / The problem
 
-```text
-# normalized OpenMontage behavior
-pipeline manifest -> ordered stage Skills -> stage artifacts
-loader validates the manifest and materializes the stage sequence
-```
-
-**Mock Skill（本仓库）：**
-
-```markdown
-<!-- sample/SKILL.md: every Filter consumes and returns support-ticket.v1. -->
-normalize -> redact -> classify -> prioritize -> draft
-Each boundary validates and deep-copies the record before the next Filter.
-```
+A ticket needs normalization, redaction, classification, prioritization, and
+drafting. A single triage Skill makes stages hard to replace and gives no clear
+boundary for invalid intermediate data:
 
 ```text
-sample/
-├── SKILL.md
-├── references/support-ticket-record-contract.md
-├── scripts/run_demo.py
-├── fixtures/
-└── tests/test_demo.py
+caller -> one large triage Skill
 ```
 
-## 一眼看懂 / At a glance
+## 2. 模式一句话 / Pattern in one sentence
 
-**一句话：** 一个有版本的记录依次经过多个可替换 Filter，每个阶段通过显式 Pipe 交接。
+**Pass one versioned record through independently replaceable Filters connected
+by explicit Pipes.**
 
 ```mermaid
 flowchart LR
-    S[Data Source\nraw ticket] --> P1[Pipe\nsupport-ticket.v1]
-    P1 --> N[normalize]
-    N --> P2[Pipe]
-    P2 --> R[redact]
-    R --> P3[Pipe]
-    P3 --> C[classify]
-    C --> P4[Pipe]
-    P4 --> Q[prioritize]
-    Q --> P5[Pipe]
-    P5 --> D[draft]
-    D --> K[Data Sink\nfinal record + trace]
+    S[Data Source] --> N[normalize]
+    N --> P1[Pipe\nsupport-ticket.v1]
+    P1 --> R[redact]
+    R --> P2[Pipe]
+    P2 --> C[classify]
+    C --> P3[Pipe]
+    P3 --> Q[prioritize]
+    Q --> P4[Pipe]
+    P4 --> D[draft]
+    D --> K[Data Sink]
 ```
 
-| | Case Skill（上游案例） | Mock sample（本仓库构造） |
-| --- | --- | --- |
-| **是哪一个** | [OpenMontage animated-explainer pipeline](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/pipeline_defs/animated-explainer.yaml) + [pipeline loader](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/lib/pipeline_loader.py) | [`support-ticket-triage`](sample/SKILL.md) |
-| **哪里体现模式** | manifest 声明顺序化 stage Skills，loader 读取并物化管线 | 五个 Filter 共享 `support-ticket.v1`，Pipe 在每个边界校验并复制记录 |
-| **怎么运行** | 由 OpenMontage pipeline loader 驱动 | `python3 sample/scripts/run_demo.py` |
+## 3. 现实中的 Skill / Existing Skill case
 
-**看哪三个文件：** `sample/SKILL.md`、`sample/references/support-ticket-record-contract.md`、`sample/scripts/run_demo.py`。
+**Case Skill:** [OpenMontage animated-explainer pipeline](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/pipeline_defs/animated-explainer.yaml) and its [pipeline loader](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/lib/pipeline_loader.py). **Status: candidate correspondence.**
 
-## 直接看实现 / Direct evidence
-
-### Case Skill：上游实现的关键行为
-
-下面是根据固定版本的 manifest、loader 和 stage Skill 路径整理的规范化片段，用来标出模式信号：
+What the case does: a manifest declares ordered stage Skills and the loader
+passes produced artifacts through that order.
 
 ```text
-load animated-explainer.yaml
-for stage in declared order:
-  resolve the stage Skill
-  pass the produced artifact to the next stage
+manifest -> stage Skill 1 -> stage Skill 2 -> stage Skill 3 -> artifact
 ```
 
-证据状态保持为 **candidate correspondence**：公开文件显示了顺序化阶段和产物流，完整共享记录契约与运行时隔离仍需进一步验证。
+The source shows ordered stages and artifact flow. A complete shared Pipe
+contract remains unverified.
 
-### Mock sample：本仓库实际 Skill
+## 4. 本仓库的 Mock Skill / Mock Skill
+
+Our concrete example is `support-ticket-triage`:
+
+```text
+patterns/pipes-and-filters/sample/
+├── SKILL.md                                  # runner and pipeline contract
+├── references/support-ticket-record-contract.md
+├── scripts/run_demo.py
+├── fixtures/valid/urgent-access.json
+└── tests/test_demo.py
+```
+
+The important part of [`sample/SKILL.md`](sample/SKILL.md) is:
 
 ```markdown
-<!-- Pipes and Filters: the runner owns order; Filters own one transformation. -->
-## Agent mode
-1. Admit one bounded ticket and create `support-ticket.v1`.
-2. Run `normalize`, `redact`, `classify`, `prioritize`, `draft` in order.
-3. Validate and deep-copy the record before and after every Filter.
-4. Stop at the first invalid result and identify its stage.
+<!-- Pipes and Filters: the runner owns order; each Filter owns one transform. -->
+normalize -> redact -> classify -> prioritize -> draft
+Validate and deep-copy `support-ticket.v1` before and after every Filter.
+Stop at the first invalid result and identify its stage.
 ```
 
-这段 Skill 直接对应 Data Source、Filter、Pipe 和 Data Sink 四个角色。
+## 5. 角色对应 / Role mapping
 
-## Pattern record
+| POSA role | Skillware carrier in this example |
+| --- | --- |
+| Data Source | ticket admission and record creation |
+| Filter | five transformation Skills |
+| Pipe | `support-ticket.v1` validation/copy boundary |
+| Data Sink | final record and canonical trace |
 
-This standalone record transfers the Pattern-Oriented Software Architecture
-Pipes and Filters pattern to a Support Ticket Triage Skillware Unit. The local
-sample contains five independently addressable Filters and a versioned record
-contract; it does not claim GoF status.
-
-- [English definition](definition.md)
-- [中文定义](definition.zh-CN.md)
-- [Participant map](participant-map.yaml)
-- [Open-source correspondence](correspondence.md)
-- [Runnable sample](sample/)
-- [Misuse discriminator](misuse/explanation.md)
-
-## Case Skill: upstream implementation
-
-**Case Skill:** OpenMontage's `animated-explainer.yaml` and its pipeline loader.
-The pinned files show a declared stage sequence and stage Skill resolution;
-the evidence record explains why the claim remains candidate-level.
-
-## Mock sample Skill: this repository
-
-**Mock Skill:** [`sample/SKILL.md`](sample/SKILL.md), named
-`support-ticket-triage`. It demonstrates ordered, replaceable Filters with
-strict boundary contracts. Run `python3 sample/scripts/run_demo.py` and inspect
-the focused tests under [`sample/tests/`](sample/tests/).
-
-## Learn the pattern
+## 6. 什么时候使用 / When to use
 
 | Use Pipes and Filters when | Keep it simple when |
 | --- | --- |
-| stages have a stable shared record and need independent replacement | the work is one indivisible operation |
-| order, validation, and failure attribution should be explicit | stages need rich cyclic collaboration |
+| stages share a stable record and need independent replacement | the work is one indivisible operation |
+| order and failure attribution should be explicit | stages need rich cyclic collaboration |
+| each boundary can validate the same contract | boundary copying costs more than isolation helps |
 
-The decisive check is independent stage ownership plus an explicit boundary
-contract. A monolithic function with five headings does not provide that check.
+## 7. 运行与验证 / Run and inspect
+
+```bash
+python3 sample/scripts/run_demo.py
+python3 -m unittest discover -s sample/tests -v
+```
+
+Read the [complete sample](sample/), [participant map](participant-map.yaml),
+[definition](definition.md), and [misuse case](misuse/explanation.md).
+
+## 8. 证据边界 / Evidence boundary
+
+The local sample verifies five replaceable Filters, explicit boundaries, and
+fail-stop behavior. OpenMontage remains candidate correspondence; the local
+oracle does not establish distributed buffering, backpressure, or runtime
+equivalence.

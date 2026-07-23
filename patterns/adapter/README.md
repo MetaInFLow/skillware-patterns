@@ -1,136 +1,112 @@
-# 适配器模式（Adapter）
+# 适配器模式 / Adapter
 
-## 先看实际 Skill / Start here
+> **Scenario / 场景:** Multi-Tracker Issue Publisher / 多问题追踪器发布
 
-**Case Skill（规范化片段）：**
+## 1. 先看问题 / The problem
 
-```text
-# upstream gstack behavior sketch
-canonical Skill template -> Claude binding
-                          -> Codex binding
-```
-
-**Mock Skill（本仓库）：**
-
-```markdown
-<!-- sample/SKILL.md: target changes; canonical meaning stays. -->
-target = github | jira | linear
-canonical issue -> target binding -> offline request descriptor
-```
+A task caller has one issue to publish, while GitHub, Jira, and Linear expect
+different request shapes. Duplicating the publishing Skill for each tracker
+causes the canonical issue meaning to drift:
 
 ```text
-sample/
-├── SKILL.md
-├── references/tracker-contracts.md
+one issue rule -> GitHub-specific Skill
+               -> Jira-specific Skill
+               -> Linear-specific Skill
+```
+
+## 2. 模式一句话 / Pattern in one sentence
+
+**Keep one canonical Skill contract and translate it at the boundary required by
+each target system.**
+
+```mermaid
+flowchart LR
+    C[Caller] --> T[Canonical issue\nTarget contract]
+    T --> G[GitHub Adapter]
+    T --> J[Jira Adapter]
+    T --> L[Linear Adapter]
+    G --> R1[REST descriptor]
+    J --> R2[REST + ADF descriptor]
+    L --> R3[GraphQL descriptor]
+```
+
+The canonical issue stays stable; only the target representation changes.
+
+## 3. 现实中的 Skill / Existing Skill case
+
+**Case Skill:** [gstack `SKILL.md.tmpl`](https://github.com/garrytan/gstack/blob/11de390be1be6849eb9a15f91ff4922dd16c589a/SKILL.md.tmpl), its [generator](https://github.com/garrytan/gstack/blob/11de390be1be6849eb9a15f91ff4922dd16c589a/scripts/gen-skill-docs.ts), and [Host bindings](https://github.com/garrytan/gstack/tree/11de390be1be6849eb9a15f91ff4922dd16c589a/hosts). **Status: confirmed correspondence.**
+
+What the case does: one Skill template is rendered into Host-specific surfaces
+such as Claude and Codex bindings.
+
+```text
+canonical Skill template
+  -> Claude binding
+  -> Codex binding
+```
+
+The pattern signal is translation at the Host boundary, with the canonical
+behavioral contract kept in one place.
+
+## 4. 本仓库的 Mock Skill / Mock Skill
+
+Our concrete example is `multi-tracker-issue-publisher`:
+
+```text
+patterns/adapter/sample/
+├── SKILL.md                              # canonical issue contract
+├── references/tracker-contracts.md       # target request contracts
+├── child-skills/
+│   ├── github/SKILL.md                   # Adapter 1
+│   ├── jira/SKILL.md                     # Adapter 2
+│   └── linear/SKILL.md                   # Adapter 3
 ├── scripts/run_demo.py
 └── tests/test_demo.py
 ```
 
-## 一眼看懂 / At a glance
-
-**一句话：** 同一个规范 Skill 不变，只把它翻译成不同 Host 或供应商需要的请求格式。
-
-```mermaid
-flowchart LR
-    C[Caller] --> A[Canonical issue]
-    A --> G[GitHub Adapter]
-    A --> J[Jira Adapter]
-    A --> L[Linear Adapter]
-    G --> R1[REST request]
-    J --> R2[REST + ADF request]
-    L --> R3[GraphQL request]
-```
-
-| | Case Skill（上游案例） | Mock sample（本仓库构造） |
-| --- | --- | --- |
-| **是哪一个** | [gstack Skill template](https://github.com/garrytan/gstack/blob/11de390be1be6849eb9a15f91ff4922dd16c589a/SKILL.md.tmpl) + [Host bindings](https://github.com/garrytan/gstack/tree/11de390be1be6849eb9a15f91ff4922dd16c589a/hosts) | [`multi-tracker-issue-publisher`](sample/SKILL.md) |
-| **哪里体现模式** | 一个规范 Skill 被翻译成 Claude/Codex 等 Host 的不同入口 | 一个 canonical issue 被翻译成 GitHub/Jira/Linear 三种请求 |
-| **怎么运行** | 由 gstack setup 生成 Host Skill | `python3 sample/scripts/run_demo.py` |
-
-**看哪三个文件：** `sample/SKILL.md`、`sample/scripts/run_demo.py`、`sample/references/tracker-contracts.md`。
-
-## 直接看实现 / Direct evidence
-
-### Case Skill：上游实现的关键行为
-
-下面是根据固定版本 gstack template、生成器和 Host bindings 整理的**规范化行为片段**，不是上游原文复制：
-
-```text
-# normalized Case Skill behavior
-canonical Skill template
-  ├── Claude binding: host path + frontmatter + tool names
-  └── Codex binding:  host path + frontmatter + tool names
-
-generate(binding, canonical_skill) -> host_specific_skill
-```
-
-模式信号：同一个行为契约被翻译到不同 Host 接口，语义保持不变。
-
-### Mock sample：本仓库实际 Skill
-
-```text
-patterns/adapter/sample/
-├── SKILL.md                         # canonical issue contract
-├── references/tracker-contracts.md  # GitHub/Jira/Linear target contracts
-├── scripts/run_demo.py              # adapt_github / adapt_jira / adapt_linear
-├── fixtures/valid/                  # one fixture per target
-└── tests/test_demo.py               # translation + rejection checks
-```
+The important part of [`sample/SKILL.md`](sample/SKILL.md) is:
 
 ```markdown
-<!-- Adapter: preserve canonical meaning, change only target representation. -->
-## Target bindings
-
-1. GitHub: build `POST /repos/{owner}/{repo}/issues`.
-2. Jira: build `POST /rest/api/3/issue` with ADF description.
-3. Linear: build the `issueCreate` GraphQL mutation.
-
-Keep `id` and `severity` in the descriptor. Do not convert severity into
-vendor priority, and never send a network request in this oracle.
+<!-- Adapter: preserve issue identity and severity; change target syntax. -->
+Target is one of `github`, `jira`, or `linear`.
+1. validate the canonical issue
+2. select the target binding
+3. build the target request descriptor
+4. return the descriptor without making a network call
 ```
 
-这段 mock Skill 直接对应 Adapter 的核心：一个 canonical issue，三个目标格式，语义不漂移。
+Input contains one canonical issue with `id`, `title`, `body`, and `severity`.
+The output is a versioned offline descriptor for the selected tracker.
 
-This record transfers the Gang of Four Adapter pattern to Skillware. It maps
-the canonical issue-publishing Skill to the Adaptee, each tracker contract to a
-Target, each thin tracker binding to an Adapter, and the task caller to the
-Client.
+## 5. 角色对应 / Role mapping
 
-The standalone sample is **Multi-Tracker Issue Publisher / 多问题追踪器发布**.
-Its root Skill accepts one canonical issue plus exact target context, then
-builds an offline, versioned GitHub REST, Jira REST v3, or Linear GraphQL
-request descriptor without changing identity or severity meaning.
+| GoF role | Skillware carrier in this example |
+| --- | --- |
+| Client | task caller |
+| Target | canonical issue-publisher contract |
+| Adapter | `github`, `jira`, or `linear` binding Skill |
+| Adaptee | target tracker REST or GraphQL request contract |
 
-- [English definition](definition.md)
-- [中文定义](definition.zh-CN.md)
-- [Participant map](participant-map.yaml)
-- [Open-source correspondence](correspondence.md)
-- [Runnable sample](sample/)
-- [Misuse discriminator](misuse/explanation.md)
+## 6. 什么时候使用 / When to use
 
-## Case Skill: upstream implementation
+| Use Adapter when | Keep it simple when |
+| --- | --- |
+| one behavioral contract meets incompatible Host or vendor interfaces | the target already accepts the canonical contract |
+| target-specific translation should stay at the boundary | translation would change the intended meaning |
+| new targets should not fork the root Skill | there is only one stable target |
 
-**Case Skill:** the generated gstack Skill surface from `SKILL.md.tmpl`.
+## 7. 运行与验证 / Run and inspect
 
-The high-star comparison is [garrytan/gstack](https://github.com/garrytan/gstack):
-`SKILL.md.tmpl` is translated by `scripts/gen-skill-docs.ts` into Host-specific
-surfaces such as `hosts/claude.ts` and `hosts/codex.ts`, with a Codex invocation
-test in `test/codex-e2e.test.ts`. The pinned paths and correspondence boundary
-are in the [upstream evidence record](../../docs/upstream-skill-evidence.md#adapter--适配器模式).
-The local demo contains complete GitHub, Jira, and Linear child bindings under
-[`sample/child-skills/`](sample/child-skills/).
+```bash
+python3 sample/scripts/run_demo.py
+python3 -m unittest discover -s sample/tests -v
+```
 
-## Mock sample Skill: this repository
+Read the [complete sample](sample/), [participant map](participant-map.yaml),
+[definition](definition.md), and [misuse case](misuse/explanation.md).
 
-**Mock Skill:** [`sample/SKILL.md`](sample/SKILL.md), named
-`multi-tracker-issue-publisher`. It accepts one canonical issue and emits an
-offline descriptor for GitHub, Jira, or Linear.
+## 8. 证据边界 / Evidence boundary
 
-The Adapter idea is implemented by preserving canonical issue semantics while
-`adapt_github`, `adapt_jira`, and `adapt_linear` translate the contract into
-target-specific request shapes. Run `python3 sample/scripts/run_demo.py`; the
-role mapping is in [`participant-map.yaml`](participant-map.yaml).
-
-The constructive sample and the gstack ecosystem correspondence are separate
-evidence claims. Neither establishes ecosystem frequency, cross-Host runtime
-parity, or an automatic improvement in quality.
+The local oracle verifies descriptor translation and semantic preservation. The
+gstack correspondence records source-level bindings; runtime parity with each
+Host and tracker remains outside this sample.

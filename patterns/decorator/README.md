@@ -1,138 +1,106 @@
-# Decorator / 装饰模式
+# 装饰模式 / Decorator
 
-## 先看实际 Skill / Start here
+> **Scenario / 场景:** Contract Review Enhancers / 合同审查增强
 
-**Case Skill（规范化片段）：**
+## 1. 先看问题 / The problem
 
-```text
-# upstream Caveman behavior sketch
-existing Host/session surface -> activation hook -> added behavior
-```
-
-**Mock Skill（本仓库）：**
-
-```markdown
-<!-- sample/SKILL.md: wrappers preserve the Component interface. -->
-base review -> privacy wrapper -> citation wrapper
-each wrapper delegates once and appends one finding
-```
+A contract review needs a base review plus optional privacy, citation, and
+compliance checks. Copying the base Skill into every combination creates many
+variants:
 
 ```text
-sample/
-├── SKILL.md
-├── child-skills/{base-contract-review,privacy-check,citation-check,compliance-check}/SKILL.md
-├── references/contract-review-component.md
-└── tests/test_demo.py
+base review
+base + privacy
+base + citation
+base + privacy + citation + compliance
 ```
 
-## 一眼看懂 / At a glance
+## 2. 模式一句话 / Pattern in one sentence
 
-**一句话：** 在不改变原 Skill 接口的前提下，外面再包一层额外能力。
+**Wrap one shared Component contract to add behavior while preserving the
+original request and result shape.**
 
 ```mermaid
 flowchart LR
-    C[Caller] --> P[Privacy decorator]
-    P --> Q[Citation decorator]
-    Q --> B[Base contract review]
-    B --> O[Same summary + findings]
+    C[Caller] --> P[Privacy Decorator]
+    P --> Q[Citation Decorator]
+    Q --> B[Base Review Component]
+    B --> O[same review.v1\n+ordered findings]
 ```
 
-| | Case Skill（上游案例） | Mock sample（本仓库构造） |
-| --- | --- | --- |
-| **是哪一个** | [Caveman Skill](https://github.com/JuliusBrussee/caveman/blob/25d22f864ad68cc447a4cb93aefde918aa4aec9f/skills/caveman/SKILL.md) + [activation hook](https://github.com/JuliusBrussee/caveman/blob/25d22f864ad68cc447a4cb93aefde918aa4aec9f/src/hooks/caveman-activate.js) | [`contract-review-enhancers`](sample/SKILL.md) |
-| **哪里体现模式** | activation hook 在现有 Host 交互外增加行为（候选对应） | Privacy/Citation/Compliance wrapper 委托 Base Component 并追加 finding |
-| **怎么运行** | 由 Caveman activation hook 触发 | `python3 sample/scripts/run_demo.py --decorators privacy-check,citation-check` |
+Decorators can be stacked in the requested order.
 
-**看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/contract-review-component.md`。
+## 3. 现实中的 Skill / Existing Skill case
 
-## 直接看实现 / Direct evidence
+**Case Skill:** [Caveman Skill](https://github.com/JuliusBrussee/caveman/blob/25d22f864ad68cc447a4cb93aefde918aa4aec9f/skills/caveman/SKILL.md) and its [activation hook](https://github.com/JuliusBrussee/caveman/blob/25d22f864ad68cc447a4cb93aefde918aa4aec9f/src/hooks/caveman-activate.js). **Status: candidate correspondence.**
 
-### Case Skill：上游实现的关键行为
-
-下面是根据固定版本 Caveman activation hook 和 Caveman Skill 整理的**规范化行为片段**，不是上游原文复制：
+What the case does: an activation hook adds behavior around an existing Skill
+interaction surface.
 
 ```text
-# normalized Case Skill behavior
-existing Host/session interaction
-  -> caveman-activate.js adds activation behavior
-  -> skills/caveman/SKILL.md remains the user-facing surface
+Host activation -> caveman wrapper -> existing Skill interaction
 ```
 
-模式信号：在既有交互表面外增加行为。本案例没有充分证明标准 Component/Decorator 结果契约，因此保持 candidate correspondence。
+The paths show wrapping at activation. A complete GoF Component/Decorator
+contract is not declared in the inspected release.
 
-### Mock sample：本仓库实际 Skill
+## 4. 本仓库的 Mock Skill / Mock Skill
+
+Our concrete example is `contract-review-enhancers`:
 
 ```text
 patterns/decorator/sample/
-├── SKILL.md                         # wrapper composition policy
+├── SKILL.md                                  # root composition
 ├── child-skills/
-│   ├── base-contract-review/SKILL.md # ConcreteComponent
-│   ├── privacy-check/SKILL.md         # ConcreteDecorator
-│   ├── citation-check/SKILL.md        # ConcreteDecorator
-│   └── compliance-check/SKILL.md      # ConcreteDecorator
+│   ├── base-review/SKILL.md                   # Component
+│   ├── privacy-check/SKILL.md                 # Decorator 1
+│   ├── citation-check/SKILL.md                # Decorator 2
+│   └── compliance-check/SKILL.md              # Decorator 3
 ├── references/contract-review-component.md
-└── scripts/run_demo.py               # wrapper oracle
+├── scripts/run_demo.py
+└── tests/test_demo.py
 ```
+
+The important part of [`sample/SKILL.md`](sample/SKILL.md) is:
 
 ```markdown
-<!-- Decorator: delegate once, preserve the Component contract, add one concern. -->
-1. Start with `base_review`.
-2. Wrap it with the requested decorators in order.
-3. Invoke the resulting Component once.
-4. Preserve `summary` and append only the wrapper's finding.
+<!-- Decorator: every wrapper delegates to the same review.v1 Component. -->
+base = Base Contract Review
+for decorator in requested order:
+    base = decorator.wrap(base)
+invoke the final Component once
+return the same `summary` and `findings` fields
 ```
 
-这段 mock Skill 直接对应 Decorator 的核心：包装而不替换，叠加而不复制基础逻辑。
+## 5. 角色对应 / Role mapping
 
-This record transfers the canonical Gang of Four Decorator pattern to Skillware
-through Contract Review Enhancers / 合同审查增强. `contract-review-v1` is the
-Component, Base Contract Review is the ConcreteComponent, the shared wrapper
-protocol is the Decorator, and Privacy Check, Citation Check, and optional
-Compliance Check are ConcreteDecorators.
+| GoF role | Skillware carrier in this example |
+| --- | --- |
+| Component | `contract-review-v1` base Skill contract |
+| ConcreteComponent | `base-review` Skill |
+| Decorator | privacy, citation, and compliance wrapper Skills |
+| Client | contract-review caller |
 
-The default composition is
-`with_citation_check(with_privacy_check(base_review))`. It accepts exactly
-`text` and returns exactly `summary` and `findings`; base findings precede
-privacy, which precedes citation. Compliance is available but excluded from
-that exact plan default. Reversing nesting reverses only the enabled
-enhancements. Every wrapper delegates once, preserves the wrapped summary and
-failure, copies values at participant boundaries, and suppresses an already
-present identical `(type, message)` finding.
+## 6. 什么时候使用 / When to use
 
-- [English definition](definition.md)
-- [中文定义](definition.zh-CN.md)
-- [Participant map](participant-map.yaml)
-- [Correspondence assessment](correspondence.md)
-- [Runnable sample](sample/)
-- [Misuse discriminator](misuse/explanation.md)
+| Use Decorator when | Keep it simple when |
+| --- | --- |
+| optional responsibilities can be stacked around one contract | every caller needs one fixed behavior |
+| combinations would otherwise produce many Skill variants | the wrapper changes the public contract |
+| wrapper order has a documented meaning | inheritance or one simple rule is clearer |
 
-## Case Skill: upstream implementation
+## 7. 运行与验证 / Run and inspect
 
-**Case Skill:** Caveman's `skills/caveman/SKILL.md`, activated and wrapped by
-`src/hooks/caveman-activate.js`.
+```bash
+python3 sample/scripts/run_demo.py --decorators privacy-check,citation-check
+python3 -m unittest discover -s sample/tests -v
+```
 
-The high-star comparison is [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman):
-`src/hooks/caveman-activate.js` adds activation/session behavior around the
-`skills/caveman/SKILL.md` surface. This is candidate correspondence because
-the common Component result and explicit delegate boundary are not fully
-observable; see the [pinned evidence record](../../docs/upstream-skill-evidence.md#decorator--装饰模式).
-The local demo gives each wrapper a complete contract-preserving Skill.
+Read the [complete sample](sample/), [participant map](participant-map.yaml),
+[definition](definition.md), and [misuse case](misuse/explanation.md).
 
-## Mock sample Skill: this repository
+## 8. 证据边界 / Evidence boundary
 
-**Mock Skill:** [`sample/SKILL.md`](sample/SKILL.md), named
-`contract-review-enhancers`. It starts with `base-contract-review` and wraps
-it with `privacy-check`, `citation-check`, or `compliance-check`.
-
-The Decorator idea is implemented by each wrapper delegating once, preserving
-`contract-review-v1`, and adding only its own finding. Run
-`python3 sample/scripts/run_demo.py --decorators privacy-check,citation-check`;
-the mapping is in [`participant-map.yaml`](participant-map.yaml).
-
-The local sample is **constructive** evidence. Caveman is a **candidate
-correspondence** at one fixed public revision: its activation hook adds
-behavior around session start while preserving its process/stdout Host
-interaction surface, but the inspected paths do not establish complete GoF
-Component contract equivalence or runtime behavior. Neither claim establishes
-ecosystem frequency, legal review quality, cross-Host equivalence, Agent
-Runtime interpretation, or comparative benefit.
+The local sample verifies wrapper order, one base invocation, and contract
+preservation. Caveman remains candidate correspondence; its hook does not prove
+full Component/Decorator substitutability.

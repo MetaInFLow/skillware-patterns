@@ -1,127 +1,100 @@
-# Template Method
+# 模板方法模式 / Template Method
 
-## 先看实际 Skill / Start here
+> **Scenario / 场景:** Enterprise RFP Response / 企业 RFP 响应
 
-**Case Skill（规范化片段）：**
+## 1. 先看问题 / The problem
 
-```text
-# upstream Superpowers behavior sketch
-fixed ordered workflow -> task-specific content at bounded steps
-```
+Every enterprise RFP response needs extraction, gap analysis, drafting, review,
+and approval in that order. Sector-specific expertise changes the content, not
+the mandatory sequence. Duplicated workflows drift in ordering and quality
+gates.
 
-**Mock Skill（本仓库）：**
+## 2. 模式一句话 / Pattern in one sentence
 
-```markdown
-<!-- sample/SKILL.md: only apply-domain-hook is specialized. -->
-extract -> gaps -> apply-domain-hook -> draft -> quality-check
-```
-
-```text
-sample/
-├── SKILL.md
-├── child-skills/{healthcare,finance}/SKILL.md
-├── references/rfp-domain-hook-contract.md
-└── tests/test_demo.py
-```
-
-## 一眼看懂 / At a glance
-
-**一句话：** 根 Skill 固定流程顺序，子 Skill 只能实现指定步骤。
+**A root Skill fixes the workflow skeleton and delegates bounded steps to a
+specialized hook Skill.**
 
 ```mermaid
 flowchart LR
-    R[Root template Skill] --> A[1 Extract]
-    A --> B[2 Analyze gaps]
-    B --> H[3 Domain hook]
-    H --> D[4 Draft]
-    D --> Q[5 Quality check]
-    H -.-> S[Healthcare / Finance child Skill]
+    R[Root template Skill] --> E[extract]
+    E --> G[gap analysis]
+    G --> D[draft]
+    D --> H[domain hook]
+    H --> Q[quality check]
+    Q --> O[response.v1]
 ```
 
-| | Case Skill（上游案例） | Mock sample（本仓库构造） |
-| --- | --- | --- |
-| **是哪一个** | [Superpowers brainstorming](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/skills/brainstorming/SKILL.md) + [TDD](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/skills/test-driven-development/SKILL.md) | [`enterprise-rfp-response`](sample/SKILL.md) |
-| **哪里体现模式** | Skills 固定有序工作流，内容随任务变化（候选对应） | 五个阶段顺序固定，只有 `apply-domain-hook` 可替换 |
-| **怎么运行** | 由 Superpowers workflow Skill 驱动 | `python3 sample/scripts/run_demo.py` |
+The root owns order; the ConcreteClass supplies only the declared hook.
 
-**看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/rfp-domain-hook-contract.md`。
+## 3. 现实中的 Skill / Existing Skill case
 
-## 直接看实现 / Direct evidence
+**Case Skill:** [Superpowers brainstorming](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/skills/brainstorming/SKILL.md) and [test-driven-development](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/skills/test-driven-development/SKILL.md). **Status: candidate correspondence.**
 
-### Case Skill：上游实现的关键行为
-
-下面是根据固定版本 Superpowers brainstorming/TDD Skills 整理的**规范化行为片段**，不是上游原文复制：
+What the case does: both Skills prescribe ordered work with bounded points at
+which task-specific content enters the process.
 
 ```text
-# normalized Case Skill behavior
-fixed workflow order
-  -> task-specific content enters bounded steps
-  -> later steps consume the ordered result
+fixed workflow guidance -> task-specific content -> fixed verification steps
 ```
 
-模式信号：流程骨架固定，任务内容在指定步骤变化。本案例没有充分证明 ConcreteClass hook 契约，因此保持 candidate correspondence。
+The source shows workflow skeletons. A complete AbstractClass/ConcreteClass hook
+contract remains unverified.
 
-### Mock sample：本仓库实际 Skill
+## 4. 本仓库的 Mock Skill / Mock Skill
+
+Our concrete example is `enterprise-rfp-response`:
 
 ```text
 patterns/template-method/sample/
-├── SKILL.md                         # AbstractClass + invariant skeleton
+├── SKILL.md                                  # AbstractClass template
 ├── child-skills/
-│   ├── healthcare/SKILL.md           # ConcreteClass
-│   └── finance/SKILL.md              # ConcreteClass
+│   ├── healthcare-hook/SKILL.md               # ConcreteClass A
+│   └── finance-hook/SKILL.md                  # ConcreteClass B
 ├── references/rfp-domain-hook-contract.md
-└── scripts/run_demo.py               # hook + ordering oracle
+├── scripts/run_demo.py
+└── tests/test_demo.py
 ```
+
+The important part of [`sample/SKILL.md`](sample/SKILL.md) is:
 
 ```markdown
-<!-- Template Method: child Skills cannot reorder the root workflow. -->
-1. extract-requirements
-2. analyze-gaps
-3. apply-domain-hook       <!-- only variation point -->
-4. draft-response
-5. quality-check
+<!-- Template Method: only apply-domain-hook is specialized. -->
+1. extract requirements
+2. identify gaps
+3. draft the response
+4. apply one validated sector hook
+5. run the quality check
 ```
 
-这段 mock Skill 直接对应 Template Method 的核心：根 Skill 固定算法，子 Skill 只实现一个钩子。
+## 5. 角色对应 / Role mapping
 
-Template Method fixes an algorithm skeleton in an AbstractClass while allowing
-a ConcreteClass to redefine selected operations without changing the sequence.
+| GoF role | Skillware carrier in this example |
+| --- | --- |
+| AbstractClass | root RFP response Skill |
+| Template Method | the five-step ordered workflow |
+| ConcreteClass | healthcare or finance hook Skill |
+| Primitive operation | `apply-domain-hook` |
 
-This record constructs an Enterprise RFP Response workflow. The root owns
-requirement extraction, gap analysis, one bounded domain hook, drafting, and
-quality checking in exact order. Healthcare and Finance specialize only the
-hook through one contract.
+## 6. 什么时候使用 / When to use
 
-- [Definition](definition.md)
-- [中文定义](definition.zh-CN.md)
-- [Participant map](participant-map.yaml)
-- [Correspondence](correspondence.md)
-- [Constructive sample](sample/)
-- [Misuse](misuse/explanation.md)
+| Use Template Method when | Keep it simple when |
+| --- | --- |
+| order and quality gates must stay fixed | the full workflow varies together |
+| only a few bounded steps vary by domain | there are many unrelated branches |
+| the hook contract can be tested independently | no specialization point is needed |
 
-## Case Skill: upstream implementation
+## 7. 运行与验证 / Run and inspect
 
-**Case Skills:** Superpowers' `skills/brainstorming/SKILL.md` and
-`skills/test-driven-development/SKILL.md`.
+```bash
+python3 sample/scripts/run_demo.py
+python3 -m unittest discover -s sample/tests -v
+```
 
-The high-star comparison is [obra/superpowers](https://github.com/obra/superpowers):
-`skills/brainstorming/SKILL.md` and
-`skills/test-driven-development/SKILL.md` prescribe invariant ordered
-workflows with bounded task-specific content. This is candidate correspondence
-because a formal ConcreteClass hook contract is not visible in those files; see
-the [pinned evidence record](../../docs/upstream-skill-evidence.md#template-method--模板方法).
-The local demo exposes the hook as a complete healthcare or finance child Skill.
+Read the [complete sample](sample/), [participant map](participant-map.yaml),
+[definition](definition.md), and [misuse case](misuse/explanation.md).
 
-## Mock sample Skill: this repository
+## 8. 证据边界 / Evidence boundary
 
-**Mock Skill:** [`sample/SKILL.md`](sample/SKILL.md), named
-`enterprise-rfp-response`. It fixes five stages and allows only the
-`healthcare` or `finance` child Skill to implement `apply-domain-hook`.
-
-The Template Method idea is implemented by keeping stage order in the root
-Skill while varying one bounded hook. Run
-`python3 sample/scripts/run_demo.py`; the mapping is in
-[`participant-map.yaml`](participant-map.yaml).
-
-The sample is constructive evidence, not proof of production RFP quality,
-ecosystem prevalence, or Agent Runtime interpretation.
+The local sample verifies fixed order and hook limits. The Superpowers paths are
+candidate correspondence and do not establish a complete Template Method role
+mapping or domain quality outcome.

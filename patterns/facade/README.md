@@ -1,36 +1,25 @@
-# 外观模式（Facade）
+# 外观模式 / Facade
 
-## 先看实际 Skill / Start here
+> **Scenario / 场景:** Production Incident Response / 生产事故响应
 
-**Case Skill（规范化片段）：**
+## 1. 先看问题 / The problem
 
-```text
-# upstream behavior sketch
-entry policy -> discover specialists -> select -> invoke
-```
-
-**Mock Skill（本仓库）：**
-
-```markdown
-<!-- sample/SKILL.md: one public operation hides three children. -->
-For `5xx spike`:
-1. diagnose
-2. assess impact
-3. draft communication
-4. return one stable incident result
-```
+An on-call operator sees a `5xx spike` and needs one incident response. Without
+Facade, every caller must know the specialist sequence:
 
 ```text
-sample/
-├── SKILL.md
-├── child-skills/{diagnose,assess-impact,draft-communication}/SKILL.md
-├── scripts/run_demo.py
-└── tests/test_demo.py
+caller -> diagnose
+caller -> assess-impact
+caller -> draft-communication
 ```
 
-## 一眼看懂 / At a glance
+That spreads ordering, intermediate-result passing, and fallback behavior across
+callers.
 
-**一句话：** 调用者只面对一个入口 Skill，入口 Skill 隐藏多个专家 Skill 的调用顺序。
+## 2. 模式一句话 / Pattern in one sentence
+
+**One public Skill hides a group of specialist Skills behind one stable request
+and result contract.**
 
 ```mermaid
 flowchart LR
@@ -38,101 +27,88 @@ flowchart LR
     F --> D[diagnose]
     F --> I[assess-impact]
     F --> M[draft-communication]
-    F --> O[One stable result]
+    F --> O[one stable result]
 ```
 
-| | Case Skill（上游案例） | Mock sample（本仓库构造） |
-| --- | --- | --- |
-| **是哪一个** | [Superpowers `using-superpowers`](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/skills/using-superpowers/SKILL.md) | [`incident-response-facade`](sample/SKILL.md) |
-| **哪里体现模式** | 一个入口策略负责发现、选择并调用其他 Skills | 一个入口 Skill 编排三个专家 Skill，并隐藏内部顺序 |
-| **怎么运行** | 上游 Host hook 激活它 | `python3 sample/scripts/run_demo.py` |
+The caller chooses the operation; the Facade owns the internal sequence.
 
-**看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`participant-map.yaml`。
+## 3. 现实中的 Skill / Existing Skill case
 
-## 直接看实现 / Direct evidence
+**Case Skill:** [Superpowers `using-superpowers`](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/skills/using-superpowers/SKILL.md), activated by the pinned [session-start hook](https://github.com/obra/superpowers/tree/896224c4b1879920ab573417e68fd51d2ccc9072/hooks/session-start). **Status: confirmed correspondence.**
 
-### Case Skill：上游实现的关键行为
-
-下面是根据固定版本 `using-superpowers/SKILL.md`、session hook 和 hook 配置整理的**规范化行为片段**，用于直接展示模式信号，不是上游原文复制：
+What the case does: one bootstrap policy discovers the relevant specialist
+Skills, selects them, and invokes them for the caller.
 
 ```text
-# normalized Case Skill behavior
-on session start:
-  load the bootstrap policy                 # one public entry point
-  discover the relevant specialist Skills  # subsystem discovery
-  select and invoke the needed Skills      # caller does not orchestrate them
+session start
+  -> using-superpowers policy
+  -> discover specialist Skills
+  -> select and invoke the needed Skills
 ```
 
-模式信号：一个入口 Skill 负责选择和调用多个专家 Skill。
+The pattern signal is the stable entry policy plus hidden specialist routing.
+The exact pinned paths and claim boundary are in
+[`correspondence.md`](correspondence.md).
 
-### Mock sample：本仓库实际 Skill
+## 4. 本仓库的 Mock Skill / Mock Skill
+
+Our concrete example is `incident-response-facade`:
 
 ```text
 patterns/facade/sample/
-├── SKILL.md                         # root Facade: public incident contract
+├── SKILL.md                                  # public Facade contract
 ├── child-skills/
-│   ├── diagnose/SKILL.md             # subsystem 1
-│   ├── assess-impact/SKILL.md        # subsystem 2
-│   └── draft-communication/SKILL.md  # subsystem 3
-├── scripts/run_demo.py               # deterministic oracle
-└── tests/test_demo.py                # order + fallback checks
+│   ├── diagnose/SKILL.md                      # specialist 1
+│   ├── assess-impact/SKILL.md                 # specialist 2
+│   └── draft-communication/SKILL.md           # specialist 3
+├── scripts/run_demo.py
+└── tests/test_demo.py
 ```
+
+The important part of [`sample/SKILL.md`](sample/SKILL.md) is:
 
 ```markdown
-<!-- Facade: one public operation hides specialist orchestration. -->
-## Orchestration
-
+<!-- Facade: callers see one operation; the root owns child order. -->
 For `5xx spike`:
-1. Use `child-skills/diagnose/SKILL.md`.
-2. Pass its result to `child-skills/assess-impact/SKILL.md`.
-3. Pass the impact result to `child-skills/draft-communication/SKILL.md`.
-4. Return only `summary`, `impact`, `actions`, and `communication`.
+1. diagnose the service signal
+2. assess customer impact
+3. draft the status communication
+4. return `summary`, `impact`, `actions`, and `communication`
 
-## Fallback
-
-For an unknown signal, preserve the public result contract and return
-`actions: ["request-human-triage"]`.
+For an unknown signal, keep the same result shape and request human triage.
 ```
 
-这段 mock Skill 直接对应 Facade 的核心：稳定入口、隐藏子系统顺序、统一输出和统一回退。
+Input is `{"service":"checkout-api","signal":"5xx spike"}`. Output always
+has the same four top-level fields, including the fallback case.
 
-This record transfers the Gang of Four Facade pattern to Skillware. It maps a
-stable entry Skill to the Facade, independently addressable specialist Skills
-to the subsystem, and the operator or task-level agent execution to the
-Client.
+## 5. 角色对应 / Role mapping
 
-The standalone sample is **Production Incident Response / 生产事故响应**. Its
-root Skill accepts `service` and `signal`, coordinates three specialist Skills,
-and always returns `summary`, `impact`, `actions`, and `communication`.
+| GoF role | Skillware carrier in this example |
+| --- | --- |
+| Client | operator or task-level caller |
+| Facade | root `sample/SKILL.md` |
+| Subsystem | `diagnose`, `assess-impact`, and `draft-communication` |
 
-- [English definition](definition.md)
-- [中文定义](definition.zh-CN.md)
-- [Participant map](participant-map.yaml)
-- [Open-source correspondence](correspondence.md)
-- [Runnable sample](sample/)
-- [Misuse discriminator](misuse/explanation.md)
+## 6. 什么时候使用 / When to use
 
-## Case Skill: upstream implementation
+| Use Facade when | Keep it simple when |
+| --- | --- |
+| callers repeat the same multi-Skill sequence | there is one operation and one child |
+| one public request/result contract should remain stable | callers genuinely need different workflows |
+| internal Skills should remain replaceable | exposing every child operation is the goal |
 
-**Case Skill:** `obra/superpowers/skills/using-superpowers/SKILL.md`.
+## 7. 运行与验证 / Run and inspect
 
-The high-star comparison is [obra/superpowers](https://github.com/obra/superpowers):
-`skills/using-superpowers/SKILL.md` is the stable entry policy, while
-`hooks/session-start` and `hooks/hooks.json` activate it over specialist Skills.
-The observation is pinned and qualified in the
-[upstream evidence record](../../docs/upstream-skill-evidence.md#facade--外观模式).
-The complete offline local analogue is [`sample/SKILL.md`](sample/SKILL.md).
+```bash
+python3 sample/scripts/run_demo.py
+python3 -m unittest discover -s sample/tests -v
+```
 
-## Mock sample Skill: this repository
+Read the [complete sample](sample/), [participant map](participant-map.yaml),
+[definition](definition.md), and [misuse case](misuse/explanation.md).
 
-**Mock Skill:** [`sample/SKILL.md`](sample/SKILL.md), named
-`incident-response-facade`. It delegates to the `diagnose`, `assess-impact`,
-and `draft-communication` child Skills before returning one stable result.
+## 8. 证据边界 / Evidence boundary
 
-The Facade idea is implemented by hiding specialist order and fallback policy
-behind one public operation. Run `python3 sample/scripts/run_demo.py`; the
-participant relation is recorded in [`participant-map.yaml`](participant-map.yaml).
-
-The constructive sample and the confirmed Superpowers correspondence are
-separate evidence claims. Neither establishes ecosystem frequency,
-cross-Host equivalence, or an improvement in quality.
+The local sample is constructive evidence. The Superpowers paths provide the
+recorded correspondence. Neither claim establishes cross-Host equivalence,
+ecosystem frequency, or automatic quality improvement.

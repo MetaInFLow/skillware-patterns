@@ -1,125 +1,103 @@
-# 备忘录模式（Memento）
+# 备忘录模式 / Memento
 
-## 先看实际 Skill / Start here
+> **Scenario / 场景:** Configuration Migration / 配置迁移回滚
 
-**Case Skill（规范化片段）：**
+## 1. 先看问题 / The problem
 
-```text
-# upstream SkillOpt behavior sketch
-current Skill configuration -> backup -> adopt candidate configuration
-```
-
-**Mock Skill（本仓库）：**
-
-```markdown
-<!-- sample/SKILL.md: Caretaker holds an opaque checkpoint. -->
-capture exact bytes -> write -> restore on write failure
-verified success -> discard checkpoint
-```
+A configuration migration may fail after modifying a file. The migration Skill
+needs exact rollback, while the coordinator should not inspect or duplicate the
+configuration's internal representation:
 
 ```text
-sample/
-├── SKILL.md
-├── child-skills/{configuration-originator,migration-caretaker}/SKILL.md
-├── references/configuration-memento-contract.md
-└── tests/test_demo.py
+migration -> partial write -> failure -> ???
 ```
 
-## 一眼看懂 / At a glance
+## 2. 模式一句话 / Pattern in one sentence
 
-**一句话：** 修改前保存一个外部不可见的旧状态，失败时恢复它。
+**An Originator creates an opaque snapshot; a Caretaker stores it and asks the
+Originator to restore it when needed.**
 
 ```mermaid
-flowchart LR
-    O[Originator\nconfiguration] -->|capture| M[Opaque Memento]
-    C[Caretaker\nmigration Skill] -->|commit / restore| M
-    M -->|exact old bytes| O
+sequenceDiagram
+    participant C as Caretaker
+    participant O as Originator
+    participant M as Memento
+    C->>O: capture()
+    O-->>M: opaque checkpoint
+    C->>O: migrate()
+    C->>O: restore(M) on failure
 ```
 
-| | Case Skill（上游案例） | Mock sample（本仓库构造） |
-| --- | --- | --- |
-| **是哪一个** | [SkillOpt staging.py](https://github.com/microsoft/SkillOpt/blob/b860a5cf88ce75e2bd02ca981ac21fb28cffba83/skillopt_sleep/staging.py) | [`configuration-migration`](sample/SKILL.md) |
-| **哪里体现模式** | adoption 前创建 backup（候选对应，未看到完整 restore） | Originator 创建 opaque checkpoint，Caretaker 在失败时恢复精确字节 |
-| **怎么运行** | 由 SkillOpt staging 流程触发 | `python3 sample/scripts/run_demo.py --fail` |
+The Caretaker manages the checkpoint without reading its internal state.
 
-**看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/configuration-memento-contract.md`。
+## 3. 现实中的 Skill / Existing Skill case
 
-## 直接看实现 / Direct evidence
+**Case Skill:** [Microsoft SkillOpt staging](https://github.com/microsoft/SkillOpt/blob/b860a5cf88ce75e2bd02ca981ac21fb28cffba83/skillopt_sleep/staging.py). **Status: candidate correspondence.**
 
-### Case Skill：上游实现的关键行为
-
-下面是根据固定版本 Microsoft SkillOpt `staging.py` 整理的**规范化行为片段**，不是上游原文复制：
+What the case does: a staging flow backs up a manifest before adopting a
+candidate configuration.
 
 ```text
-# normalized Case Skill behavior
-current Skill configuration
-  -> create backup before adoption
-  -> adopt candidate configuration
+staging configuration -> backup manifest -> adopt candidate
 ```
 
-模式信号：在改变 Skill 配置前保存旧状态。本案例没有看到完整的 owned restore path，因此保持 candidate correspondence。
+The inspected path shows backup before adoption. A complete owned restore
+protocol is not exposed in the frozen file.
 
-### Mock sample：本仓库实际 Skill
+## 4. 本仓库的 Mock Skill / Mock Skill
+
+Our concrete example is `configuration-migration`:
 
 ```text
 patterns/memento/sample/
-├── SKILL.md                         # Caretaker workflow
+├── SKILL.md                                  # migration coordinator
 ├── child-skills/
-│   ├── configuration-originator/SKILL.md
-│   └── migration-caretaker/SKILL.md
+│   ├── originator/SKILL.md                    # owns configuration state
+│   ├── memento/SKILL.md                       # opaque snapshot contract
+│   └── caretaker/SKILL.md                     # stores checkpoint
 ├── references/configuration-memento-contract.md
-└── scripts/run_demo.py               # capture / restore oracle
+├── scripts/run_demo.py
+└── tests/test_demo.py
 ```
+
+The important part of [`sample/SKILL.md`](sample/SKILL.md) is:
 
 ```markdown
-<!-- Memento: the Caretaker holds an opaque checkpoint, never its content. -->
-1. Capture exact prior bytes before mutation.
-2. Prepare the new configuration through the Originator.
-3. Restore after a write-attempt failure.
-4. Discard the checkpoint after verified success.
+<!-- Memento: capture and restore exact bytes without exposing config internals. -->
+1. ask the Originator for one opaque snapshot
+2. let the Caretaker hold the snapshot
+3. attempt the migration
+4. restore the snapshot on failure, then discard it
 ```
 
-这段 mock Skill 直接对应 Memento 的核心：保存状态、隐藏状态、按生命周期恢复或丢弃。
+## 5. 角色对应 / Role mapping
 
-This record transfers the canonical Gang of Four Memento pattern to Skillware.
-It maps the configuration owner to **Originator**, the opaque exact-byte
-checkpoint to **Memento**, and the migration workflow to **Caretaker**.
+| GoF role | Skillware carrier in this example |
+| --- | --- |
+| Originator | configuration migration Skill |
+| Memento | opaque configuration checkpoint |
+| Caretaker | migration coordinator and checkpoint holder |
 
-The standalone sample is **Configuration Migration / 配置迁移回滚**. A
-successful run atomically increments `version` and disposes its checkpoint.
-Preparation and conflict failures discard the checkpoint without restoration,
-so a newer external value is not overwritten. Once a write is attempted, any
-write or post-write validation failure invokes the owned restore path; original
-bytes and portable permission bits are atomically reinstated before the
-original error is re-raised. A failed restore is reported explicitly and never
-mislabeled as recovery.
+## 6. 什么时候使用 / When to use
 
-Start with [`definition.md`](definition.md), inspect the role mapping in
-[`participant-map.yaml`](participant-map.yaml), then run the
-[`sample`](sample/). The open-source record is candidate-only because SkillOpt
-backs up before adoption but does not expose an owned restore path in the
-inspected source.
+| Use Memento when | Keep it simple when |
+| --- | --- |
+| exact prior state must be restored without exposing internals | the state is already a small public value object |
+| a coordinator must hold checkpoints safely | retrying the operation is sufficient |
+| rollback must remain owned by the state holder | a durable transaction system already owns rollback |
 
-## Case Skill: upstream implementation
+## 7. 运行与验证 / Run and inspect
 
-**Case Skill:** Microsoft SkillOpt's staging implementation at
-`skillopt_sleep/staging.py`.
+```bash
+python3 sample/scripts/run_demo.py --fail
+python3 -m unittest discover -s sample/tests -v
+```
 
-The high-star comparison is [microsoft/SkillOpt](https://github.com/microsoft/SkillOpt):
-`skillopt_sleep/staging.py` creates a backup before adopting a candidate Skill
-configuration. It is candidate correspondence because an owned opaque restore
-operation is not observable; the pinned path and limitation are in the [evidence
-record](../../docs/upstream-skill-evidence.md#memento--备忘录模式). The local
-demo implements exact-byte capture, validation, and restoration.
+Read the [complete sample](sample/), [participant map](participant-map.yaml),
+[definition](definition.md), and [misuse case](misuse/explanation.md).
 
-## Mock sample Skill: this repository
+## 8. 证据边界 / Evidence boundary
 
-**Mock Skill:** [`sample/SKILL.md`](sample/SKILL.md), named
-`configuration-migration`. The `configuration-originator` creates an opaque
-checkpoint, while the root and `migration-caretaker` decide when to restore or
-discard it.
-
-The Memento idea is implemented by hiding exact prior bytes from the Caretaker
-and enforcing one-use ownership, checksum, and lifecycle checks. Run
-`python3 sample/scripts/run_demo.py --fail`; the mapping is in
-[`participant-map.yaml`](participant-map.yaml).
+The local sample verifies exact-byte capture, rollback, and checkpoint disposal.
+SkillOpt is candidate correspondence; the sample does not establish durable
+distributed transactions or production filesystem guarantees.

@@ -1144,20 +1144,26 @@ class CurrentReadmeContractTest(unittest.TestCase):
                 encoding="utf-8"
             )
             with self.subTest(pattern=pattern_id):
-                self.assertEqual(
-                    text.count("## Case Skill: upstream implementation"), 1
+                headings = (
+                    "## 1. 先看问题 / The problem",
+                    "## 2. 模式一句话 / Pattern in one sentence",
+                    "## 3. 现实中的 Skill / Existing Skill case",
+                    "## 4. 本仓库的 Mock Skill / Mock Skill",
+                    "## 5. 角色对应 / Role mapping",
+                    "## 6. 什么时候使用 / When to use",
+                    "## 7. 运行与验证 / Run and inspect",
+                    "## 8. 证据边界 / Evidence boundary",
                 )
-                self.assertEqual(text.count("## 先看实际 Skill / Start here"), 1)
-                self.assertEqual(
-                    text.count("## Mock sample Skill: this repository"), 1
-                )
-                self.assertEqual(text.count("## 一眼看懂 / At a glance"), 1)
+                positions = []
+                for heading in headings:
+                    self.assertEqual(text.count(heading), 1)
+                    positions.append(text.index(heading))
+                self.assertEqual(positions, sorted(positions))
                 self.assertIn("```mermaid", text)
-                self.assertIn("Case Skill（上游案例）", text)
-                self.assertIn("Mock sample（本仓库构造）", text)
+                self.assertIn("**Case Skill:**", text)
+                self.assertIn("Mock Skill", text)
                 self.assertIn("SKILL.md", text)
                 self.assertIn("participant-map.yaml", text)
-                self.assertRegex(text, r"upstream evidence\s+record|evidence\s+record")
                 self.assertIn("python3 sample/scripts/run_demo.py", text)
 
     def test_every_selected_record_has_practical_start_here_surface(self):
@@ -1172,22 +1178,19 @@ class CurrentReadmeContractTest(unittest.TestCase):
                 encoding="utf-8"
             )
             with self.subTest(pattern=pattern_id):
-                self.assertEqual(
-                    text.count("## 先看实际 Skill / Start here"), 1
-                )
-                self.assertEqual(text.count("## 一眼看懂 / At a glance"), 1)
-                self.assertEqual(text.count("## 直接看实现 / Direct evidence"), 1)
-                self.assertEqual(
-                    text.count("## Case Skill: upstream implementation"), 1
-                )
-                self.assertEqual(
-                    text.count("## Mock sample Skill: this repository"), 1
-                )
-                self.assertIn("Case Skill（上游案例）", text)
-                self.assertIn("Mock sample（本仓库构造）", text)
-                self.assertIn("SKILL.md", text)
-                self.assertIn("participant-map.yaml", text)
-                self.assertIn("python3 sample/scripts/run_demo.py", text)
+                for heading in (
+                    "## 1. 先看问题 / The problem",
+                    "## 2. 模式一句话 / Pattern in one sentence",
+                    "## 3. 现实中的 Skill / Existing Skill case",
+                    "## 4. 本仓库的 Mock Skill / Mock Skill",
+                    "## 5. 角色对应 / Role mapping",
+                    "## 6. 什么时候使用 / When to use",
+                    "## 7. 运行与验证 / Run and inspect",
+                    "## 8. 证据边界 / Evidence boundary",
+                ):
+                    self.assertIn(heading, text)
+                self.assertIn("**Case Skill:**", text)
+                self.assertIn("Mock Skill", text)
 
                 sample = (ROOT / "patterns" / pattern_id / "sample" / "README.md").read_text(
                     encoding="utf-8"
@@ -1195,7 +1198,7 @@ class CurrentReadmeContractTest(unittest.TestCase):
                 self.assertIn("> **This directory is the mock sample.**", sample)
                 self.assertIn("## Evidence at a glance", sample)
                 self.assertIn("Evidence layer", sample)
-                self.assertIn("Upstream case Skill", sample)
+                self.assertIn("Upstream case", sample)
                 self.assertIn("Executable proof", sample)
                 self.assertIn("## Mock Skill source", sample)
                 self.assertIn("## Learn the pattern", sample)

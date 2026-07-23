@@ -1,116 +1,99 @@
-# Specification / 规约模式
+# 规约模式 / Specification
 
-## 先看实际 Skill / Start here
+> **Scenario / 场景:** Expense Approval Policy / 费用审批规则
 
-**Case Skill（上游状态）：**
+## 1. 先看问题 / The problem
 
-```text
-No public upstream Skill is admitted as a bounded Specification case
-in this release. The controlled status is: not observable.
-```
-
-**Mock Skill（本仓库）：**
-
-```markdown
-<!-- sample/SKILL.md: named rules keep the policy composable and explainable. -->
-HasReceipt() & WithinBudget() & AuthorizedAmount(1000) & ~Department("restricted")
-The same Candidate contract is used by every leaf and composite rule.
-```
+Expense approval contains reusable rules for receipts, budgets, authority, and
+departments. One opaque function hides rule names and makes policy changes hard
+to explain:
 
 ```text
-sample/
-├── SKILL.md
-├── child-skills/{has-receipt,within-budget,authorized-amount,department}/SKILL.md
+caller -> eligible(expense)
+           all policy decisions hidden inside one function
+```
+
+## 2. 模式一句话 / Pattern in one sentence
+
+**Represent each domain rule as a named Specification that can be evaluated and
+combined through one shared interface.**
+
+```mermaid
+flowchart LR
+    C[Expense Candidate] --> H[HasReceipt]
+    C --> B[WithinBudget]
+    C --> A[AuthorizedAmount]
+    C --> D[Department]
+    H --> P[AND / OR / NOT policy]
+    B --> P
+    A --> P
+    D --> P
+    P --> O[decision + explanation]
+```
+
+## 3. 现实中的 Skill / Existing Skill case
+
+**Case Skill:** no public upstream Skill is admitted for this record. **Status:
+not observable.**
+
+This explicit status keeps the pattern definition separate from ecosystem
+evidence. The repository does not invent an external case for Specification.
+
+## 4. 本仓库的 Mock Skill / Mock Skill
+
+Our constructive example is `expense-approval-policy`:
+
+```text
+patterns/specification/sample/
+├── SKILL.md                                  # policy composition
+├── child-skills/
+│   ├── has-receipt/SKILL.md                   # leaf Specification
+│   ├── within-budget/SKILL.md
+│   ├── authorized-amount/SKILL.md
+│   └── department/SKILL.md
 ├── references/expense-candidate-contract.md
 ├── scripts/run_demo.py
 └── tests/test_demo.py
 ```
 
-## 一眼看懂 / At a glance
-
-**一句话：** 把领域判断写成可命名、可复用、可组合并能解释的规则。
-
-```mermaid
-flowchart LR
-    C[Candidate\nexpense] --> H[HasReceipt]
-    C --> B[WithinBudget]
-    C --> A[AuthorizedAmount]
-    C --> D[Department]
-    H --> AND[AND / OR / NOT\ncomposite policy]
-    B --> AND
-    A --> AND
-    D --> AND
-    AND --> O[decision + explanation]
-```
-
-| | Case Skill（上游案例） | Mock sample（本仓库构造） |
-| --- | --- | --- |
-| **是哪一个** | 本 release 没有纳入可验证的公开 Skill 案例 | [`expense-approval-policy`](sample/SKILL.md) |
-| **哪里体现模式** | 外部对应关系状态为 `not observable` | 四个具名叶子规则通过 AND/OR/NOT 组合，并返回结构化解释 |
-| **怎么运行** | 无可复现的外部运行入口 | `python3 sample/scripts/run_demo.py` |
-
-**看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/expense-candidate-contract.md`。
-
-## 直接看实现 / Direct evidence
-
-### Case Skill：外部证据边界
-
-```text
-# controlled evidence status
-upstream Specification Skill: not observable
-external implementation: none admitted
-```
-
-这个空位是有意保留的，读者可以清楚区分“模式定义”和“生态证据”。本仓库不为 Specification 虚构高星项目案例。
-
-### Mock sample：本仓库实际 Skill
+The important part of [`sample/SKILL.md`](sample/SKILL.md) is:
 
 ```markdown
-<!-- Specification: each rule shares is_satisfied_by(Candidate). -->
-## Agent mode
-1. Validate the exact Candidate fields required by the policy.
-2. Compose registered rules with `AND`, `OR`, and `NOT`.
-3. Evaluate left-to-right with deterministic short-circuit semantics.
-4. Return the boolean decision and a structured explanation trace.
+<!-- Specification: every rule shares boolean and explanation behavior. -->
+HasReceipt() & WithinBudget() & AuthorizedAmount(1000) & ~Department("restricted")
+
+Validate the Candidate first, then evaluate the named rules left-to-right.
+Return the decision together with a structured explanation trace.
 ```
 
-这段 Skill 直接对应 Specification、Candidate 和 Composite Specification 三类角色。
+## 5. 角色对应 / Role mapping
 
-## Pattern record
+| DDD role | Skillware carrier in this example |
+| --- | --- |
+| Candidate | bounded expense mapping |
+| Specification | each named leaf rule Skill |
+| Composite Specification | `AND`, `OR`, and `NOT` policy nodes |
 
-This standalone record transfers Eric Evans's Domain-Driven Design
-Specification pattern to an Expense Approval Policy Skillware Unit. It is a
-domain pattern outside the GoF catalog. The local sample is constructive
-evidence; the external correspondence status remains **not observable**.
-
-- [English definition](definition.md)
-- [中文定义](definition.zh-CN.md)
-- [Participant map](participant-map.yaml)
-- [Open-source correspondence](correspondence.md)
-- [Runnable sample](sample/)
-- [Misuse discriminator](misuse/explanation.md)
-
-## Case Skill: upstream implementation
-
-No public upstream Skill was admitted for this record. The absence is recorded
-in [`correspondence.md`](correspondence.md) so future evidence can be added
-without changing the local sample's claim.
-
-## Mock sample Skill: this repository
-
-**Mock Skill:** [`sample/SKILL.md`](sample/SKILL.md), named
-`expense-approval-policy`. It defines reusable receipt, budget, authority, and
-department rules over one bounded Candidate contract. Run
-`python3 sample/scripts/run_demo.py` and inspect the focused tests under
-[`sample/tests/`](sample/tests/).
-
-## Learn the pattern
+## 6. 什么时候使用 / When to use
 
 | Use Specification when | Keep it simple when |
 | --- | --- |
 | rules need names, reuse, composition, tests, or explanations | one trivial check has no reuse need |
-| policy decisions operate on a bounded Candidate contract | the operation is state-changing or inherently procedural |
+| policy decisions operate on a bounded Candidate | the operation is state-changing or procedural |
+| policy authors need AND/OR/NOT combinations | no stable decision contract can be defined |
 
-The decisive check is that each rule can be named, combined, evaluated, and
-explained through a shared interface. One opaque `eligible(expense)` function
-does not provide that structure.
+## 7. 运行与验证 / Run and inspect
+
+```bash
+python3 sample/scripts/run_demo.py
+python3 -m unittest discover -s sample/tests -v
+```
+
+Read the [complete sample](sample/), [participant map](participant-map.yaml),
+[definition](definition.md), and [misuse case](misuse/explanation.md).
+
+## 8. 证据边界 / Evidence boundary
+
+The local sample is constructive evidence for named, composable rules and
+explanations. No external Specification case was admitted, so ecosystem
+correspondence remains not observable.
