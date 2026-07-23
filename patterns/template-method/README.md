@@ -1,5 +1,27 @@
 # Template Method
 
+## 一眼看懂 / At a glance
+
+**一句话：** 根 Skill 固定流程顺序，子 Skill 只能实现指定步骤。
+
+```mermaid
+flowchart LR
+    R[Root template Skill] --> A[1 Extract]
+    A --> B[2 Analyze gaps]
+    B --> H[3 Domain hook]
+    H --> D[4 Draft]
+    D --> Q[5 Quality check]
+    H -.-> S[Healthcare / Finance child Skill]
+```
+
+| | Case Skill（上游案例） | Mock sample（本仓库构造） |
+| --- | --- | --- |
+| **是哪一个** | [Superpowers brainstorming](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/skills/brainstorming/SKILL.md) + [TDD](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/skills/test-driven-development/SKILL.md) | [`enterprise-rfp-response`](sample/SKILL.md) |
+| **哪里体现模式** | Skills 固定有序工作流，内容随任务变化（候选对应） | 五个阶段顺序固定，只有 `apply-domain-hook` 可替换 |
+| **怎么运行** | 由 Superpowers workflow Skill 驱动 | `python3 sample/scripts/run_demo.py` |
+
+**看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/rfp-domain-hook-contract.md`。
+
 Template Method fixes an algorithm skeleton in an AbstractClass while allowing
 a ConcreteClass to redefine selected operations without changing the sequence.
 

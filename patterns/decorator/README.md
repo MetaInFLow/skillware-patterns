@@ -1,5 +1,25 @@
 # Decorator / 装饰模式
 
+## 一眼看懂 / At a glance
+
+**一句话：** 在不改变原 Skill 接口的前提下，外面再包一层额外能力。
+
+```mermaid
+flowchart LR
+    C[Caller] --> P[Privacy decorator]
+    P --> Q[Citation decorator]
+    Q --> B[Base contract review]
+    B --> O[Same summary + findings]
+```
+
+| | Case Skill（上游案例） | Mock sample（本仓库构造） |
+| --- | --- | --- |
+| **是哪一个** | [Caveman Skill](https://github.com/JuliusBrussee/caveman/blob/25d22f864ad68cc447a4cb93aefde918aa4aec9f/skills/caveman/SKILL.md) + [activation hook](https://github.com/JuliusBrussee/caveman/blob/25d22f864ad68cc447a4cb93aefde918aa4aec9f/src/hooks/caveman-activate.js) | [`contract-review-enhancers`](sample/SKILL.md) |
+| **哪里体现模式** | activation hook 在现有 Host 交互外增加行为（候选对应） | Privacy/Citation/Compliance wrapper 委托 Base Component 并追加 finding |
+| **怎么运行** | 由 Caveman activation hook 触发 | `python3 sample/scripts/run_demo.py --decorators privacy-check,citation-check` |
+
+**看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/contract-review-component.md`。
+
 This record transfers the canonical Gang of Four Decorator pattern to Skillware
 through Contract Review Enhancers / 合同审查增强. `contract-review-v1` is the
 Component, Base Contract Review is the ConcreteComponent, the shared wrapper

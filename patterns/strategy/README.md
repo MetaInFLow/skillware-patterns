@@ -1,5 +1,26 @@
 # Strategy / 策略模式
 
+## 一眼看懂 / At a glance
+
+**一句话：** 先根据请求选择一种算法，再用统一接口返回结果。
+
+```mermaid
+flowchart LR
+    C[Review request] --> X[Context Skill\nrisk-aware-code-review]
+    X -->|low risk| F[Fast Scan]
+    X -->|security / large change| D[Deep Review]
+    F --> O[Same review result]
+    D --> O
+```
+
+| | Case Skill（上游案例） | Mock sample（本仓库构造） |
+| --- | --- | --- |
+| **是哪一个** | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/blob/8a81ed60272d21d4b8808f7308d49a0b1b000555/.claude/skills/ui-ux-pro-max/SKILL.md) + [router](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/blob/8a81ed60272d21d4b8808f7308d49a0b1b000555/scripts/search.py) | [`risk-aware-code-review`](sample/SKILL.md) |
+| **哪里体现模式** | 根据 domain/stack/design system 选择不同 procedure（候选对应） | Context 选择 Fast Scan 或 Deep Review，二者共用同一结果契约 |
+| **怎么运行** | 由 Skill router 选择 procedure | `python3 sample/scripts/run_demo.py` |
+
+**看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/review-strategy-contract.md`。
+
 This record transfers the canonical Gang of Four Strategy pattern to Skillware
 through Risk-Aware Code Review / 风险感知代码审查. The root review Skill is the
 Context, `risk-aware-code-review-v1` is the Strategy contract, and Fast Scan and

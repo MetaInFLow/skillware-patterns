@@ -1,5 +1,31 @@
 # 组合模式（Composite）
 
+## 一眼看懂 / At a glance
+
+**一句话：** 原子 Skill 和组合 Skill 返回同一种结果，所以调用者可以把整棵树当成一个 Skill 使用。
+
+```mermaid
+flowchart TB
+    C[Caller] --> R[Composite Skill\ninvestment-memo-builder]
+    R --> M[Market Leaf]
+    R --> F[Financial Leaf]
+    R --> X[Competition Leaf]
+    R --> K[Risk Leaf]
+    M --> S[memo-section-v1]
+    F --> S
+    X --> S
+    K --> S
+    R --> S
+```
+
+| | Case Skill（上游案例） | Mock sample（本仓库构造） |
+| --- | --- | --- |
+| **是哪一个** | [OpenMontage animation pipeline](https://github.com/calesthio/OpenMontage/blob/db91727598d08d40919d7d68a47864a5467bd448/pipeline_defs/animation.yaml) | [`investment-memo-builder`](sample/SKILL.md) |
+| **哪里体现模式** | pipeline 把多个 stage Skills 组织成一个工作流（候选对应） | root 和四个 Leaf 共用 `memo-section-v1`，形成可验证树 |
+| **怎么运行** | 由 OpenMontage pipeline loader 解析 | `python3 sample/scripts/run_demo.py` |
+
+**看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/section-contract.md`。
+
 This record transfers the canonical Gang of Four Composite pattern to
 Skillware. It maps the task caller to Client, `memo-section-v1` to Component,
 four independently inspectable analysis Skills to Leaves, and the root

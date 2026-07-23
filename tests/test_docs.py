@@ -1150,6 +1150,10 @@ class CurrentReadmeContractTest(unittest.TestCase):
                 self.assertEqual(
                     text.count("## Mock sample Skill: this repository"), 1
                 )
+                self.assertEqual(text.count("## 一眼看懂 / At a glance"), 1)
+                self.assertIn("```mermaid", text)
+                self.assertIn("Case Skill（上游案例）", text)
+                self.assertIn("Mock sample（本仓库构造）", text)
                 self.assertIn("sample/SKILL.md", text)
                 self.assertIn("participant-map.yaml", text)
                 self.assertRegex(text, r"upstream evidence\s+record|evidence\s+record")

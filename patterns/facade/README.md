@@ -1,5 +1,26 @@
 # 外观模式（Facade）
 
+## 一眼看懂 / At a glance
+
+**一句话：** 调用者只面对一个入口 Skill，入口 Skill 隐藏多个专家 Skill 的调用顺序。
+
+```mermaid
+flowchart LR
+    C[Caller] --> F[Facade Skill\nincident-response-facade]
+    F --> D[diagnose]
+    F --> I[assess-impact]
+    F --> M[draft-communication]
+    F --> O[One stable result]
+```
+
+| | Case Skill（上游案例） | Mock sample（本仓库构造） |
+| --- | --- | --- |
+| **是哪一个** | [Superpowers `using-superpowers`](https://github.com/obra/superpowers/blob/896224c4b1879920ab573417e68fd51d2ccc9072/skills/using-superpowers/SKILL.md) | [`incident-response-facade`](sample/SKILL.md) |
+| **哪里体现模式** | 一个入口策略负责发现、选择并调用其他 Skills | 一个入口 Skill 编排三个专家 Skill，并隐藏内部顺序 |
+| **怎么运行** | 上游 Host hook 激活它 | `python3 sample/scripts/run_demo.py` |
+
+**看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`participant-map.yaml`。
+
 This record transfers the Gang of Four Facade pattern to Skillware. It maps a
 stable entry Skill to the Facade, independently addressable specialist Skills
 to the subsystem, and the operator or task-level agent execution to the

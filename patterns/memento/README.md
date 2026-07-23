@@ -1,5 +1,24 @@
 # 备忘录模式（Memento）
 
+## 一眼看懂 / At a glance
+
+**一句话：** 修改前保存一个外部不可见的旧状态，失败时恢复它。
+
+```mermaid
+flowchart LR
+    O[Originator\nconfiguration] -->|capture| M[Opaque Memento]
+    C[Caretaker\nmigration Skill] -->|commit / restore| M
+    M -->|exact old bytes| O
+```
+
+| | Case Skill（上游案例） | Mock sample（本仓库构造） |
+| --- | --- | --- |
+| **是哪一个** | [SkillOpt staging.py](https://github.com/microsoft/SkillOpt/blob/b860a5cf88ce75e2bd02ca981ac21fb28cffba83/skillopt_sleep/staging.py) | [`configuration-migration`](sample/SKILL.md) |
+| **哪里体现模式** | adoption 前创建 backup（候选对应，未看到完整 restore） | Originator 创建 opaque checkpoint，Caretaker 在失败时恢复精确字节 |
+| **怎么运行** | 由 SkillOpt staging 流程触发 | `python3 sample/scripts/run_demo.py --fail` |
+
+**看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/configuration-memento-contract.md`。
+
 This record transfers the canonical Gang of Four Memento pattern to Skillware.
 It maps the configuration owner to **Originator**, the opaque exact-byte
 checkpoint to **Memento**, and the migration workflow to **Caretaker**.
