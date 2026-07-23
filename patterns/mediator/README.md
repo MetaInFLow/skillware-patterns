@@ -1,5 +1,30 @@
 # 中介者模式（Mediator）
 
+## 先看实际 Skill / Start here
+
+**Case Skill（规范化片段）：**
+
+```text
+# upstream financial-services behavior sketch
+GL coordinator -> reader / critic / resolver workers
+```
+
+**Mock Skill（本仓库）：**
+
+```markdown
+<!-- sample/SKILL.md: Colleagues report to one center. -->
+build + security + docs + approval -> deployment-coordinator
+all-pass policy is decided only by the coordinator
+```
+
+```text
+sample/
+├── SKILL.md
+├── child-skills/{build,security,docs,approval}/SKILL.md
+├── references/deployment-readiness-contract.md
+└── tests/test_demo.py
+```
+
 ## 一眼看懂 / At a glance
 
 **一句话：** 多个专家 Skill 不互相调用，统一向一个协调 Skill 报告。

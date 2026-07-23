@@ -1,5 +1,30 @@
 # 备忘录模式（Memento）
 
+## 先看实际 Skill / Start here
+
+**Case Skill（规范化片段）：**
+
+```text
+# upstream SkillOpt behavior sketch
+current Skill configuration -> backup -> adopt candidate configuration
+```
+
+**Mock Skill（本仓库）：**
+
+```markdown
+<!-- sample/SKILL.md: Caretaker holds an opaque checkpoint. -->
+capture exact bytes -> write -> restore on write failure
+verified success -> discard checkpoint
+```
+
+```text
+sample/
+├── SKILL.md
+├── child-skills/{configuration-originator,migration-caretaker}/SKILL.md
+├── references/configuration-memento-contract.md
+└── tests/test_demo.py
+```
+
 ## 一眼看懂 / At a glance
 
 **一句话：** 修改前保存一个外部不可见的旧状态，失败时恢复它。

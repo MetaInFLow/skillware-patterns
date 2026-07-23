@@ -1,5 +1,29 @@
 # Template Method
 
+## 先看实际 Skill / Start here
+
+**Case Skill（规范化片段）：**
+
+```text
+# upstream Superpowers behavior sketch
+fixed ordered workflow -> task-specific content at bounded steps
+```
+
+**Mock Skill（本仓库）：**
+
+```markdown
+<!-- sample/SKILL.md: only apply-domain-hook is specialized. -->
+extract -> gaps -> apply-domain-hook -> draft -> quality-check
+```
+
+```text
+sample/
+├── SKILL.md
+├── child-skills/{healthcare,finance}/SKILL.md
+├── references/rfp-domain-hook-contract.md
+└── tests/test_demo.py
+```
+
 ## 一眼看懂 / At a glance
 
 **一句话：** 根 Skill 固定流程顺序，子 Skill 只能实现指定步骤。

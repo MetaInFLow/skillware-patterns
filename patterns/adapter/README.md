@@ -1,5 +1,31 @@
 # 适配器模式（Adapter）
 
+## 先看实际 Skill / Start here
+
+**Case Skill（规范化片段）：**
+
+```text
+# upstream gstack behavior sketch
+canonical Skill template -> Claude binding
+                          -> Codex binding
+```
+
+**Mock Skill（本仓库）：**
+
+```markdown
+<!-- sample/SKILL.md: target changes; canonical meaning stays. -->
+target = github | jira | linear
+canonical issue -> target binding -> offline request descriptor
+```
+
+```text
+sample/
+├── SKILL.md
+├── references/tracker-contracts.md
+├── scripts/run_demo.py
+└── tests/test_demo.py
+```
+
 ## 一眼看懂 / At a glance
 
 **一句话：** 同一个规范 Skill 不变，只把它翻译成不同 Host 或供应商需要的请求格式。

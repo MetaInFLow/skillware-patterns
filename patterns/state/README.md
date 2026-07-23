@@ -1,5 +1,29 @@
 # State / 状态模式
 
+## 先看实际 Skill / Start here
+
+**Case Skill（规范化片段）：**
+
+```text
+# upstream OpenMontage behavior sketch
+read persisted checkpoint.status -> resume from current stage
+```
+
+**Mock Skill（本仓库）：**
+
+```markdown
+<!-- sample/SKILL.md: current State owns the legal action. -->
+load state -> invoke current State -> persist successor
+```
+
+```text
+sample/
+├── SKILL.md
+├── child-skills/{draft,verified,approved,activated}/SKILL.md
+├── references/vendor-state-contract.md
+└── tests/test_demo.py
+```
+
 ## 一眼看懂 / At a glance
 
 **一句话：** 当前状态决定当前动作和下一个状态；状态 Skill 自己拥有这段行为。

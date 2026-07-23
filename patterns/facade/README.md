@@ -1,5 +1,33 @@
 # 外观模式（Facade）
 
+## 先看实际 Skill / Start here
+
+**Case Skill（规范化片段）：**
+
+```text
+# upstream behavior sketch
+entry policy -> discover specialists -> select -> invoke
+```
+
+**Mock Skill（本仓库）：**
+
+```markdown
+<!-- sample/SKILL.md: one public operation hides three children. -->
+For `5xx spike`:
+1. diagnose
+2. assess impact
+3. draft communication
+4. return one stable incident result
+```
+
+```text
+sample/
+├── SKILL.md
+├── child-skills/{diagnose,assess-impact,draft-communication}/SKILL.md
+├── scripts/run_demo.py
+└── tests/test_demo.py
+```
+
 ## 一眼看懂 / At a glance
 
 **一句话：** 调用者只面对一个入口 Skill，入口 Skill 隐藏多个专家 Skill 的调用顺序。

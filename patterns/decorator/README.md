@@ -1,5 +1,30 @@
 # Decorator / 装饰模式
 
+## 先看实际 Skill / Start here
+
+**Case Skill（规范化片段）：**
+
+```text
+# upstream Caveman behavior sketch
+existing Host/session surface -> activation hook -> added behavior
+```
+
+**Mock Skill（本仓库）：**
+
+```markdown
+<!-- sample/SKILL.md: wrappers preserve the Component interface. -->
+base review -> privacy wrapper -> citation wrapper
+each wrapper delegates once and appends one finding
+```
+
+```text
+sample/
+├── SKILL.md
+├── child-skills/{base-contract-review,privacy-check,citation-check,compliance-check}/SKILL.md
+├── references/contract-review-component.md
+└── tests/test_demo.py
+```
+
 ## 一眼看懂 / At a glance
 
 **一句话：** 在不改变原 Skill 接口的前提下，外面再包一层额外能力。

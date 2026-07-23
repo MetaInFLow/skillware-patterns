@@ -1,5 +1,30 @@
 # Observer / 观察者模式
 
+## 先看实际 Skill / Start here
+
+**Case Skill（规范化片段）：**
+
+```text
+# upstream ECC behavior sketch
+lifecycle event -> hook router -> observation Skill -> observation handler
+```
+
+**Mock Skill（本仓库）：**
+
+```markdown
+<!-- sample/SKILL.md: Subject owns registration and delivery. -->
+register observers -> freeze order -> publish typed event
+  -> audit / changelog / team-notification receipts
+```
+
+```text
+sample/
+├── SKILL.md
+├── child-skills/{audit,changelog,team-notification}/SKILL.md
+├── references/release-event-contract.md
+└── tests/test_demo.py
+```
+
 ## 一眼看懂 / At a glance
 
 **一句话：** 一个事件源维护订阅者列表，把同一个事件通知给多个独立 Skill。

@@ -1,5 +1,30 @@
 # 组合模式（Composite）
 
+## 先看实际 Skill / Start here
+
+**Case Skill（规范化片段）：**
+
+```text
+# upstream OpenMontage behavior sketch
+pipeline definition -> resolve stage Skills -> execute stage graph
+```
+
+**Mock Skill（本仓库）：**
+
+```markdown
+<!-- sample/SKILL.md: root and leaves share memo-section-v1. -->
+Leaf  -> {id, title, content, evidence, children: []}
+Root  -> {id, title, content, evidence, children: [validated leaves]}
+```
+
+```text
+sample/
+├── SKILL.md
+├── child-skills/{market,financial,competition,risk}-analysis/SKILL.md
+├── references/section-contract.md
+└── tests/test_demo.py
+```
+
 ## 一眼看懂 / At a glance
 
 **一句话：** 原子 Skill 和组合 Skill 返回同一种结果，所以调用者可以把整棵树当成一个 Skill 使用。

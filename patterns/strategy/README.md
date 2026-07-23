@@ -1,5 +1,31 @@
 # Strategy / 策略模式
 
+## 先看实际 Skill / Start here
+
+**Case Skill（规范化片段）：**
+
+```text
+# upstream UI/UX Pro Max behavior sketch
+request(domain, stack, style) -> search/router -> selected procedure
+```
+
+**Mock Skill（本仓库）：**
+
+```markdown
+<!-- sample/SKILL.md: one selector, two interchangeable procedures. -->
+security_sensitive or files >= 4 -> deep-review
+otherwise                      -> fast-scan
+both return the same review contract
+```
+
+```text
+sample/
+├── SKILL.md
+├── child-skills/{fast-scan,deep-review}/SKILL.md
+├── references/review-strategy-contract.md
+└── tests/test_demo.py
+```
+
 ## 一眼看懂 / At a glance
 
 **一句话：** 先根据请求选择一种算法，再用统一接口返回结果。
