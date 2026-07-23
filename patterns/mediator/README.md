@@ -16,7 +16,10 @@ The public correspondence remains candidate-only because the inspected
 financial-services cookbook shows central orchestration and leaf workers but
 does not establish a shared Colleague contract or runtime decision behavior.
 
-## Upstream Skill example
+## Case Skill: upstream implementation
+
+**Case Skill:** the GL reconciler coordinator in
+`anthropics/financial-services/managed-agent-cookbooks/gl-reconciler/agent.yaml`.
 
 The high-star comparison is [anthropics/financial-services](https://github.com/anthropics/financial-services):
 `managed-agent-cookbooks/gl-reconciler/agent.yaml` coordinates the isolated
@@ -25,3 +28,13 @@ workers, with a reproducible check in `scripts/test-cookbooks.sh`. The exact
 revision and candidate boundary are documented in the [upstream evidence
 record](../../docs/upstream-skill-evidence.md#mediator--中介者模式). The local
 demo makes the central status contract and no-peer rule executable.
+
+## Mock sample Skill: this repository
+
+**Mock Skill:** [`sample/SKILL.md`](sample/SKILL.md), named
+`deployment-coordinator`. It addresses `build`, `security`, `docs`, and
+`approval` child Skills and alone applies the all-pass release policy.
+
+The Mediator idea is implemented by a single report boundary and no peer-to-peer
+calls. Run `python3 sample/scripts/run_demo.py`; the mapping is in
+[`participant-map.yaml`](participant-map.yaml).

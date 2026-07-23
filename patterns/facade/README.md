@@ -16,7 +16,9 @@ and always returns `summary`, `impact`, `actions`, and `communication`.
 - [Runnable sample](sample/)
 - [Misuse discriminator](misuse/explanation.md)
 
-## Upstream Skill example
+## Case Skill: upstream implementation
+
+**Case Skill:** `obra/superpowers/skills/using-superpowers/SKILL.md`.
 
 The high-star comparison is [obra/superpowers](https://github.com/obra/superpowers):
 `skills/using-superpowers/SKILL.md` is the stable entry policy, while
@@ -24,6 +26,16 @@ The high-star comparison is [obra/superpowers](https://github.com/obra/superpowe
 The observation is pinned and qualified in the
 [upstream evidence record](../../docs/upstream-skill-evidence.md#facade--外观模式).
 The complete offline local analogue is [`sample/SKILL.md`](sample/SKILL.md).
+
+## Mock sample Skill: this repository
+
+**Mock Skill:** [`sample/SKILL.md`](sample/SKILL.md), named
+`incident-response-facade`. It delegates to the `diagnose`, `assess-impact`,
+and `draft-communication` child Skills before returning one stable result.
+
+The Facade idea is implemented by hiding specialist order and fallback policy
+behind one public operation. Run `python3 sample/scripts/run_demo.py`; the
+participant relation is recorded in [`participant-map.yaml`](participant-map.yaml).
 
 The constructive sample and the confirmed Superpowers correspondence are
 separate evidence claims. Neither establishes ecosystem frequency,

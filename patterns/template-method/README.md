@@ -15,7 +15,10 @@ hook through one contract.
 - [Constructive sample](sample/)
 - [Misuse](misuse/explanation.md)
 
-## Upstream Skill example
+## Case Skill: upstream implementation
+
+**Case Skills:** Superpowers' `skills/brainstorming/SKILL.md` and
+`skills/test-driven-development/SKILL.md`.
 
 The high-star comparison is [obra/superpowers](https://github.com/obra/superpowers):
 `skills/brainstorming/SKILL.md` and
@@ -24,6 +27,17 @@ workflows with bounded task-specific content. This is candidate correspondence
 because a formal ConcreteClass hook contract is not visible in those files; see
 the [pinned evidence record](../../docs/upstream-skill-evidence.md#template-method--模板方法).
 The local demo exposes the hook as a complete healthcare or finance child Skill.
+
+## Mock sample Skill: this repository
+
+**Mock Skill:** [`sample/SKILL.md`](sample/SKILL.md), named
+`enterprise-rfp-response`. It fixes five stages and allows only the
+`healthcare` or `finance` child Skill to implement `apply-domain-hook`.
+
+The Template Method idea is implemented by keeping stage order in the root
+Skill while varying one bounded hook. Run
+`python3 sample/scripts/run_demo.py`; the mapping is in
+[`participant-map.yaml`](participant-map.yaml).
 
 The sample is constructive evidence, not proof of production RFP quality,
 ecosystem prevalence, or Agent Runtime interpretation.

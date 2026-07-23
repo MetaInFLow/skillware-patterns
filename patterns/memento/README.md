@@ -19,7 +19,10 @@ Start with [`definition.md`](definition.md), inspect the role mapping in
 backs up before adoption but does not expose an owned restore path in the
 inspected source.
 
-## Upstream Skill example
+## Case Skill: upstream implementation
+
+**Case Skill:** Microsoft SkillOpt's staging implementation at
+`skillopt_sleep/staging.py`.
 
 The high-star comparison is [microsoft/SkillOpt](https://github.com/microsoft/SkillOpt):
 `skillopt_sleep/staging.py` creates a backup before adopting a candidate Skill
@@ -27,3 +30,15 @@ configuration. It is candidate correspondence because an owned opaque restore
 operation is not observable; the pinned path and limitation are in the [evidence
 record](../../docs/upstream-skill-evidence.md#memento--备忘录模式). The local
 demo implements exact-byte capture, validation, and restoration.
+
+## Mock sample Skill: this repository
+
+**Mock Skill:** [`sample/SKILL.md`](sample/SKILL.md), named
+`configuration-migration`. The `configuration-originator` creates an opaque
+checkpoint, while the root and `migration-caretaker` decide when to restore or
+discard it.
+
+The Memento idea is implemented by hiding exact prior bytes from the Caretaker
+and enforcing one-use ownership, checksum, and lifecycle checks. Run
+`python3 sample/scripts/run_demo.py --fail`; the mapping is in
+[`participant-map.yaml`](participant-map.yaml).

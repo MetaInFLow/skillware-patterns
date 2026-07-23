@@ -20,7 +20,11 @@ the same Leaf contract from serialized inputs; Python does not interpret
 - [Runnable sample](sample/)
 - [Misuse discriminator](misuse/explanation.md)
 
-## Upstream Skill example
+## Case Skill: upstream implementation
+
+**Case Skill:** OpenMontage's animation pipeline Skills, including
+`skills/pipelines/animation/executive-producer.md` and
+`skills/pipelines/animation/research-director.md`.
 
 The high-star comparison is [calesthio/OpenMontage](https://github.com/calesthio/OpenMontage):
 `pipeline_defs/animation.yaml` composes the stage Skills
@@ -30,6 +34,18 @@ The high-star comparison is [calesthio/OpenMontage](https://github.com/calesthio
 paths in the [upstream evidence record](../../docs/upstream-skill-evidence.md#composite--组合模式).
 The local demo makes the shared Leaf/Composite result contract explicit in
 [`sample/SKILL.md`](sample/SKILL.md).
+
+## Mock sample Skill: this repository
+
+**Mock Skill:** [`sample/SKILL.md`](sample/SKILL.md), named
+`investment-memo-builder`. Its four child Skills produce market, financial,
+competition, and risk sections; the root returns the same `memo-section-v1`
+shape while containing those child records.
+
+The Composite idea is implemented by uniform Leaf/Composite results and a
+validated rooted tree. Run `python3 sample/scripts/run_demo.py`; inspect
+[`sample/child-skills/`](sample/child-skills/) and
+[`participant-map.yaml`](participant-map.yaml).
 
 The local sample is constructive evidence. OpenMontage staged Skill workflows
 are only a **candidate correspondence** because the frozen public evidence does

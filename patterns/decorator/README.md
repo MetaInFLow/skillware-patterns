@@ -22,7 +22,10 @@ present identical `(type, message)` finding.
 - [Runnable sample](sample/)
 - [Misuse discriminator](misuse/explanation.md)
 
-## Upstream Skill example
+## Case Skill: upstream implementation
+
+**Case Skill:** Caveman's `skills/caveman/SKILL.md`, activated and wrapped by
+`src/hooks/caveman-activate.js`.
 
 The high-star comparison is [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman):
 `src/hooks/caveman-activate.js` adds activation/session behavior around the
@@ -30,6 +33,17 @@ The high-star comparison is [JuliusBrussee/caveman](https://github.com/JuliusBru
 the common Component result and explicit delegate boundary are not fully
 observable; see the [pinned evidence record](../../docs/upstream-skill-evidence.md#decorator--装饰模式).
 The local demo gives each wrapper a complete contract-preserving Skill.
+
+## Mock sample Skill: this repository
+
+**Mock Skill:** [`sample/SKILL.md`](sample/SKILL.md), named
+`contract-review-enhancers`. It starts with `base-contract-review` and wraps
+it with `privacy-check`, `citation-check`, or `compliance-check`.
+
+The Decorator idea is implemented by each wrapper delegating once, preserving
+`contract-review-v1`, and adding only its own finding. Run
+`python3 sample/scripts/run_demo.py --decorators privacy-check,citation-check`;
+the mapping is in [`participant-map.yaml`](participant-map.yaml).
 
 The local sample is **constructive** evidence. Caveman is a **candidate
 correspondence** at one fixed public revision: its activation hook adds

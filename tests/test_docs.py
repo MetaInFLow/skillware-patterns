@@ -1134,6 +1134,27 @@ class CurrentReadmeContractTest(unittest.TestCase):
             self.assertIn(token, detail)
         self.assertIn("not observable", (ROOT / "patterns/specification/README.md").read_text(encoding="utf-8").lower())
 
+    def test_every_gof_record_separates_case_skill_from_mock_sample(self):
+        pattern_ids = (
+            "facade", "adapter", "composite", "observer", "state", "strategy",
+            "decorator", "template-method", "memento", "mediator",
+        )
+        for pattern_id in pattern_ids:
+            text = (ROOT / "patterns" / pattern_id / "README.md").read_text(
+                encoding="utf-8"
+            )
+            with self.subTest(pattern=pattern_id):
+                self.assertEqual(
+                    text.count("## Case Skill: upstream implementation"), 1
+                )
+                self.assertEqual(
+                    text.count("## Mock sample Skill: this repository"), 1
+                )
+                self.assertIn("sample/SKILL.md", text)
+                self.assertIn("participant-map.yaml", text)
+                self.assertRegex(text, r"upstream evidence\s+record|evidence\s+record")
+                self.assertIn("python3 sample/scripts/run_demo.py", text)
+
     def test_facade_demo_and_reproducibility_commands(self):
         required_paths = (
             "patterns/facade/sample/SKILL.md",
