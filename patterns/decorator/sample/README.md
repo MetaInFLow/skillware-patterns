@@ -1,5 +1,36 @@
 # Contract Review Enhancers
 
+## Scenario
+
+A base contract review should remain unchanged while a caller optionally adds
+privacy, citation, or compliance checks. Enhancements must compose in a chosen
+order and must not duplicate the base review logic.
+
+## Why this is Decorator
+
+Every wrapper holds a Component, delegates exactly once, preserves the same
+`contract-review-v1` interface, and adds one bounded responsibility. A wrapper
+is not a replacement workflow or a hook that ignores the wrapped result.
+
+| GoF role | Skillware carrier in this example |
+| --- | --- |
+| Component | `contract-review-v1` in `references/contract-review-component.md` |
+| ConcreteComponent | `base-contract-review` child Skill |
+| Decorator | Contract-preserving wrapper protocol in the root Skill |
+| ConcreteDecorator | `privacy-check`, `citation-check`, and `compliance-check` |
+
+## Contract
+
+Input: one `text` field. Output: exactly `summary` and ordered `findings`.
+The default is `base -> privacy -> citation`; wrapper order changes only the
+enhancement order. Wrapped failures propagate without partial results.
+
+## Where to look
+
+- [Root Skill](SKILL.md) defines composition and preservation rules.
+- [Component contract](references/contract-review-component.md) defines the shared interface.
+- `scripts/run_demo.py` and `--decorators` make wrapper composition observable.
+
 This standalone sample realizes Decorator with one exact
 `contract-review-v1` Component interface. Base Contract Review is the
 ConcreteComponent. Privacy Check and Citation Check are composable

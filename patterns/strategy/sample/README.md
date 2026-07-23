@@ -1,5 +1,36 @@
 # Risk-Aware Code Review
 
+## Scenario
+
+A changed-file review should be fast for ordinary low-risk work and deeper for
+security-sensitive or larger changes. Callers still need one review request and
+one result shape.
+
+## Why this is Strategy
+
+The Context selects exactly one procedure, Fast Scan or Deep Review, using a
+policy. Both ConcreteStrategy Skills accept the same rich contract and return
+the same result contract; the procedure can change without changing the
+caller-facing Skill.
+
+| GoF role | Skillware carrier in this example |
+| --- | --- |
+| Context | `risk-aware-code-review` root Skill |
+| Strategy | `risk-aware-code-review-v1` in `references/review-strategy-contract.md` |
+| ConcreteStrategy | `fast-scan` and `deep-review` child Skills |
+
+## Contract
+
+Input: review id, changed files, and `security_sensitive`. Output: schema,
+selected strategy, reviewed files, findings, and summary. Selection is Deep
+Review for security-sensitive or four-plus-file requests, otherwise Fast Scan.
+
+## Where to look
+
+- [Root Skill](SKILL.md) defines selection and shared validation.
+- [Strategy contract](references/review-strategy-contract.md) defines substitutability.
+- `scripts/run_demo.py` supports injected strategies and direct strategy addressing.
+
 This standalone sample realizes Strategy with a code-review Context, one exact
 request/result Strategy contract, and two interchangeable ConcreteStrategies.
 Fast Scan applies high-signal rules; Deep Review adds contextual rules. The

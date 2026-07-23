@@ -1,5 +1,35 @@
 # Vendor Onboarding Workflow
 
+## Scenario
+
+A vendor moves through `draft`, `verified`, `approved`, and `activated`. The
+same action, such as `approve`, means different things depending on the
+persisted state, and the workflow must recover correctly after a restart.
+
+## Why this is State
+
+The Context reloads the current state before every action and delegates the
+action to the corresponding ConcreteState Skill. Each state owns its legal
+action and successor; the Context does not grow a centralized phase switch.
+
+| GoF role | Skillware carrier in this example |
+| --- | --- |
+| Context | Root `sample/SKILL.md` and persisted workflow |
+| State | `vendor-onboarding-state-v1` in `references/vendor-state-contract.md` |
+| ConcreteState | `draft`, `verified`, `approved`, and `activated` child Skills |
+
+## Contract
+
+Input: vendor identity, persisted state record, and one requested action.
+Output: ordered transition results plus final and recovered state. Illegal
+actions and corrupted records fail without silently recreating `draft`.
+
+## Where to look
+
+- [Root Skill](SKILL.md) defines reload, delegation, and atomic persistence.
+- [State contract](references/vendor-state-contract.md) defines `handle-action`.
+- `scripts/run_demo.py` and `fixtures/valid/recover-approved.json` show restart recovery.
+
 This standalone State sample advances a vendor through persisted draft,
 verified, approved, and activated states. Each ConcreteState owns its accepted
 action and successor; the Context reloads and validates state before delegation.
