@@ -24,6 +24,24 @@ flowchart TB
 **The pattern-bearing line is:** isolated Colleagues → one Mediator report
 boundary → one release decision.
 
+## Mock Skill source
+
+```text
+sample/
+├── SKILL.md
+├── child-skills/{build,security,docs,approval}/SKILL.md
+├── references/deployment-readiness-contract.md
+├── scripts/run_demo.py
+└── tests/test_demo.py
+```
+
+```markdown
+<!-- Mediator: Colleagues report to the center, never to each other. -->
+build + security + docs + approval
+              -> deployment-coordinator
+              -> release only when all reports are `pass`
+```
+
 ## Scenario
 
 A release is ready only when build, security, documentation, and approval checks

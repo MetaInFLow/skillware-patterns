@@ -26,6 +26,25 @@ flowchart LR
 **The pattern-bearing line is:** one Subject event → registered independent
 Observers → one delivery receipt per Observer.
 
+## Mock Skill source
+
+```text
+sample/
+├── SKILL.md
+├── child-skills/{audit,changelog,team-notification}/SKILL.md
+├── references/release-event-contract.md
+├── scripts/run_demo.py
+└── tests/test_demo.py
+```
+
+```markdown
+<!-- Observer: Subject owns subscriptions; consumers remain independent. -->
+register observers -> freeze order -> publish release.published.v1
+  -> audit receipt
+  -> changelog receipt
+  -> team-notification receipt
+```
+
 ## Scenario
 
 After version `1.2.0` is published, audit, changelog, and team-notification

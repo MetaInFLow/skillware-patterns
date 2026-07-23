@@ -25,6 +25,28 @@ flowchart LR
 one stable result. That is the implementation evidence; the incident topic is
 only the concrete scenario.
 
+## Mock Skill source
+
+```text
+sample/
+├── SKILL.md
+├── child-skills/{diagnose,assess-impact,draft-communication}/SKILL.md
+├── scripts/run_demo.py
+└── tests/test_demo.py
+```
+
+```markdown
+<!-- Facade: the root owns the public operation and hides child order. -->
+## Orchestration
+1. diagnose the signal
+2. assess impact using the diagnosis
+3. draft communication using the impact
+4. return one stable result
+
+## Fallback
+Unknown signals return `request-human-triage` without changing the output shape.
+```
+
 ## Scenario
 
 An on-call operator sees a `5xx spike` for `checkout-api` and wants one

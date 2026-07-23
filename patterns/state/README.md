@@ -21,6 +21,48 @@ stateDiagram-v2
 
 **看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/vendor-state-contract.md`。
 
+## 直接看实现 / Direct evidence
+
+### Case Skill：上游实现的关键行为
+
+下面是根据固定版本 OpenMontage checkpoint protocol 和 `checkpoint.py` 整理的**规范化行为片段**，不是上游原文复制：
+
+```text
+# normalized Case Skill behavior
+checkpoint.status = current_stage
+resume:
+  read checkpoint.status
+  continue from the persisted stage
+```
+
+模式信号：持久状态决定下一步行为。本案例没有充分证明独立 ConcreteState Skill，因此保持 candidate correspondence。
+
+### Mock sample：本仓库实际 Skill
+
+```text
+patterns/state/sample/
+├── SKILL.md                         # Context: reload + persist
+├── child-skills/
+│   ├── draft/SKILL.md                # ConcreteState
+│   ├── verified/SKILL.md             # ConcreteState
+│   ├── approved/SKILL.md             # ConcreteState
+│   └── activated/SKILL.md            # ConcreteState
+├── references/vendor-state-contract.md
+└── scripts/run_demo.py               # persistence + recovery oracle
+```
+
+```markdown
+<!-- State: each state owns its legal action and successor. -->
+## Agent mode
+
+1. Load the persisted state before every action.
+2. Invoke only the Skill named by that state.
+3. Let that ConcreteState accept or reject the action.
+4. Atomically persist the successor before reporting success.
+```
+
+这段 mock Skill 直接对应 State 的核心：状态决定行为，状态对象拥有转换，Context 负责持久化和恢复。
+
 This record transfers the canonical Gang of Four State pattern to Skillware
 through a Vendor Onboarding Workflow / 供应商准入流程. The persisted workflow is
 the Context, `vendor-onboarding-state-v1` is the State contract, and four child

@@ -21,6 +21,53 @@ flowchart LR
 
 **看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`participant-map.yaml`。
 
+## 直接看实现 / Direct evidence
+
+### Case Skill：上游实现的关键行为
+
+下面是根据固定版本 `using-superpowers/SKILL.md`、session hook 和 hook 配置整理的**规范化行为片段**，用于直接展示模式信号，不是上游原文复制：
+
+```text
+# normalized Case Skill behavior
+on session start:
+  load the bootstrap policy                 # one public entry point
+  discover the relevant specialist Skills  # subsystem discovery
+  select and invoke the needed Skills      # caller does not orchestrate them
+```
+
+模式信号：一个入口 Skill 负责选择和调用多个专家 Skill。
+
+### Mock sample：本仓库实际 Skill
+
+```text
+patterns/facade/sample/
+├── SKILL.md                         # root Facade: public incident contract
+├── child-skills/
+│   ├── diagnose/SKILL.md             # subsystem 1
+│   ├── assess-impact/SKILL.md        # subsystem 2
+│   └── draft-communication/SKILL.md  # subsystem 3
+├── scripts/run_demo.py               # deterministic oracle
+└── tests/test_demo.py                # order + fallback checks
+```
+
+```markdown
+<!-- Facade: one public operation hides specialist orchestration. -->
+## Orchestration
+
+For `5xx spike`:
+1. Use `child-skills/diagnose/SKILL.md`.
+2. Pass its result to `child-skills/assess-impact/SKILL.md`.
+3. Pass the impact result to `child-skills/draft-communication/SKILL.md`.
+4. Return only `summary`, `impact`, `actions`, and `communication`.
+
+## Fallback
+
+For an unknown signal, preserve the public result contract and return
+`actions: ["request-human-triage"]`.
+```
+
+这段 mock Skill 直接对应 Facade 的核心：稳定入口、隐藏子系统顺序、统一输出和统一回退。
+
 This record transfers the Gang of Four Facade pattern to Skillware. It maps a
 stable entry Skill to the Facade, independently addressable specialist Skills
 to the subsystem, and the operator or task-level agent execution to the

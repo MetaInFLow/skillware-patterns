@@ -24,6 +24,26 @@ flowchart LR
 **The pattern-bearing line is:** one request → one policy selection → one of
 two interchangeable procedures → the same result shape.
 
+## Mock Skill source
+
+```text
+sample/
+├── SKILL.md
+├── child-skills/{fast-scan,deep-review}/SKILL.md
+├── references/review-strategy-contract.md
+├── scripts/run_demo.py
+└── tests/test_demo.py
+```
+
+```markdown
+<!-- Strategy: selection changes; the public contract does not. -->
+if security_sensitive or files >= 4:
+    invoke deep-review
+else:
+    invoke fast-scan
+validate the same review result after either procedure
+```
+
 ## Scenario
 
 A changed-file review should be fast for ordinary low-risk work and deeper for

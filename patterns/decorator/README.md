@@ -20,6 +20,45 @@ flowchart LR
 
 **看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/contract-review-component.md`。
 
+## 直接看实现 / Direct evidence
+
+### Case Skill：上游实现的关键行为
+
+下面是根据固定版本 Caveman activation hook 和 Caveman Skill 整理的**规范化行为片段**，不是上游原文复制：
+
+```text
+# normalized Case Skill behavior
+existing Host/session interaction
+  -> caveman-activate.js adds activation behavior
+  -> skills/caveman/SKILL.md remains the user-facing surface
+```
+
+模式信号：在既有交互表面外增加行为。本案例没有充分证明标准 Component/Decorator 结果契约，因此保持 candidate correspondence。
+
+### Mock sample：本仓库实际 Skill
+
+```text
+patterns/decorator/sample/
+├── SKILL.md                         # wrapper composition policy
+├── child-skills/
+│   ├── base-contract-review/SKILL.md # ConcreteComponent
+│   ├── privacy-check/SKILL.md         # ConcreteDecorator
+│   ├── citation-check/SKILL.md        # ConcreteDecorator
+│   └── compliance-check/SKILL.md      # ConcreteDecorator
+├── references/contract-review-component.md
+└── scripts/run_demo.py               # wrapper oracle
+```
+
+```markdown
+<!-- Decorator: delegate once, preserve the Component contract, add one concern. -->
+1. Start with `base_review`.
+2. Wrap it with the requested decorators in order.
+3. Invoke the resulting Component once.
+4. Preserve `summary` and append only the wrapper's finding.
+```
+
+这段 mock Skill 直接对应 Decorator 的核心：包装而不替换，叠加而不复制基础逻辑。
+
 This record transfers the canonical Gang of Four Decorator pattern to Skillware
 through Contract Review Enhancers / 合同审查增强. `contract-review-v1` is the
 Component, Base Contract Review is the ConcreteComponent, the shared wrapper

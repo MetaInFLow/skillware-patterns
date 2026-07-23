@@ -1177,6 +1177,9 @@ class CurrentReadmeContractTest(unittest.TestCase):
                 self.assertIn("Executable proof", text)
                 self.assertIn("SKILL.md", text)
                 self.assertIn("scripts/run_demo.py", text)
+                self.assertIn("## Mock Skill source", text)
+                self.assertIn("sample/", text)
+                self.assertRegex(text, r"(?s)```(?:markdown|text)\n.*<!--")
 
     def test_facade_demo_and_reproducibility_commands(self):
         required_paths = (

@@ -23,6 +23,48 @@ flowchart LR
 
 **看哪三个文件：** `sample/SKILL.md`、`sample/scripts/run_demo.py`、`sample/references/tracker-contracts.md`。
 
+## 直接看实现 / Direct evidence
+
+### Case Skill：上游实现的关键行为
+
+下面是根据固定版本 gstack template、生成器和 Host bindings 整理的**规范化行为片段**，不是上游原文复制：
+
+```text
+# normalized Case Skill behavior
+canonical Skill template
+  ├── Claude binding: host path + frontmatter + tool names
+  └── Codex binding:  host path + frontmatter + tool names
+
+generate(binding, canonical_skill) -> host_specific_skill
+```
+
+模式信号：同一个行为契约被翻译到不同 Host 接口，语义保持不变。
+
+### Mock sample：本仓库实际 Skill
+
+```text
+patterns/adapter/sample/
+├── SKILL.md                         # canonical issue contract
+├── references/tracker-contracts.md  # GitHub/Jira/Linear target contracts
+├── scripts/run_demo.py              # adapt_github / adapt_jira / adapt_linear
+├── fixtures/valid/                  # one fixture per target
+└── tests/test_demo.py               # translation + rejection checks
+```
+
+```markdown
+<!-- Adapter: preserve canonical meaning, change only target representation. -->
+## Target bindings
+
+1. GitHub: build `POST /repos/{owner}/{repo}/issues`.
+2. Jira: build `POST /rest/api/3/issue` with ADF description.
+3. Linear: build the `issueCreate` GraphQL mutation.
+
+Keep `id` and `severity` in the descriptor. Do not convert severity into
+vendor priority, and never send a network request in this oracle.
+```
+
+这段 mock Skill 直接对应 Adapter 的核心：一个 canonical issue，三个目标格式，语义不漂移。
+
 This record transfers the Gang of Four Adapter pattern to Skillware. It maps
 the canonical issue-publishing Skill to the Adaptee, each tracker contract to a
 Target, each thin tracker binding to an Adapter, and the task caller to the

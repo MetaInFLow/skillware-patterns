@@ -23,6 +23,24 @@ stateDiagram-v2
 **The pattern-bearing line is:** persisted current state → state-owned action →
 persisted successor state.
 
+## Mock Skill source
+
+```text
+sample/
+├── SKILL.md
+├── child-skills/{draft,verified,approved,activated}/SKILL.md
+├── references/vendor-state-contract.md
+├── scripts/run_demo.py
+└── tests/test_demo.py
+```
+
+```markdown
+<!-- State: the current child Skill owns the legal transition. -->
+load persisted state -> invoke current state's action
+  -> reject illegal action
+  -> atomically persist successor on success
+```
+
 ## Scenario
 
 A vendor moves through `draft`, `verified`, `approved`, and `activated`. The

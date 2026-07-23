@@ -21,6 +21,46 @@ flowchart LR
 
 **看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/review-strategy-contract.md`。
 
+## 直接看实现 / Direct evidence
+
+### Case Skill：上游实现的关键行为
+
+下面是根据固定版本 UI/UX Pro Max Skill、`search.py` 和 design-system procedure 整理的**规范化行为片段**，不是上游原文复制：
+
+```text
+# normalized Case Skill behavior
+request(domain, stack, style)
+  -> search.py selects the matching procedure
+  -> core.py / design_system.py produce the selected result
+```
+
+模式信号：一个路由 Skill 根据请求选择不同 procedure。本案例没有证明所有 procedure 共享完全相同的替换契约，因此保持 candidate correspondence。
+
+### Mock sample：本仓库实际 Skill
+
+```text
+patterns/strategy/sample/
+├── SKILL.md                         # Context + selection policy
+├── child-skills/
+│   ├── fast-scan/SKILL.md            # ConcreteStrategy 1
+│   └── deep-review/SKILL.md          # ConcreteStrategy 2
+├── references/review-strategy-contract.md
+└── scripts/run_demo.py               # selection + injection oracle
+```
+
+```markdown
+<!-- Strategy: select one procedure; every procedure keeps the same contract. -->
+## Agent mode
+
+1. Validate the review request.
+2. Select Deep Review for security-sensitive or large changes.
+3. Otherwise select Fast Scan.
+4. Invoke exactly one child Skill through the shared `review` operation.
+5. Validate the shared result contract before returning.
+```
+
+这段 mock Skill 直接对应 Strategy 的核心：选择逻辑可变，调用接口和结果契约稳定。
+
 This record transfers the canonical Gang of Four Strategy pattern to Skillware
 through Risk-Aware Code Review / 风险感知代码审查. The root review Skill is the
 Context, `risk-aware-code-review-v1` is the Strategy contract, and Fast Scan and

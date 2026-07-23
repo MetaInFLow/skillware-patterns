@@ -22,6 +22,44 @@ flowchart LR
 
 **看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/rfp-domain-hook-contract.md`。
 
+## 直接看实现 / Direct evidence
+
+### Case Skill：上游实现的关键行为
+
+下面是根据固定版本 Superpowers brainstorming/TDD Skills 整理的**规范化行为片段**，不是上游原文复制：
+
+```text
+# normalized Case Skill behavior
+fixed workflow order
+  -> task-specific content enters bounded steps
+  -> later steps consume the ordered result
+```
+
+模式信号：流程骨架固定，任务内容在指定步骤变化。本案例没有充分证明 ConcreteClass hook 契约，因此保持 candidate correspondence。
+
+### Mock sample：本仓库实际 Skill
+
+```text
+patterns/template-method/sample/
+├── SKILL.md                         # AbstractClass + invariant skeleton
+├── child-skills/
+│   ├── healthcare/SKILL.md           # ConcreteClass
+│   └── finance/SKILL.md              # ConcreteClass
+├── references/rfp-domain-hook-contract.md
+└── scripts/run_demo.py               # hook + ordering oracle
+```
+
+```markdown
+<!-- Template Method: child Skills cannot reorder the root workflow. -->
+1. extract-requirements
+2. analyze-gaps
+3. apply-domain-hook       <!-- only variation point -->
+4. draft-response
+5. quality-check
+```
+
+这段 mock Skill 直接对应 Template Method 的核心：根 Skill 固定算法，子 Skill 只实现一个钩子。
+
 Template Method fixes an algorithm skeleton in an AbstractClass while allowing
 a ConcreteClass to redefine selected operations without changing the sequence.
 

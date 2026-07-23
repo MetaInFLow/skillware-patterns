@@ -25,6 +25,24 @@ flowchart LR
 **The pattern-bearing line is:** fixed root sequence → one overridable hook →
 fixed remaining sequence.
 
+## Mock Skill source
+
+```text
+sample/
+├── SKILL.md
+├── child-skills/{healthcare,finance}/SKILL.md
+├── references/rfp-domain-hook-contract.md
+├── scripts/run_demo.py
+└── tests/test_demo.py
+```
+
+```markdown
+<!-- Template Method: only the domain hook is supplied by a child Skill. -->
+extract -> analyze-gaps -> apply-domain-hook -> draft -> quality-check
+                         ^
+                         └── healthcare or finance child Skill
+```
+
 ## Scenario
 
 Every enterprise RFP response must extract requirements, analyze gaps, apply a

@@ -19,6 +19,43 @@ flowchart LR
 
 **看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/configuration-memento-contract.md`。
 
+## 直接看实现 / Direct evidence
+
+### Case Skill：上游实现的关键行为
+
+下面是根据固定版本 Microsoft SkillOpt `staging.py` 整理的**规范化行为片段**，不是上游原文复制：
+
+```text
+# normalized Case Skill behavior
+current Skill configuration
+  -> create backup before adoption
+  -> adopt candidate configuration
+```
+
+模式信号：在改变 Skill 配置前保存旧状态。本案例没有看到完整的 owned restore path，因此保持 candidate correspondence。
+
+### Mock sample：本仓库实际 Skill
+
+```text
+patterns/memento/sample/
+├── SKILL.md                         # Caretaker workflow
+├── child-skills/
+│   ├── configuration-originator/SKILL.md
+│   └── migration-caretaker/SKILL.md
+├── references/configuration-memento-contract.md
+└── scripts/run_demo.py               # capture / restore oracle
+```
+
+```markdown
+<!-- Memento: the Caretaker holds an opaque checkpoint, never its content. -->
+1. Capture exact prior bytes before mutation.
+2. Prepare the new configuration through the Originator.
+3. Restore after a write-attempt failure.
+4. Discard the checkpoint after verified success.
+```
+
+这段 mock Skill 直接对应 Memento 的核心：保存状态、隐藏状态、按生命周期恢复或丢弃。
+
 This record transfers the canonical Gang of Four Memento pattern to Skillware.
 It maps the configuration owner to **Originator**, the opaque exact-byte
 checkpoint to **Memento**, and the migration workflow to **Caretaker**.

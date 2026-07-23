@@ -26,6 +26,54 @@ flowchart TB
 
 **看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/section-contract.md`。
 
+## 直接看实现 / Direct evidence
+
+### Case Skill：上游实现的关键行为
+
+下面是根据固定版本 OpenMontage pipeline definition、stage Skills 和 loader 整理的**规范化行为片段**，不是上游原文复制：
+
+```text
+# normalized Case Skill behavior
+pipeline.animation:
+  stages: [executive-producer, research-director, ...]
+
+pipeline_loader:
+  resolve each stage Skill
+  execute the declared stage graph
+```
+
+模式信号：多个 Skill 被组织成一个更大的工作流。由于上游没有证明统一 Leaf/Composite 契约，本案例保持 candidate correspondence。
+
+### Mock sample：本仓库实际 Skill
+
+```text
+patterns/composite/sample/
+├── SKILL.md                         # root Composite
+├── child-skills/
+│   ├── market-analysis/SKILL.md      # Leaf
+│   ├── financial-analysis/SKILL.md   # Leaf
+│   ├── competition-analysis/SKILL.md # Leaf
+│   └── risk-analysis/SKILL.md        # Leaf
+├── references/section-contract.md   # shared Component contract
+└── scripts/run_demo.py               # tree validation + assembly
+```
+
+```markdown
+<!-- Composite: root and leaves share one result shape. -->
+## Component contract
+
+Every node returns exactly `id`, `title`, `content`, `evidence`, and `children`.
+A Leaf returns `children: []`; the root returns the same shape containing its
+validated child records.
+
+## Agent mode
+
+Validate one rooted tree, invoke each Leaf in declared order, validate its
+record, then assemble the root Component.
+```
+
+这段 mock Skill 直接对应 Composite 的核心：统一接口、递归包含关系、整体和部分可用同一方式处理。
+
 This record transfers the canonical Gang of Four Composite pattern to
 Skillware. It maps the task caller to Client, `memo-section-v1` to Component,
 four independently inspectable analysis Skills to Leaves, and the root

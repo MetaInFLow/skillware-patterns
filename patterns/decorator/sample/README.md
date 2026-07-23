@@ -23,6 +23,25 @@ flowchart LR
 **The pattern-bearing line is:** wrapper → wrapped Component → same interface +
 one added responsibility.
 
+## Mock Skill source
+
+```text
+sample/
+├── SKILL.md
+├── child-skills/{base-contract-review,privacy-check,citation-check,compliance-check}/SKILL.md
+├── references/contract-review-component.md
+├── scripts/run_demo.py
+└── tests/test_demo.py
+```
+
+```markdown
+<!-- Decorator: call the wrapped Component once, then add one finding. -->
+base_review(text)
+  -> privacy_check(base_result)
+  -> citation_check(privacy_result)
+  -> same summary + ordered findings
+```
+
 ## Scenario
 
 A base contract review should remain unchanged while a caller optionally adds

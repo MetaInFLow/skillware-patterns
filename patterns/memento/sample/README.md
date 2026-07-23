@@ -22,6 +22,24 @@ flowchart LR
 **The pattern-bearing line is:** Originator state → opaque checkpoint →
 Caretaker restore/discard decision.
 
+## Mock Skill source
+
+```text
+sample/
+├── SKILL.md
+├── child-skills/{configuration-originator,migration-caretaker}/SKILL.md
+├── references/configuration-memento-contract.md
+├── scripts/run_demo.py
+└── tests/test_demo.py
+```
+
+```markdown
+<!-- Memento: the checkpoint is opaque to the Caretaker. -->
+capture exact bytes -> prepare migration -> write atomically
+  -> failure after write: restore checkpoint
+  -> verified success: discard checkpoint
+```
+
 ## Scenario
 
 A service configuration must move from version `n` to `n+1` atomically. If the

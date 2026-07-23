@@ -21,6 +21,46 @@ flowchart TB
 
 **看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/deployment-readiness-contract.md`。
 
+## 直接看实现 / Direct evidence
+
+### Case Skill：上游实现的关键行为
+
+下面是根据固定版本 financial-services GL reconciler cookbook 整理的**规范化行为片段**，不是上游原文复制：
+
+```text
+# normalized Case Skill behavior
+GL reconciler coordinator
+  -> reader worker
+  -> critic worker
+  -> resolver worker
+```
+
+模式信号：多个 worker 通过中心 coordinator 协作，而不是互相调用。本案例没有充分证明共享 Colleague 契约，因此保持 candidate correspondence。
+
+### Mock sample：本仓库实际 Skill
+
+```text
+patterns/mediator/sample/
+├── SKILL.md                         # ConcreteMediator + all-pass policy
+├── child-skills/
+│   ├── build/SKILL.md                # Colleague
+│   ├── security/SKILL.md             # Colleague
+│   ├── docs/SKILL.md                 # Colleague
+│   └── approval/SKILL.md             # Colleague
+├── references/deployment-readiness-contract.md
+└── scripts/run_demo.py               # binding + isolation oracle
+```
+
+```markdown
+<!-- Mediator: Colleagues report to the center; they do not call peers. -->
+1. Bind all four Colleagues after validating the complete set.
+2. Address them once in `build, security, docs, approval` order.
+3. Collect reports through the Mediator boundary.
+4. Apply the all-pass release policy in the coordinator only.
+```
+
+这段 mock Skill 直接对应 Mediator 的核心：中心协调、同伴隔离、集中决策。
+
 This record transfers the canonical Gang of Four Mediator pattern to Skillware.
 It maps the coordination interface to **Mediator**, the central deployment
 policy owner to **ConcreteMediator**, and the four isolated specialist Skills to

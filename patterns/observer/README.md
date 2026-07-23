@@ -23,6 +23,48 @@ flowchart LR
 
 **看哪三个文件：** `sample/SKILL.md`、`sample/child-skills/`、`sample/references/release-event-contract.md`。
 
+## 直接看实现 / Direct evidence
+
+### Case Skill：上游实现的关键行为
+
+下面是根据固定版本 ECC hooks、`run-with-flags.js` 和 continuous-learning Skill 整理的**规范化行为片段**，不是上游原文复制：
+
+```text
+# normalized Case Skill behavior
+hook event
+  -> run-with-flags.js
+  -> continuous-learning-v2 observation Skill
+  -> observe.sh
+```
+
+模式信号：Host/lifecycle event 被发送给独立的观察处理 Skill。本案例的完整注册、注销和失败记账仍不可见。
+
+### Mock sample：本仓库实际 Skill
+
+```text
+patterns/observer/sample/
+├── SKILL.md                         # Subject + delivery policy
+├── child-skills/
+│   ├── audit/SKILL.md                # Observer 1
+│   ├── changelog/SKILL.md            # Observer 2
+│   └── team-notification/SKILL.md    # Observer 3
+├── references/release-event-contract.md
+└── scripts/run_demo.py               # registration + notification oracle
+```
+
+```markdown
+<!-- Observer: Subject owns registration and notifies independent consumers. -->
+## Agent mode
+
+1. Validate the `release.published.v1` event.
+2. Apply explicit `register` / `unregister` operations.
+3. Freeze registration order when publication begins.
+4. Invoke every active Observer once with an isolated event copy.
+5. Record one receipt per attempt and continue after failures.
+```
+
+这段 mock Skill 直接对应 Observer 的核心：Subject 管订阅，Observer 各自处理，同一事件可独立交付。
+
 This record transfers the canonical Gang of Four Observer pattern to
 Skillware. The Subject is the ordered release subscription and event contract;
 the root Software Release Notification Skill plus deterministic publisher is

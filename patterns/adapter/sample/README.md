@@ -26,6 +26,27 @@ flowchart LR
 **The pattern-bearing line is:** one canonical issue → one selected binding →
 one target-specific request. That translation is the Adapter evidence.
 
+## Mock Skill source
+
+```text
+sample/
+├── SKILL.md
+├── references/tracker-contracts.md
+├── scripts/run_demo.py
+├── fixtures/valid/{github,jira,linear}.json
+└── tests/test_demo.py
+```
+
+```markdown
+<!-- Adapter: translate the representation, preserve issue meaning. -->
+## Target bindings
+GitHub -> POST /repos/{owner}/{repo}/issues
+Jira   -> POST /rest/api/3/issue
+Linear -> issueCreate GraphQL mutation
+
+Identity and severity stay in every offline descriptor; no network call occurs.
+```
+
 ## Scenario
 
 A triage Skill has one canonical issue (`id`, `title`, `description`, and

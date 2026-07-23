@@ -29,6 +29,25 @@ flowchart TB
 **The pattern-bearing line is:** root Component → validated child tree → child
 Components with the same result contract.
 
+## Mock Skill source
+
+```text
+sample/
+├── SKILL.md
+├── child-skills/{market,financial,competition,risk}-analysis/SKILL.md
+├── references/section-contract.md
+├── scripts/run_demo.py
+└── tests/test_demo.py
+```
+
+```markdown
+<!-- Composite: every node can be handled as memo-section-v1. -->
+Leaf:  {id, title, content, evidence, children: []}
+Root:  {id, title, content, evidence, children: [validated Leaves]}
+
+The root validates the tree before any Leaf executes.
+```
+
 ## Scenario
 
 An investment team needs one memo with market, financial, competition, and
