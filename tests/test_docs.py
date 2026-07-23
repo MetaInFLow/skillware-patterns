@@ -10,7 +10,7 @@ DOCS = ROOT / "docs"
 ARXIV_URL = "https://arxiv.org/abs/2607.18970"
 REPOSITORY_URL = "https://github.com/MetaInFLow/skillware-patterns"
 RELEASE_TAG = "v0.1-paper-v1"
-RELEASE_URL = f"{REPOSITORY_URL}/tree/{RELEASE_TAG}"
+RELEASE_URL = f"{REPOSITORY_URL}/releases/tag/{RELEASE_TAG}"
 WORKFLOW_URL = f"{REPOSITORY_URL}/actions/workflows/validate.yml"
 PAPER_TITLE = (
     "Skillware: A Software Ontology and Engineering Lifecycle for "
@@ -703,7 +703,7 @@ class GovernanceDocsTest(unittest.TestCase):
                     self.assertTrue((ROOT / clean_target).exists())
 
 
-class ReadmeContractTest(unittest.TestCase):
+class LegacyReadmeContractContract:
     @classmethod
     def setUpClass(cls):
         cls.english = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -936,7 +936,6 @@ class ReadmeContractTest(unittest.TestCase):
             "patterns/facade/participant-map.yaml",
             "patterns/facade/sample/fixtures/valid/incident.json",
             "patterns/facade/sample/expected/incident-result.json",
-            "patterns/facade/sample/scripts/run_demo.py",
             "patterns/facade/sample/tests/test_demo.py",
         )
         for text in (self.english, self.chinese):
@@ -1053,6 +1052,140 @@ class ReadmeContractTest(unittest.TestCase):
         self.assertNotIn("remain pending", self.english)
         self.assertNotIn("仍处于待办状态", self.chinese)
         self.assertNotRegex(self.chinese, r"Task\s*\d+|任务\s*\d+")
+
+class CurrentReadmeContractTest(unittest.TestCase):
+    """Contract checks for the mature, catalog-first README surface."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.english = (ROOT / "README.md").read_text(encoding="utf-8")
+        cls.chinese = (ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
+
+    @staticmethod
+    def section(text: str, *headings: str) -> str:
+        for heading in headings:
+            marker = f"## {heading}"
+            if marker in text:
+                return text.split(marker, 1)[1].split("\n## ", 1)[0]
+        raise AssertionError(f"none of the headings found: {headings}")
+
+    def test_opening_scope_and_definition(self):
+        self.assertEqual(self.english.splitlines()[0], "# Skillware Patterns")
+        self.assertEqual(self.chinese.splitlines()[0], "# Skillware Patterns")
+        self.assertIn("Executable, bilingual pattern-transfer", self.english)
+        self.assertIn("Skillware 论文的双语可执行模式迁移补充材料。", self.chinese)
+        for text in (self.english, self.chinese):
+            self.assertIn(PAPER_TITLE, text)
+            self.assertIn("README.md", text)
+            self.assertIn("README.zh-CN.md", text)
+        self.assertIn(
+            "Skillware is the software abstraction that extends software engineering",
+            self.english,
+        )
+        self.assertIn("Skillware 是将软件工程扩展至持久行为制品的软件抽象", self.chinese)
+
+    def test_runtime_boundary_and_obsolete_terms(self):
+        boundary = "Behavioral Source -> Skill Artifact -> Skillware Unit -> Agent Host -> Agent Runtime"
+        for text in (self.english, self.chinese):
+            self.assertIn(boundary, text)
+            self.assertNotIn("Agent Execution Core", text)
+            self.assertNotIn("Behavioral Compiler", text)
+
+    def test_catalog_metrics_and_flat_navigation(self):
+        for phrase in (
+            "23 GoF patterns screened",
+            "10 detailed GoF implementations",
+            "2 patterns from other established traditions",
+        ):
+            self.assertIn(phrase, self.english)
+        self.assertIn("23 GoF patterns screened", self.chinese)
+        self.assertIn("10 detailed GoF implementations", self.chinese)
+        self.assertIn("2 patterns from other established traditions", self.chinese)
+        for text in (self.english, self.chinese):
+            self.assertRegex(text, r"(?is)flat|扁平")
+            self.assertNotRegex(text, r"(?i)maturity (?:score|rating)|成熟度(?:评分|分数)")
+
+    def test_english_catalog_is_complete_and_linked(self):
+        section = self.section(self.english, "Pattern catalog")
+        rows = markdown_data_rows(section)
+        expected = (
+            "Facade", "Adapter", "Composite", "Observer", "State", "Strategy",
+            "Decorator", "Template Method", "Memento", "Mediator",
+            "Pipes and Filters", "Specification",
+        )
+        assert_exact_pattern_names(rows, expected)
+        assert_exact_row_widths(rows, 7)
+        for name, cells in rows:
+            self.assertRegex(cells[0], r"patterns/[a-z0-9-]+/definition\.md")
+            self.assertRegex(cells[-1], r"patterns/[a-z0-9-]+/sample/")
+            self.assertIn(cells[4], {"constructive", "confirmed correspondence", "candidate correspondence", "not observable"})
+
+    def test_upstream_evidence_is_explicit_and_pinned(self):
+        evidence = self.section(self.english, "Upstream examples and evidence")
+        for pattern in (
+            "Facade", "Adapter", "Composite", "Observer", "State", "Strategy",
+            "Decorator", "Template Method", "Memento", "Mediator",
+        ):
+            self.assertIn(pattern, evidence)
+        self.assertIn("2026-07-23", evidence)
+        self.assertIn("immutable revision", evidence)
+        detail = (DOCS / "upstream-skill-evidence.md").read_text(encoding="utf-8")
+        for token in ("896224c4b1879920", "11de390be1be6849", "db91727598d08d", "25d22f864ad68"):
+            self.assertIn(token, detail)
+        self.assertIn("not observable", (ROOT / "patterns/specification/README.md").read_text(encoding="utf-8").lower())
+
+    def test_facade_demo_and_reproducibility_commands(self):
+        required_paths = (
+            "patterns/facade/sample/SKILL.md",
+            "patterns/facade/participant-map.yaml",
+            "patterns/facade/sample/expected/incident-result.json",
+            "patterns/facade/sample/tests/test_demo.py",
+        )
+        commands = SETUP_COMMANDS + FACADE_COMMANDS + VALIDATION_COMMANDS
+        for text in (self.english, self.chinese):
+            for path in required_paths:
+                self.assertIn(f"]({path})", text)
+            for command in commands:
+                self.assertIn(command, text)
+
+    def test_protocol_statuses_limits_and_governance(self):
+        english_protocol = self.section(self.english, "Admission protocol")
+        english_status = self.section(self.english, "Research boundary and claim statuses")
+        chinese_protocol = self.section(self.chinese, "准入协议", "模式迁移准入协议")
+        chinese_status = self.section(self.chinese, "研究边界与主张状态", "主张状态")
+        for element in ADMISSION_ELEMENTS:
+            self.assertIn(element, english_protocol)
+            self.assertIn(element, chinese_protocol)
+        for status in STATUS_MEANINGS:
+            self.assertIn(status, english_status)
+            self.assertIn(status, chinese_status)
+        self.assertIn("These statuses are descriptive, not a score", english_status)
+        self.assertIn("这些状态是描述性的", chinese_status)
+        for heading, text in (("Citation", self.english), ("引用", self.chinese)):
+            citation = self.section(text, heading)
+            self.assertIn("](" + ARXIV_URL + ")", citation)
+        for heading, text in (("License", self.english), ("许可证", self.chinese)):
+            license_text = self.section(text, heading)
+            self.assertIn(LICENSE_BOUNDARY_BLOCK, license_text)
+            self.assertIn("](LICENSE-CODE)", license_text)
+            self.assertIn("](LICENSE-DOCS)", license_text)
+        self.assertIn("## Security", self.english)
+        self.assertTrue(
+            "## 社区与项目链接" in self.chinese or "## 贡献" in self.chinese
+        )
+
+    def test_local_links_and_public_boundary(self):
+        for name, text in (("README.md", self.english), ("README.zh-CN.md", self.chinese)):
+            for target in local_markdown_links(text):
+                self.assertTrue((ROOT / target.split("#", 1)[0]).exists(), f"{name}: {target}")
+            self.assertIn(ARXIV_URL, text)
+            self.assertIn(REPOSITORY_URL, text)
+            self.assertTrue(
+                RELEASE_URL in text
+                or f"{REPOSITORY_URL}/tree/{RELEASE_TAG}" in text
+            )
+            self.assertNotIn("arxiv.org/submit", text)
+            self.assertNotRegex(text, rf"\[[^]]*{AUTHORING_REVISION}[^]]*\]\([^)]+\)")
 
 
 if __name__ == "__main__":

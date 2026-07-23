@@ -17,6 +17,16 @@ request descriptor without changing identity or severity meaning.
 - [Runnable sample](sample/)
 - [Misuse discriminator](misuse/explanation.md)
 
+## Upstream Skill example
+
+The high-star comparison is [garrytan/gstack](https://github.com/garrytan/gstack):
+`SKILL.md.tmpl` is translated by `scripts/gen-skill-docs.ts` into Host-specific
+surfaces such as `hosts/claude.ts` and `hosts/codex.ts`, with a Codex invocation
+test in `test/codex-e2e.test.ts`. The pinned paths and correspondence boundary
+are in the [upstream evidence record](../../docs/upstream-skill-evidence.md#adapter--适配器模式).
+The local demo contains complete GitHub, Jira, and Linear child bindings under
+[`sample/child-skills/`](sample/child-skills/).
+
 The constructive sample and the gstack ecosystem correspondence are separate
 evidence claims. Neither establishes ecosystem frequency, cross-Host runtime
 parity, or an automatic improvement in quality.

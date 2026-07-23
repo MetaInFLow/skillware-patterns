@@ -22,6 +22,15 @@ present identical `(type, message)` finding.
 - [Runnable sample](sample/)
 - [Misuse discriminator](misuse/explanation.md)
 
+## Upstream Skill example
+
+The high-star comparison is [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman):
+`src/hooks/caveman-activate.js` adds activation/session behavior around the
+`skills/caveman/SKILL.md` surface. This is candidate correspondence because
+the common Component result and explicit delegate boundary are not fully
+observable; see the [pinned evidence record](../../docs/upstream-skill-evidence.md#decorator--装饰模式).
+The local demo gives each wrapper a complete contract-preserving Skill.
+
 The local sample is **constructive** evidence. Caveman is a **candidate
 correspondence** at one fixed public revision: its activation hook adds
 behavior around session start while preserving its process/stdout Host

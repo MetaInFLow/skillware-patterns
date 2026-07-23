@@ -15,3 +15,13 @@ Start with [`definition.md`](definition.md), inspect the exact role mapping in
 The public correspondence remains candidate-only because the inspected
 financial-services cookbook shows central orchestration and leaf workers but
 does not establish a shared Colleague contract or runtime decision behavior.
+
+## Upstream Skill example
+
+The high-star comparison is [anthropics/financial-services](https://github.com/anthropics/financial-services):
+`managed-agent-cookbooks/gl-reconciler/agent.yaml` coordinates the isolated
+`subagents/reader.yaml`, `subagents/critic.yaml`, and `subagents/resolver.yaml`
+workers, with a reproducible check in `scripts/test-cookbooks.sh`. The exact
+revision and candidate boundary are documented in the [upstream evidence
+record](../../docs/upstream-skill-evidence.md#mediator--中介者模式). The local
+demo makes the central status contract and no-peer rule executable.

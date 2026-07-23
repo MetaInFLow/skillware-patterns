@@ -16,6 +16,15 @@ and always returns `summary`, `impact`, `actions`, and `communication`.
 - [Runnable sample](sample/)
 - [Misuse discriminator](misuse/explanation.md)
 
+## Upstream Skill example
+
+The high-star comparison is [obra/superpowers](https://github.com/obra/superpowers):
+`skills/using-superpowers/SKILL.md` is the stable entry policy, while
+`hooks/session-start` and `hooks/hooks.json` activate it over specialist Skills.
+The observation is pinned and qualified in the
+[upstream evidence record](../../docs/upstream-skill-evidence.md#facade--外观模式).
+The complete offline local analogue is [`sample/SKILL.md`](sample/SKILL.md).
+
 The constructive sample and the confirmed Superpowers correspondence are
 separate evidence claims. Neither establishes ecosystem frequency,
 cross-Host equivalence, or an improvement in quality.

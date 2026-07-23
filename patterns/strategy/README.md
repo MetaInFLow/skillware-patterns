@@ -24,6 +24,16 @@ selected compact `fast_scan` or `deep_review` callable.
 - [Runnable sample](sample/)
 - [Misuse discriminator](misuse/explanation.md)
 
+## Upstream Skill example
+
+The high-star comparison is [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill):
+`.claude/skills/ui-ux-pro-max/SKILL.md` routes requests through
+`scripts/search.py`, `scripts/core.py`, and `scripts/design_system.py` for
+domain, stack, and design-system procedures. It remains candidate-only because
+the cited paths do not prove one common substitution contract; see the [pinned
+evidence record](../../docs/upstream-skill-evidence.md#strategy--策略模式).
+The local demo makes Fast Scan and Deep Review interchangeable under one schema.
+
 The local sample is **constructive** evidence. UI/UX Pro Max is a **candidate
 correspondence** at one fixed public revision: its tool routes among distinct
 procedures, but the inspected paths do not establish one common interface or

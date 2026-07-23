@@ -15,5 +15,15 @@ hook through one contract.
 - [Constructive sample](sample/)
 - [Misuse](misuse/explanation.md)
 
+## Upstream Skill example
+
+The high-star comparison is [obra/superpowers](https://github.com/obra/superpowers):
+`skills/brainstorming/SKILL.md` and
+`skills/test-driven-development/SKILL.md` prescribe invariant ordered
+workflows with bounded task-specific content. This is candidate correspondence
+because a formal ConcreteClass hook contract is not visible in those files; see
+the [pinned evidence record](../../docs/upstream-skill-evidence.md#template-method--模板方法).
+The local demo exposes the hook as a complete healthcare or finance child Skill.
+
 The sample is constructive evidence, not proof of production RFP quality,
 ecosystem prevalence, or Agent Runtime interpretation.

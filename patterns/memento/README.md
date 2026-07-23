@@ -18,3 +18,12 @@ Start with [`definition.md`](definition.md), inspect the role mapping in
 [`sample`](sample/). The open-source record is candidate-only because SkillOpt
 backs up before adoption but does not expose an owned restore path in the
 inspected source.
+
+## Upstream Skill example
+
+The high-star comparison is [microsoft/SkillOpt](https://github.com/microsoft/SkillOpt):
+`skillopt_sleep/staging.py` creates a backup before adopting a candidate Skill
+configuration. It is candidate correspondence because an owned opaque restore
+operation is not observable; the pinned path and limitation are in the [evidence
+record](../../docs/upstream-skill-evidence.md#memento--备忘录模式). The local
+demo implements exact-byte capture, validation, and restoration.

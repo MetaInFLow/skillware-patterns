@@ -18,6 +18,16 @@ failure isolation, and publication re-entry rejection.
 - [Runnable sample](sample/)
 - [Misuse discriminator](misuse/explanation.md)
 
+## Upstream Skill example
+
+The high-star comparison is [affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code):
+`hooks/hooks.json` and `scripts/hooks/run-with-flags.js` route lifecycle/tool
+events to the `skills/continuous-learning-v2/SKILL.md` observation workflow,
+including `skills/continuous-learning-v2/hooks/observe.sh`. It is candidate-only
+because registration and delivery accounting are not fully visible; see the
+[pinned evidence record](../../docs/upstream-skill-evidence.md#observer--观察者模式).
+The local sample supplies those contracts in [`sample/SKILL.md`](sample/SKILL.md).
+
 The local sample is **constructive** evidence. ECC hook artifacts are only a
 **candidate correspondence** because pinned source shows event-to-handler
 configuration and continuous-learning observation, but does not establish the
