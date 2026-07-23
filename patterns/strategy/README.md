@@ -1,52 +1,14 @@
-# 策略模式 / Strategy
+# 策略模式（Strategy）
 
-> **Scenario / 场景:** Risk-Aware Code Review / 风险感知代码审查
+> **人话：** 请求格式不变，根据条件选择一套具体做法。
 
-## 1. 先看问题 / The problem
+## 1. 先看场景
 
-Small changes need a fast review; security-sensitive or large changes need a
-deep review. If the root Skill owns every procedure, routing logic and review
-logic become tangled:
+普通改动适合快速审查，涉及安全或四个以上文件的改动需要深度审查。调用者只想提交一份 review request，并得到一种 review result。
 
-```text
-review Skill -> if risky: deep rules
-             -> else: fast rules
-```
+## 2. 先看完整 Skill
 
-## 2. 模式一句话 / Pattern in one sentence
-
-**Select one interchangeable procedure behind a stable request/result contract.**
-
-```mermaid
-flowchart LR
-    C[Review caller] --> X[Context\nreview request]
-    X --> Q{risk selector}
-    Q --> F[Fast Scan]
-    Q --> D[Deep Review]
-    F --> O[review.v1]
-    D --> O
-```
-
-The Context chooses; each Strategy performs the review through the same
-contract.
-
-## 3. 现实中的 Skill / Existing Skill case
-
-**Case Skill:** [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/blob/8a81ed60272d21d4b8808f7308d49a0b1b000555/.claude/skills/ui-ux-pro-max/SKILL.md) and its [router](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/blob/8a81ed60272d21d4b8808f7308d49a0b1b000555/scripts/search.py). **Status: candidate correspondence.**
-
-What the case does: a request is routed to a procedure based on domain,
-technology, or design-system context.
-
-```text
-request -> router -> selected procedure
-```
-
-The public files show routing. A complete substitutable Strategy result
-contract remains unverified.
-
-## 4. 本仓库的 Mock Skill / Mock Skill
-
-Our concrete example is `risk-aware-code-review`:
+**Mock Skill：** 我们构造的 Skill 叫 `risk-aware-code-review`：
 
 ```text
 patterns/strategy/sample/
@@ -59,10 +21,10 @@ patterns/strategy/sample/
 └── tests/test_demo.py
 ```
 
-The important part of [`sample/SKILL.md`](sample/SKILL.md) is:
+关键行为：
 
 ```markdown
-<!-- Strategy: selector chooses a procedure; both return review.v1. -->
+<!-- 选择规则会变化，公开的 review.v1 结果契约保持不变。 -->
 if `security_sensitive` or changed files >= 4:
     select `deep-review`
 else:
@@ -70,34 +32,61 @@ else:
 Validate the same `review.v1` result after either Skill.
 ```
 
-## 5. 角色对应 / Role mapping
+## 3. 这个模式解决了什么
 
-| GoF role | Skillware carrier in this example |
+### 没有 Strategy
+
+```text
+review Skill:
+  if risky: run all deep-review rules
+  else: run all fast-scan rules
+```
+
+选择条件和具体审查算法纠缠在一个大 Skill 里。
+
+### 使用 Strategy
+
+```text
+review request -> selector -> fast-scan OR deep-review -> review.v1
+```
+
+Context 负责选择，Strategy Skill 负责执行，两种 Strategy 可以分别替换和测试。
+
+## 4. 市面上的 Skill 案例
+
+**Case Skill：** [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/blob/8a81ed60272d21d4b8808f7308d49a0b1b000555/.claude/skills/ui-ux-pro-max/SKILL.md) 和它的 [router](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/blob/8a81ed60272d21d4b8808f7308d49a0b1b000555/scripts/search.py)。
+
+它体现 Strategy 思想的地方：router 根据请求的 domain、stack 或 design system 选择具体 procedure。
+
+```text
+request -> router -> selected procedure
+```
+
+公开文件支持路由关系，所有候选 procedure 是否完全可替换仍记录为 `candidate correspondence`。
+
+## 5. 这个例子对应哪些角色
+
+| Strategy 角色 | Skillware 中的对应物 |
 | --- | --- |
-| Context | root code-review Skill |
-| Strategy | shared `review.v1` procedure contract |
-| ConcreteStrategy | `fast-scan` and `deep-review` Skills |
+| Context | 根 code-review Skill |
+| Strategy | `review.v1` 过程契约 |
+| ConcreteStrategy | `fast-scan` 和 `deep-review` |
 
-## 6. 什么时候使用 / When to use
+## 6. 什么时候用
 
-| Use Strategy when | Keep it simple when |
-| --- | --- |
-| several procedures are valid replacements for one request | there is one procedure with no variation |
-| selection rules should stay separate from execution rules | branching changes the result contract |
-| procedures can share a stable input/output contract | the alternatives share no meaningful interface |
+适合：有多套可互换的执行方式；选择条件需要和执行逻辑分开；所有候选方案可以共享输入/输出契约。
 
-## 7. 运行与验证 / Run and inspect
+不适合：只有一套做法；每个候选方案返回完全不同的结果；分支只有一两行且不会继续增长。
+
+## 7. 运行
 
 ```bash
 python3 sample/scripts/run_demo.py
 python3 -m unittest discover -s sample/tests -v
 ```
 
-Read the [complete sample](sample/), [participant map](participant-map.yaml),
-[definition](definition.md), and [misuse case](misuse/explanation.md).
+继续阅读：[完整样例](sample/)、[角色映射](participant-map.yaml)、[模式定义](definition.md)、[反例](misuse/explanation.md)。
 
-## 8. 证据边界 / Evidence boundary
+## 8. 边界
 
-The local sample verifies deterministic selection and a shared result contract.
-The UI/UX Pro Max case is candidate correspondence and does not establish that
-its alternatives are fully substitutable.
+本地样例验证了选择逻辑和共享结果契约。UI/UX Pro Max 只支持候选级对应关系，不代表其所有 procedure 都满足完整替换契约。

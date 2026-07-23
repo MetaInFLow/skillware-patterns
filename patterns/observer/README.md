@@ -1,50 +1,14 @@
-# 观察者模式 / Observer
+# 观察者模式（Observer）
 
-> **Scenario / 场景:** Software Release Notification / 软件发布通知
+> **人话：** 一个 Skill 发布事件，多个已经注册的 Skill 各自接收并处理。
 
-## 1. 先看问题 / The problem
+## 1. 先看场景
 
-After a release, audit, changelog, and team-notification Skills all need the
-same event. A direct chain makes the release Skill own every consumer and lets
-one failing consumer block the others:
+软件发布成功后，审计、变更日志和团队通知都需要同一份发布信息。发布 Skill 不应承担每个消费者的具体工作，也不应因为一个消费者失败就丢掉其他通知。
 
-```text
-release Skill -> audit -> changelog -> team notification
-```
+## 2. 先看完整 Skill
 
-## 2. 模式一句话 / Pattern in one sentence
-
-**A Subject publishes a typed event to independently registered Observer Skills
-without embedding their responsibilities in the Subject.**
-
-```mermaid
-flowchart LR
-    P[Release Subject] --> E[release.published.v1]
-    E --> A[Audit Observer]
-    E --> C[Changelog Observer]
-    E --> T[Team Notification Observer]
-    A --> R[per-observer receipt]
-    C --> R
-    T --> R
-```
-
-Observers can be registered, removed, and isolated from one another.
-
-## 3. 现实中的 Skill / Existing Skill case
-
-**Case Skill:** [Everything Claude Code lifecycle hooks](https://github.com/affaan-m/ECC/blob/2bc924faf2f8e893bfe0af86b1931283693c30ae/hooks/hooks.json) and the [continuous-learning observer hook](https://github.com/affaan-m/ECC/blob/2bc924faf2f8e893bfe0af86b1931283693c30ae/skills/continuous-learning-v2/hooks/observe.sh). **Status: candidate correspondence.**
-
-What the case does: Host lifecycle events are routed to independent hook
-consumers. The files show event routing, while complete Observer registration
-and delivery semantics remain unverified.
-
-```text
-Host lifecycle event -> hook router -> observation Skill
-```
-
-## 4. 本仓库的 Mock Skill / Mock Skill
-
-Our concrete example is `software-release-notification`:
+**Mock Skill：** 我们构造的 Skill 叫 `software-release-notification`：
 
 ```text
 patterns/observer/sample/
@@ -58,45 +22,76 @@ patterns/observer/sample/
 └── tests/test_demo.py
 ```
 
-The important part of [`sample/SKILL.md`](sample/SKILL.md) is:
+关键行为：
 
 ```markdown
-<!-- Observer: consumers register for one typed release event. -->
+<!-- Subject 管理注册，Observer 只处理收到的事件。 -->
 1. validate `release.published.v1`
 2. freeze the active registration order
 3. invoke each registered consumer once
 4. record each receipt and isolate consumer failures
 ```
 
-## 5. 角色对应 / Role mapping
+## 3. 这个模式解决了什么
 
-| GoF role | Skillware carrier in this example |
+### 没有 Observer
+
+```text
+publish_release():
+  call audit()
+  call changelog()
+  call team_notification()
+```
+
+增加一个消费者就要修改发布 Skill；消费者之间的失败处理也被写死在发布 Skill 里。
+
+### 使用 Observer
+
+```text
+release.published.v1
+  -> audit Observer
+  -> changelog Observer
+  -> team-notification Observer
+```
+
+发布 Skill 只维护事件和订阅关系，消费者各自维护自己的行为。
+
+## 4. 市面上的 Skill 案例
+
+**Case Skill：** [Everything Claude Code lifecycle hooks](https://github.com/affaan-m/ECC/blob/2bc924faf2f8e893bfe0af86b1931283693c30ae/hooks/hooks.json) 和 [continuous-learning observer hook](https://github.com/affaan-m/ECC/blob/2bc924faf2f8e893bfe0af86b1931283693c30ae/skills/continuous-learning-v2/hooks/observe.sh)。
+
+它体现 Observer 思想的地方：Host 生命周期事件被路由给独立的观察 Skill。
+
+```text
+Host lifecycle event -> hook router -> observation Skill
+```
+
+公开文件显示了事件路由，完整的注册、注销和送达语义仍记录为 `candidate correspondence`。
+
+## 5. 这个例子对应哪些角色
+
+| Observer 角色 | Skillware 中的对应物 |
 | --- | --- |
-| Subject | root release-notification Skill |
-| Observer | audit, changelog, and team-notification Skills |
-| ConcreteSubject | the published release event source |
-| ConcreteObserver | each registered consumer implementation |
+| Subject | 根 release-notification Skill |
+| Observer | audit、changelog、team-notification |
+| ConcreteSubject | 发布事件来源 |
+| ConcreteObserver | 每个注册消费者的具体实现 |
 
-## 6. 什么时候使用 / When to use
+## 6. 什么时候用
 
-| Use Observer when | Keep it simple when |
-| --- | --- |
-| new consumers should subscribe without editing the Subject | there is one fixed recipient |
-| consumers need independent failure and lifecycle management | the event is only an internal function call |
-| an explicit typed event contract can be shared | ordering and transaction coupling dominate |
+适合：消费者可以独立增加或移除；一个事件需要通知多个 Skill；需要单独记录每个消费者的结果。
 
-## 7. 运行与验证 / Run and inspect
+不适合：只有一个固定接收者；所有步骤必须在同一事务里完成；事件订阅会让流程比直接调用更难理解。
+
+## 7. 运行
 
 ```bash
 python3 sample/scripts/run_demo.py
 python3 -m unittest discover -s sample/tests -v
 ```
 
-Read the [complete sample](sample/), [participant map](participant-map.yaml),
-[definition](definition.md), and [misuse case](misuse/explanation.md).
+继续阅读：[完整样例](sample/)、[角色映射](participant-map.yaml)、[模式定义](definition.md)、[反例](misuse/explanation.md)。
 
-## 8. 证据边界 / Evidence boundary
+## 8. 边界
 
-The local sample verifies registration, publication order, receipts,
-unsubscription, and failure isolation. The ECC paths remain candidate-level
-correspondence and do not establish production delivery guarantees.
+本地样例验证了注册、注销、送达回执和失败隔离。ECC 的公开路径只支持候选级对应关系，不代表生产级消息投递保证。

@@ -1145,22 +1145,21 @@ class CurrentReadmeContractTest(unittest.TestCase):
             )
             with self.subTest(pattern=pattern_id):
                 headings = (
-                    "## 1. 先看问题 / The problem",
-                    "## 2. 模式一句话 / Pattern in one sentence",
-                    "## 3. 现实中的 Skill / Existing Skill case",
-                    "## 4. 本仓库的 Mock Skill / Mock Skill",
-                    "## 5. 角色对应 / Role mapping",
-                    "## 6. 什么时候使用 / When to use",
-                    "## 7. 运行与验证 / Run and inspect",
-                    "## 8. 证据边界 / Evidence boundary",
+                    "## 1. 先看场景",
+                    "## 2. 先看完整 Skill",
+                    "## 3. 这个模式解决了什么",
+                    "## 4. 市面上的 Skill 案例",
+                    "## 5. 这个例子对应哪些角色",
+                    "## 6. 什么时候用",
+                    "## 7. 运行",
+                    "## 8. 边界",
                 )
                 positions = []
                 for heading in headings:
                     self.assertEqual(text.count(heading), 1)
                     positions.append(text.index(heading))
                 self.assertEqual(positions, sorted(positions))
-                self.assertIn("```mermaid", text)
-                self.assertIn("**Case Skill:**", text)
+                self.assertIn("**Case Skill", text)
                 self.assertIn("Mock Skill", text)
                 self.assertIn("SKILL.md", text)
                 self.assertIn("participant-map.yaml", text)
@@ -1179,17 +1178,17 @@ class CurrentReadmeContractTest(unittest.TestCase):
             )
             with self.subTest(pattern=pattern_id):
                 for heading in (
-                    "## 1. 先看问题 / The problem",
-                    "## 2. 模式一句话 / Pattern in one sentence",
-                    "## 3. 现实中的 Skill / Existing Skill case",
-                    "## 4. 本仓库的 Mock Skill / Mock Skill",
-                    "## 5. 角色对应 / Role mapping",
-                    "## 6. 什么时候使用 / When to use",
-                    "## 7. 运行与验证 / Run and inspect",
-                    "## 8. 证据边界 / Evidence boundary",
+                    "## 1. 先看场景",
+                    "## 2. 先看完整 Skill",
+                    "## 3. 这个模式解决了什么",
+                    "## 4. 市面上的 Skill 案例",
+                    "## 5. 这个例子对应哪些角色",
+                    "## 6. 什么时候用",
+                    "## 7. 运行",
+                    "## 8. 边界",
                 ):
                     self.assertIn(heading, text)
-                self.assertIn("**Case Skill:**", text)
+                self.assertIn("**Case Skill", text)
                 self.assertIn("Mock Skill", text)
 
                 sample = (ROOT / "patterns" / pattern_id / "sample" / "README.md").read_text(

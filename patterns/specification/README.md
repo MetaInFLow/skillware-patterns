@@ -1,47 +1,14 @@
-# 规约模式 / Specification
+# 规约模式（Specification）
 
-> **Scenario / 场景:** Expense Approval Policy / 费用审批规则
+> **人话：** 把每条业务规则写成可以命名、组合、测试和解释的规则 Skill。
 
-## 1. 先看问题 / The problem
+## 1. 先看场景
 
-Expense approval contains reusable rules for receipts, budgets, authority, and
-departments. One opaque function hides rule names and makes policy changes hard
-to explain:
+费用审批要检查收据、预算、授权金额和部门。规则以后还会被复用到不同审批政策中，调用者需要知道每条规则为什么通过或失败。
 
-```text
-caller -> eligible(expense)
-           all policy decisions hidden inside one function
-```
+## 2. 先看完整 Skill
 
-## 2. 模式一句话 / Pattern in one sentence
-
-**Represent each domain rule as a named Specification that can be evaluated and
-combined through one shared interface.**
-
-```mermaid
-flowchart LR
-    C[Expense Candidate] --> H[HasReceipt]
-    C --> B[WithinBudget]
-    C --> A[AuthorizedAmount]
-    C --> D[Department]
-    H --> P[AND / OR / NOT policy]
-    B --> P
-    A --> P
-    D --> P
-    P --> O[decision + explanation]
-```
-
-## 3. 现实中的 Skill / Existing Skill case
-
-**Case Skill:** no public upstream Skill is admitted for this record. **Status:
-not observable.**
-
-This explicit status keeps the pattern definition separate from ecosystem
-evidence. The repository does not invent an external case for Specification.
-
-## 4. 本仓库的 Mock Skill / Mock Skill
-
-Our constructive example is `expense-approval-policy`:
+**Mock Skill：** 我们构造的 Skill 叫 `expense-approval-policy`：
 
 ```text
 patterns/specification/sample/
@@ -56,44 +23,66 @@ patterns/specification/sample/
 └── tests/test_demo.py
 ```
 
-The important part of [`sample/SKILL.md`](sample/SKILL.md) is:
+关键行为：
 
 ```markdown
-<!-- Specification: every rule shares boolean and explanation behavior. -->
+<!-- 每条规则都有同一个 Candidate 输入和解释接口。 -->
 HasReceipt() & WithinBudget() & AuthorizedAmount(1000) & ~Department("restricted")
 
-Validate the Candidate first, then evaluate the named rules left-to-right.
+Validate the Candidate first, then evaluate named rules left-to-right.
 Return the decision together with a structured explanation trace.
 ```
 
-## 5. 角色对应 / Role mapping
+## 3. 这个模式解决了什么
 
-| DDD role | Skillware carrier in this example |
+### 没有 Specification
+
+```text
+caller -> eligible(expense)
+           收据、预算、授权和部门判断全部藏在一个函数里
+```
+
+规则无法单独命名、复用、组合或解释。
+
+### 使用 Specification
+
+```text
+Candidate -> HasReceipt
+          -> WithinBudget
+          -> AuthorizedAmount
+          -> NOT Department(restricted)
+          -> decision + explanation
+```
+
+每条规则都可以独立测试，再通过 `AND / OR / NOT` 组成政策。
+
+## 4. 市面上的 Skill 案例
+
+**Case Skill:** 本记录没有纳入公开的上游 Skill 案例，状态是 `not observable`。这个空位需要保留，避免把普通的规则代码强行包装成 Skillware 生态证据。
+
+## 5. 这个例子对应哪些角色
+
+| Specification 角色 | Skillware 中的对应物 |
 | --- | --- |
-| Candidate | bounded expense mapping |
-| Specification | each named leaf rule Skill |
-| Composite Specification | `AND`, `OR`, and `NOT` policy nodes |
+| Candidate | 有边界的费用对象 |
+| Specification | 每个具名规则 Skill |
+| Composite Specification | `AND`、`OR`、`NOT` 组合节点 |
 
-## 6. 什么时候使用 / When to use
+## 6. 什么时候用
 
-| Use Specification when | Keep it simple when |
-| --- | --- |
-| rules need names, reuse, composition, tests, or explanations | one trivial check has no reuse need |
-| policy decisions operate on a bounded Candidate | the operation is state-changing or procedural |
-| policy authors need AND/OR/NOT combinations | no stable decision contract can be defined |
+适合：规则需要复用；规则需要组合；规则需要独立测试或解释；输入可以被定义为有边界的 Candidate。
 
-## 7. 运行与验证 / Run and inspect
+不适合：只有一个简单判断；操作本身会改变外部状态；规则无法形成稳定的决策契约。
+
+## 7. 运行
 
 ```bash
 python3 sample/scripts/run_demo.py
 python3 -m unittest discover -s sample/tests -v
 ```
 
-Read the [complete sample](sample/), [participant map](participant-map.yaml),
-[definition](definition.md), and [misuse case](misuse/explanation.md).
+继续阅读：[完整样例](sample/)、[角色映射](participant-map.yaml)、[模式定义](definition.md)、[反例](misuse/explanation.md)。
 
-## 8. 证据边界 / Evidence boundary
+## 8. 边界
 
-The local sample is constructive evidence for named, composable rules and
-explanations. No external Specification case was admitted, so ecosystem
-correspondence remains not observable.
+本地样例证明了具名规则、组合和解释可以被构造。没有外部 Specification 案例，因此生态对应关系保持 `not observable`。
